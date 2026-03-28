@@ -1,0 +1,10 @@
+fastapi==0.111.0
+uvicorn==0.30.1
+sqlalchemy==2.0.30
+pydantic==2.7.4
+pydantic-settings==2.3.1
+python-jose[cryptography]==3.3.0
+python-dotenv==1.0.1
+alembic==1.13.1
+aiokafka==0.10.0 # For event-driven logic (listening for Ticket validation)
+httpx==0.27.0 # For verified attendance check

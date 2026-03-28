@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports: [ "5432:5432" ]
+
+  redis:
+    image: redis:7-alpine
+    ports: [ "6379:6379" ]
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on: [ zookeeper ]
+    ports: [ "9092:9092" ]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # --- API Gateway ---
+  gateway:
+    build: ./backend/gateway
+    ports: [ "8000:8000" ]
+    depends_on: [ auth, event, user, ticketing ]
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+
+  # --- Microservices (Port managed via environment) ---
+  auth:
+    build: ./backend/services/auth
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/auth_db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+
+  user:
+    build: ./backend/services/user
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/user_db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+
+  event:
+    build: ./backend/services/event
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/event_db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+
+  ticketing:
+    build: ./backend/services/ticketing
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/ticketing_db
+      - REDIS_HOST=redis
+
+  # Add other services as needed...

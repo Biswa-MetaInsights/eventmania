@@ -21,11 +21,6 @@ By shifting from a passive tool to an **agentic ecosystem**, EventMind provides 
 | **Networking** | **Shadow Bonding Agents** match attendees with similar profiles in the Chat communities. |
 | **Analytics** | Deep-dive insights into demand, sentiment, and attendee engagement. |
 
-### 📈 Business Value Proposition (BVP)
-- **Sub-24h Event GTM**: AI reduces the time from "Idea" to "Live Listing" by 90%.
-- **High-Trust Marketplace**: Every event is pre-moderated by our **AI Safety Policy Agent**.
-- **Increased LTV**: Smart recommendations ensure attendees stay within the ecosystem for future summits.
-
 ---
 
 ## ⚙️ 3. Technical System Architecture
@@ -37,54 +32,10 @@ By shifting from a passive tool to an **agentic ecosystem**, EventMind provides 
 - **Communication**: Kafka (Asynchronous events) + Redis (Real-time caching).
 - **Database Layer**: PostgreSQL (Production) / SQLite (Local Shadow Mode).
 - **AI Brain**: Gemini 1.5 Pro + CrewAI (Agentic Framework).
-- **Security**: Centralized JWT Authentication & Gateway-level Rate Limiting.
-
-### 🤖 The Data Mosaic AI (Agentic Strategy)
-We follow an **Event-Driven Agentic Architecture (EDAA)**:
-- **Event Sourcing**: Every state-change fires to a Kafka topic.
-- **Autonomous Agents**: Specialized **AI Crews** (Enricher, Policeman, Analyst) autonomously update the marketplace state based on these events.
 
 ---
 
-## 🗺️ 4. System Logic & Flows
-
-### 🌊 Technical High-Level Flow (Backend)
-```mermaid
-graph TD
-    subgraph Frontend
-      FW[Flutter Web]
-    end
-
-    subgraph "Entry Point"
-      GW[API Gateway] :: "Port 8000"
-    end
-
-    subgraph "Microservices Cluster"
-      AS[Auth Service]
-      ES[Event Service]
-      TS[Ticketing Service]
-      PS[Payment Service]
-    end
-
-    subgraph "AI Brain (Agentic Hub)"
-      MA[Data Mosaic Agent]
-      MOD[Moderation Agent]
-    end
-
-    FW -->|REST/WS| GW
-    GW -->|Route| AS
-    GW -->|Route| ES
-    ES -->|Event| KB[Kafka Bus]
-    KB -->|Trigger| MA
-    KB -->|Trigger| MOD
-    MOD -->|Verified| ES
-```
-
----
-
-## 🚀 5. Getting Started (Production & Local)
-
-### 💠 Local Shadow-Mode (No Infra Required)
+## 🚀 4. Getting Started (Shadow Mode)
 We've built a custom **One-Click Bootstrap** to bypass Docker/Kafka requirements for immediate testing:
 
 1.  **Bootstrap Environment**:
@@ -101,19 +52,5 @@ We've built a custom **One-Click Bootstrap** to bypass Docker/Kafka requirements
     cd frontend; flutter run -d chrome
     ```
 
-### 🚢 Production Deployment
-EventMind is designed for **Kubernetes (K8s) Orchestration**:
-- Every service includes a `Dockerfile` for containerization.
-- Orchestrate with `docker-compose.yml` for unified local stacks.
-- Centralized logging via **ElasticSearch/FluentD**.
-
 ---
-
-## 🔒 6. Security & Integrity
-- **Stateless Authentication**: Secured via **JWT** with global refresh-token rotations.
-- **Rate-Limiting**: Standardized protected paths via the **API Gateway**.
-- **Data Isolation**: Each service owns its database silo to prevent cascading security failures.
-
----
-
 ### *A Biswa-MetaInsights Enterprise*

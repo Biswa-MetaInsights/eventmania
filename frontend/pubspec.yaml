@@ -1,4 +1,4 @@
-name: biswa_event_platform
+name: eventmind_platform
 description: "A production-grade agentic AI event platform frontend."
 publish_to: 'none'
 version: 1.0.0+1
@@ -21,6 +21,7 @@ dependencies:
   url_launcher: ^6.2.4
   cached_network_image: ^3.3.1
   flutter_svg: ^2.0.9
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

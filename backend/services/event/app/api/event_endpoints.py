@@ -10,10 +10,21 @@ from app.core.config import settings
 from backend.shared.kafka_utils import KafkaManager
 import logging
 import asyncio
+import math
 
 router = APIRouter(prefix="/events", tags=["Event Management"])
 
 logger = logging.getLogger(__name__)
+
+def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371  # Earth radius in kilometers
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) * math.sin(dlat / 2) +
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+         math.sin(dlon / 2) * math.sin(dlon / 2))
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 # Initialize Kafka Manager for events
 kafka_manager = KafkaManager(
@@ -57,6 +68,9 @@ def search_events(
     category: Optional[str] = Query(None),
     date_from: Optional[datetime] = Query(None),
     status: Optional[EventStatus] = Query(EventStatus.PUBLISHED),
+    lat: Optional[float] = Query(None, description="User latitude"),
+    lng: Optional[float] = Query(None, description="User longitude"),
+    radius: Optional[int] = Query(20, description="Search radius in km"),
     db: Session = Depends(get_db)
 ):
     query = db.query(Event).filter(Event.status == status)
@@ -70,7 +84,25 @@ def search_events(
     if date_from:
         query = query.filter(Event.start_date >= date_from)
 
-    return query.limit(20).all()
+    events = query.limit(100).all()
+
+    # Spatial Filtering
+    if lat is not None and lng is not None:
+        filtered_events = []
+        for ev in events:
+            loc = ev.location or {}
+            ev_lat = loc.get("latitude")
+            ev_lng = loc.get("longitude")
+            if ev_lat is not None and ev_lng is not None:
+                dist = haversine(lat, lng, float(ev_lat), float(ev_lng))
+                if dist <= radius:
+                    filtered_events.append(ev)
+            else:
+                # Mock environment: Include fallback events without strict coordinates
+                filtered_events.append(ev)
+        return filtered_events[:20]
+
+    return events[:20]
 
 @router.get("/{event_id}", response_model=EventOut)
 def get_event(event_id: UUID, db: Session = Depends(get_db)):

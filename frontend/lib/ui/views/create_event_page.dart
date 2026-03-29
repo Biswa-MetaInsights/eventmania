@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../../api/api_client.dart';
-import '../../blocs/auth_provider.dart';
+import 'package:eventmind_platform/api/api_client.dart';
+import 'package:eventmind_platform/blocs/auth_provider.dart';
 
 class CreateEventPage extends ConsumerStatefulWidget {
   const CreateEventPage({super.key});
@@ -74,7 +74,7 @@ class _CreateEventPageState extends ConsumerState<CreateEventPage> {
             children: [
                Text("Event Basics", style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold)),
                const SizedBox(height: 32),
-               _buildInputField("Event Title", _titleController, Icons.title, "e.g., Biswa AI Summit 2026"),
+               _buildInputField("Event Title", _titleController, Icons.title, "e.g., EventMind AI Summit 2026"),
                const SizedBox(height: 24),
                _buildCategorySelector(),
                const SizedBox(height: 24),

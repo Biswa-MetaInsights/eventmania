@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../api/api_client.dart';
-import '../../blocs/auth_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:eventmind_platform/api/api_client.dart';
+import 'package:eventmind_platform/blocs/auth_provider.dart';
 
 class EventDetailPage extends ConsumerStatefulWidget {
   final String eventId;
@@ -146,7 +147,7 @@ class _EventDetailPageState extends ConsumerState<EventDetailPage> {
           const SizedBox(height: 24),
           _buildSidebarItem(Icons.location_on_rounded, "Location", event!['location']?['address'] ?? 'Online Event'),
           const SizedBox(height: 24),
-          _buildSidebarItem(Icons.workspace_premium_rounded, "Organizer", "Biswa Network Agent"),
+          _buildSidebarItem(Icons.workspace_premium_rounded, "Organizer", "EventMind Agent"),
         ],
       ),
     );

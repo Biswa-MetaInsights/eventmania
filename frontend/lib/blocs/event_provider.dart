@@ -31,14 +31,19 @@ class EventNotifier extends StateNotifier<EventState> {
     fetchEvents();
   }
 
-  Future<void> fetchEvents({String? category, String? query}) async {
+  Future<void> fetchEvents({String? category, String? query, double? lat, double? lng}) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final response = await eventApi.get('/events/search', queryParameters: {
-        'q': query,
-        'category': category,
+      final queryParams = <String, dynamic>{
         'status': 'published',
-      });
+      };
+      
+      if (query != null && query.isNotEmpty) queryParams['q'] = query;
+      if (category != null && category.isNotEmpty) queryParams['category'] = category;
+      if (lat != null) queryParams['lat'] = lat;
+      if (lng != null) queryParams['lng'] = lng;
+
+      final response = await eventApi.get('/events/search', queryParameters: queryParams);
 
       if (response.statusCode == 200) {
         state = state.copyWith(events: response.data, isLoading: false);

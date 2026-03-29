@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../../blocs/auth_provider.dart';
+import 'package:eventmind_platform/blocs/auth_provider.dart';
 
 class AuthPage extends ConsumerStatefulWidget {
   final bool isLogin;
@@ -65,7 +65,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
               child: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                    colors: [Color(0xFFF3FAFA), Color(0xFFE5F6F6)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -76,14 +76,22 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.flash_on, color: Colors.white, size: 64),
+                      Container(
+                        height: 400,
+                        width: 400,
+                        foregroundDecoration: const BoxDecoration(
+                          backgroundBlendMode: BlendMode.multiply,
+                          color: Colors.transparent,
+                        ),
+                        child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+                      ),
                       const SizedBox(height: 32),
                       Text(
                         'Unlock Your Next\nGreat Experience.',
                         style: GoogleFonts.outfit(
                           fontSize: 56,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: const Color(0xFF111827),
                           height: 1.1,
                         ),
                       ),
@@ -92,7 +100,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         'Join thousands of attendees discovering AI summits, tech workshops, and networking events daily.',
                         style: GoogleFonts.outfit(
                           fontSize: 20,
-                          color: Colors.white.withOpacity(0.8),
+                          color: const Color(0xFF4B5563),
                         ),
                       ),
                     ],
@@ -121,7 +129,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                       Text(
                         _isLoginMode 
                           ? 'Sign in to access your dashboard and event tickets.' 
-                          : 'Join the Biswa community to start your journey.',
+                          : 'Join the EventMind community to start your journey.',
                         style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 16),
                       ),
                       const SizedBox(height: 48),
@@ -151,7 +159,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         child: ElevatedButton(
                           onPressed: authState.isLoading ? null : _handleAuth,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
+                            backgroundColor: const Color(0xFF0D9488),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -175,6 +183,23 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           ),
                         ),
                       ),
+                      
+                      const SizedBox(height: 32),
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: Colors.grey[300])),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('OR', style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600)),
+                          ),
+                          Expanded(child: Divider(color: Colors.grey[300])),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      _buildSocialButton('Continue with Gmail', Icons.mail_outline, const Color(0xFFDB4437)),
+                      _buildSocialButton('Continue with Apple', Icons.apple, Colors.black),
+                      _buildSocialButton('Continue with Facebook', Icons.facebook, const Color(0xFF1877F2)),
                     ],
                   ),
                 ),
@@ -213,6 +238,23 @@ class _AuthPageState extends ConsumerState<AuthPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSocialButton(String text, IconData icon, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {},
+        icon: Icon(icon, color: color, size: 24),
+        label: Text(text, style: GoogleFonts.outfit(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w600)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: BorderSide(color: Colors.grey[300]!),
+        ),
+      ),
     );
   }
 }

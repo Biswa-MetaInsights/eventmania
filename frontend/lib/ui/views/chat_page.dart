@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:intl/intl.dart';
-import '../../api/api_client.dart';
-import '../../blocs/auth_provider.dart';
+import 'package:eventmind_platform/api/api_client.dart';
+import 'package:eventmind_platform/blocs/auth_provider.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   final String roomId;

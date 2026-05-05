@@ -1,4 +1,4 @@
-# 🚀 EventMind: The Agentic Event Marketplace
+# 🚀 EventMania: The Agentic Event Marketplace
 
 ---
 

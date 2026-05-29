@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Text, DateTime, UUID, JSON, DECIMAL, Enum, Integer
+﻿from sqlalchemy.types import Uuid
+from sqlalchemy import Column, String, Text, DateTime, JSON, DECIMAL, Enum, Integer
 import uuid
 import datetime
 import enum
@@ -15,8 +16,8 @@ class EventStatus(str, enum.Enum):
 class Event(Base):
     __tablename__ = "events"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organizer_id = Column(UUID(as_uuid=True), index=True, nullable=False)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organizer_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
     title = Column(String(300), nullable=False)
     slug = Column(String(350), unique=True, index=True)
     description = Column(Text, nullable=True)
@@ -43,3 +44,5 @@ class Event(Base):
 
     def __repr__(self):
         return f"<Event(title='{self.title}', status='{self.status}')>"
+
+

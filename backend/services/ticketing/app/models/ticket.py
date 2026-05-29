@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Boolean, DateTime, UUID, JSON, DECIMAL, Enum, Integer, ForeignKey
+﻿from sqlalchemy.types import Uuid
+from sqlalchemy import Column, String, Boolean, DateTime, JSON, DECIMAL, Enum, Integer, ForeignKey
 import uuid
 import datetime
 import enum
@@ -15,9 +16,9 @@ class TicketStatus(str, enum.Enum):
 class Ticket(Base):
     __tablename__ = "tickets"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    event_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
+    user_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
     
     # Optional seat info
     seat_info = Column(JSON, default={}) # e.g. {"row": "A", "number": 12}
@@ -40,8 +41,10 @@ class Ticket(Base):
 class Waitlist(Base):
     __tablename__ = "waitlist"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    event_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
+    user_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
     position = Column(Integer)
     requested_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+

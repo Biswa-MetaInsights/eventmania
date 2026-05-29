@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Text, DateTime, UUID, JSON, DECIMAL, ForeignKey, Integer, Boolean, CheckConstraint
+﻿from sqlalchemy.types import Uuid
+from sqlalchemy import Column, String, Text, DateTime, JSON, DECIMAL, ForeignKey, Integer, Boolean, CheckConstraint
 import uuid
 import datetime
 from sqlalchemy.ext.declarative import declarative_base
@@ -8,9 +9,9 @@ Base = declarative_base()
 class Review(Base):
     __tablename__ = "reviews"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    event_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
+    user_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
     
     # Rating: 1 to 5 stars
     rating = Column(Integer, nullable=False)
@@ -34,3 +35,5 @@ class Review(Base):
 
     def __repr__(self):
         return f"<Review(id='{self.id}', event='{self.event_id}', rating={self.rating})>"
+
+

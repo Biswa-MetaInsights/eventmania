@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.event import Event, EventStatus
@@ -33,7 +33,7 @@ kafka_manager = KafkaManager(
 )
 
 @router.post("/", response_model=EventOut, status_code=status.HTTP_201_CREATED)
-def create_event(event_in: EventCreate, db: Session = Depends(get_db)):
+def create_event(event_in: EventCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     # Create Slug
     slug = event_in.title.lower().replace(" ", "-") + "-" + str(datetime.utcnow().timestamp())
     
@@ -58,7 +58,7 @@ def create_event(event_in: EventCreate, db: Session = Depends(get_db)):
     }
     
     # Run publishing as a background task
-    asyncio.create_task(kafka_manager.send("event.created", event_data))
+    background_tasks.add_task(kafka_manager.send, "event.created", event_data)
 
     return new_event
 

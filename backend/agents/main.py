@@ -2,8 +2,13 @@ import uvicorn
 from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Optional
-from crew import PlatformCrews
 import uuid
+
+try:
+    from crew import PlatformCrews
+    CREW_AVAILABLE = True
+except ImportError:
+    CREW_AVAILABLE = False
 
 app = FastAPI(
     title="Agentic Messaging Service",
@@ -30,10 +35,12 @@ def trigger_content_generation(req: TaskRequest, background_tasks: BackgroundTas
     # Define background execution for the CrewAI task
     def run_crew():
         try:
+            if not CREW_AVAILABLE:
+                tasks_status[task_id] = "COMPLETED (SHADOW MODE - AI not available)"
+                return
             crews = PlatformCrews()
             result = crews.run_content_agent(req.input_data)
             tasks_status[task_id] = "COMPLETED"
-            # In production, write result back to Event Service or notify via Kafka
             print(f"Agent Task {task_id} result: {result}")
         except Exception as e:
             tasks_status[task_id] = f"FAILED: {str(e)}"

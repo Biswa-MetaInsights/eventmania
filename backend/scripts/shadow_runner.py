@@ -56,10 +56,7 @@ def run_shadow_mode():
         print(f"🚀 Starting {name} on port {port}...")
         
         # Build Command (using the detected py/python executable)
-        if name == "agents":
-            cmd = [sys.executable, "app/services/event_consumer.py"]
-        else:
-            cmd = [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port)]
+        cmd = [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port)]
         
         try:
             p = subprocess.Popen(

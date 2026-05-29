@@ -38,18 +38,32 @@ By shifting from a passive tool to an **agentic ecosystem**, EventMind provides 
 ## 🚀 4. Getting Started (Shadow Mode)
 We've built a custom **One-Click Bootstrap** to bypass Docker/Kafka requirements for immediate testing:
 
-1.  **Bootstrap Environment**:
+> **Requirements:** Python 3.11+ (tested on 3.13 64-bit), Flutter SDK installed.
+> **Python version note:** Originally developed on Python 3.11/3.12. Dependency versions have been updated to support Python 3.13. Do NOT use 32-bit Python.
+> **Windows Note:** Run this once to allow activation scripts:
+> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+1.  **Create & activate a virtual environment** (once only):
     ```powershell
-    py backend/scripts/prepare_slim_env.py
+    py -m venv .venv
+    .venv\Scripts\Activate.ps1
+    ```
+
+2.  **Install dependencies** (once only, with venv active):
+    ```powershell
     py backend/scripts/install_all.py
     ```
-2.  **Launch Ecosystem**:
+
+3.  **Launch Backend** — Terminal 1 (activate venv first):
     ```powershell
+    .venv\Scripts\Activate.ps1
     py backend/scripts/shadow_runner.py
     ```
-3.  **Launch Frontend**:
+
+4.  **Launch Frontend** — Terminal 2:
     ```powershell
-    cd frontend; flutter run -d chrome
+    cd frontend
+    flutter run -d chrome
     ```
 
 ---

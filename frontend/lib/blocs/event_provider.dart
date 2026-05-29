@@ -43,7 +43,7 @@ class EventNotifier extends StateNotifier<EventState> {
       if (lat != null) queryParams['lat'] = lat;
       if (lng != null) queryParams['lng'] = lng;
 
-      final response = await eventApi.get('/events/search', queryParameters: queryParams);
+      final response = await eventApi.get('/event/search', queryParameters: queryParams);
 
       if (response.statusCode == 200) {
         state = state.copyWith(events: response.data, isLoading: false);

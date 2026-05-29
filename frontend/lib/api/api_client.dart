@@ -35,7 +35,8 @@ class ApiClient {
   }
 
   // Generic methods for REST calls
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(String path,
+      {Map<String, dynamic>? queryParameters}) async {
     return await dio.get(path, queryParameters: queryParameters);
   }
 
@@ -52,12 +53,12 @@ class ApiClient {
 const String gatewayUrl = 'http://localhost:8000';
 
 // Unified Service Endpoints through Gateway
-final authApi = ApiClient('$gatewayUrl/auth');
-final userApi = ApiClient('$gatewayUrl/user');
-final eventApi = ApiClient('$gatewayUrl/event');
-final ticketApi = ApiClient('$gatewayUrl/ticket');
-final paymentApi = ApiClient('$gatewayUrl/payment');
-final notificationApi = ApiClient('$gatewayUrl/notification');
-final chatApi = ApiClient('$gatewayUrl/chat');
-final recoApi = ApiClient('$gatewayUrl/recommendation');
-final reviewApi = ApiClient('$gatewayUrl/review');
+final authApi = ApiClient(gatewayUrl);
+final userApi = ApiClient(gatewayUrl);
+final eventApi = ApiClient(gatewayUrl);
+final ticketApi = ApiClient(gatewayUrl);
+final paymentApi = ApiClient(gatewayUrl);
+final notificationApi = ApiClient(gatewayUrl);
+final chatApi = ApiClient(gatewayUrl);
+final recoApi = ApiClient(gatewayUrl);
+final reviewApi = ApiClient(gatewayUrl);

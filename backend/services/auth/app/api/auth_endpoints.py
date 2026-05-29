@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user_credentials import UserCredentials, UserRole
@@ -19,7 +19,7 @@ kafka_manager = KafkaManager(
 )
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def register_user(user_in: UserRegister, db: Session = Depends(get_db)):
+def register_user(user_in: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     # 1. Check if user already exists
     existing_user = db.query(UserCredentials).filter(UserCredentials.email == user_in.email).first()
     if existing_user:
@@ -47,10 +47,8 @@ def register_user(user_in: UserRegister, db: Session = Depends(get_db)):
         "role": str(new_user.role)
     }
     
-    # We'll handle starting/stopping the producer in the main lifecycle
     # but for now, we'll try sending the event directly
-    import asyncio
-    asyncio.create_task(kafka_manager.send("user.created", event_data))
+    background_tasks.add_task(kafka_manager.send, "user.created", event_data)
 
     return AuthResponse(msg="User registered successfully", user_id=new_user.id)
 
@@ -84,7 +82,7 @@ def login_user(form_data: UserLogin, db: Session = Depends(get_db)):
     return Token(access_token=access_token, refresh_token=refresh_token)
 
 @router.post("/social-login", response_model=Token)
-def social_login(social_in: SocialLogin, db: Session = Depends(get_db)):
+def social_login(social_in: SocialLogin, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     # 1. Fetch user by email
     user = db.query(UserCredentials).filter(UserCredentials.email == social_in.email).first()
     
@@ -108,8 +106,7 @@ def social_login(social_in: SocialLogin, db: Session = Depends(get_db)):
             "role": str(user.role),
             "provider": social_in.provider
         }
-        import asyncio
-        asyncio.create_task(kafka_manager.send("user.created", event_data))
+        background_tasks.add_task(kafka_manager.send, "user.created", event_data)
 
     # 2. Create tokens
     access_token = AuthService.create_access_token(

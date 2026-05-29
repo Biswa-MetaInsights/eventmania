@@ -28,21 +28,25 @@ class _EventDetailPageState extends ConsumerState<EventDetailPage> {
 
   Future<void> _loadAllData() async {
     try {
-      final results = await Future.wait([
-        eventApi.get('/events/${widget.eventId}'),
-        reviewApi.get('/reviews/event/${widget.eventId}'),
-        reviewApi.get('/reviews/event/${widget.eventId}/aggregates'),
-      ]);
-
+      final response = await eventApi.get('/event/${widget.eventId}');
       setState(() {
-        event = results[0].data;
-        reviews = results[1].data;
-        aggregates = results[2].data;
+        event = response.data;
         isLoading = false;
       });
     } catch (e) {
-      debugPrint("Error loading event detail: $e");
+      debugPrint("Error loading event: $e");
       setState(() => isLoading = false);
+    }
+
+    try {
+      final reviewResponse = await reviewApi.get('/review/event/${widget.eventId}');
+      final aggregateResponse = await reviewApi.get('/review/event/${widget.eventId}/aggregates');
+      setState(() {
+        reviews = reviewResponse.data ?? [];
+        aggregates = aggregateResponse.data;
+      });
+    } catch (e) {
+      debugPrint("Reviews not available: $e");
     }
   }
 

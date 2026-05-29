@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Boolean, DateTime, UUID, JSON, DECIMAL, Enum, Integer
+﻿from sqlalchemy.types import Uuid
+from sqlalchemy import Column, String, Boolean, DateTime, JSON, DECIMAL, Enum, Integer
 import uuid
 import datetime
 import enum
@@ -15,10 +16,10 @@ class PaymentStatus(str, enum.Enum):
 class PaymentIntent(Base):
     __tablename__ = "payment_intents"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    event_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    ticket_id = Column(UUID(as_uuid=True), index=True, nullable=True) # Linked once issued
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
+    event_id = Column(Uuid(as_uuid=True), index=True, nullable=False)
+    ticket_id = Column(Uuid(as_uuid=True), index=True, nullable=True) # Linked once issued
     
     # Stripe-specific data
     stripe_intent_id = Column(String(255), unique=True, index=True)
@@ -36,3 +37,5 @@ class PaymentIntent(Base):
 
     def __repr__(self):
         return f"<PaymentIntent(id='{self.id}', stripe_id='{self.stripe_intent_id}', status='{self.status}')>"
+
+

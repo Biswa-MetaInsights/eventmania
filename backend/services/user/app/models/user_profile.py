@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Text, DateTime, UUID, JSON, ARRAY
+﻿from sqlalchemy.types import Uuid
+from sqlalchemy import Column, String, Text, DateTime, JSON, ARRAY
 import uuid
 import datetime
 from sqlalchemy.ext.declarative import declarative_base
@@ -8,7 +9,7 @@ Base = declarative_base()
 class UserProfile(Base):
     __tablename__ = "profiles"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     full_name = Column(String(200), nullable=False)
     bio = Column(Text, nullable=True)
     avatar_url = Column(String(512), nullable=True)
@@ -19,3 +20,5 @@ class UserProfile(Base):
 
     def __repr__(self):
         return f"<UserProfile(full_name='{self.full_name}')>"
+
+

@@ -14,6 +14,7 @@ class EventCreate(BaseModel):
     end_date: datetime
     capacity: int = 0
     price: float = 0.0
+    status: Optional[EventStatus] = EventStatus.DRAFT
 
 class EventOut(BaseModel):
     id: UUID

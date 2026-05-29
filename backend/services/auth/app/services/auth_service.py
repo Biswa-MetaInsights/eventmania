@@ -1,20 +1,19 @@
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from app.core.config import settings
 from typing import Optional, Union
 
-# Password context for hashing and verification
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 class AuthService:
     @staticmethod
     def get_password_hash(password: str) -> str:
-        return pwd_context.hash(password)
+        pwd_bytes = password.encode('utf-8')[:72]
+        return _bcrypt.hashpw(pwd_bytes, _bcrypt.gensalt()).decode('utf-8')
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        return pwd_context.verify(plain_password, hashed_password)
+        pwd_bytes = plain_password.encode('utf-8')[:72]
+        return _bcrypt.checkpw(pwd_bytes, hashed_password.encode('utf-8'))
 
     @staticmethod
     def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

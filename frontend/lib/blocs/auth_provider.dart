@@ -42,7 +42,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     final token = await storage.read(key: 'access_token');
     if (token != null) {
-      state = state.copyWith(isAuthenticated: true, isLoading: false);
+      final email = await storage.read(key: 'user_email');
+      state = state.copyWith(isAuthenticated: true, isLoading: false, userEmail: email);
     } else {
       state = state.copyWith(isLoading: false);
     }
@@ -60,11 +61,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final data = response.data;
         await storage.write(key: 'access_token', value: data['access_token']);
         await storage.write(key: 'refresh_token', value: data['refresh_token']);
-        state = state.copyWith(isAuthenticated: true, isLoading: false, userEmail: email);
+        await storage.write(key: 'user_email', value: email);
+        state = state.copyWith(
+            isAuthenticated: true, isLoading: false, userEmail: email);
         return true;
       }
     } on DioException catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.message);
+      state = state.copyWith(
+          isLoading: false,
+          errorMessage: e.response?.data['detail'] ?? e.message);
     }
     return false;
   }
@@ -84,7 +89,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return await login(email, password);
       }
     } on DioException catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.response?.data['detail'] ?? e.message);
+      state = state.copyWith(
+          isLoading: false,
+          errorMessage: e.response?.data['detail'] ?? e.message);
     }
     return false;
   }
@@ -95,10 +102,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Mocking provider social result for now
       final email = "mock_$provider@eventmind.ai";
       final name = "Social User ($provider)";
-      
+
       final response = await authApi.post('/auth/social-login', data: {
         'email': email,
-        'full_name': social_in?.fullName ?? name,
+        'full_name': name,
         'provider': provider,
         'provider_id': 'mock_${provider}_id',
         'id_token': 'mock_token',
@@ -108,7 +115,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final data = response.data;
         await storage.write(key: 'access_token', value: data['access_token']);
         await storage.write(key: 'refresh_token', value: data['refresh_token']);
-        state = state.copyWith(isAuthenticated: true, isLoading: false, userEmail: email);
+        state = state.copyWith(
+            isAuthenticated: true, isLoading: false, userEmail: email);
         return true;
       }
     } on DioException catch (e) {

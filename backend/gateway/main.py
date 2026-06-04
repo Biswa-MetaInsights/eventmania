@@ -78,7 +78,7 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
             params=params,
             content=body,
             headers=headers,
-            timeout=10.0
+            timeout=30.0
         )
         
         # Return matched response to the client

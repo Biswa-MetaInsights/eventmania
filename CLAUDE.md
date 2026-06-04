@@ -13,6 +13,8 @@ EventMind is an AI-powered event discovery platform — think Eventbrite meets M
 
 The project is mid-build. A Flutter Web frontend exists and is partially working. A full React/Next.js frontend has been migrated from it and is the active codebase going forward. The Flutter version is kept as reference only.
 
+> **Important:** This is React/Next.js — NOT React Native. React Native is a mobile framework. This project is a Next.js web app. Do not confuse the two.
+
 ---
 
 ## Repository Layout
@@ -130,8 +132,23 @@ Shadow Mode starts all services on SQLite with mocked Kafka and Redis — no Doc
 | Payment | 8005 |
 | Notification | 8006 |
 | Chat (WebSocket) | 8007 |
+| Recommendation | 8008 |
+| Review | 8009 |
 
 Press `Ctrl+C` to shut everything down.
+
+> **Known startup issue (Windows):** Each service's `config.py` uses `env_file=".env"` which resolves relative to the service's own directory, not the project root. When starting services manually (not via `shadow_runner.py`), you must either:
+> - Set env vars in the shell session before launching, **or**
+> - Set `PYTHONPATH=<project root>` so the shared `backend.shared` module is importable.
+>
+> The `shadow_runner.py` script handles this automatically. If you start services manually, run:
+> ```powershell
+> $env:PYTHONPATH = "D:\path\to\eventmind"
+> $env:DATABASE_URL = "sqlite:///platform_dev.db"
+> $env:JWT_SECRET = "<value from .env>"
+> $env:MOCK_KAFKA = "TRUE"
+> $env:REDIS_HOST = "MOCK"
+> ```
 
 **Step 4 (first time only) — Seed the database with events**
 
@@ -271,7 +288,7 @@ Summary of working pages:
 | `/checkout/[id]` | Checkout — order summary + payment (free events skip card form) |
 | `/dashboard` | User dashboard — My Tickets tab + Networking Profile tab |
 | `/organizer` | Organiser console — stats + events table |
-| `/organizer/create` | Create/publish a new event |
+| `/organizer/create` | Create/publish a new event (with Save as Draft, Event Type toggle, inline validation) |
 | `/chat/[roomId]` | Live WebSocket chat room (accessed from ticket card) |
 
 The navbar has: EventMind wordmark, search (debounced to `?q=` URL param), Events dropdown, Communities dropdown (coming soon), Help, notification bell, avatar menu (My Dashboard, Organiser Console, Settings, Log Out).
@@ -290,6 +307,17 @@ Read the full breakdown in `Eventmind_files/REACT_MIGRATION.md` under "What Is N
 - **Social login** — buttons present but disabled.
 - **SEO metadata** — event pages need `generateMetadata()` for Google indexing.
 - **Mobile app** — monorepo is structured for it (`apps/mobile`), not started yet.
+- **Event image/banner upload** — no image field in the backend schema yet; needs backend change before frontend work.
+- **Ticket tiers** — backend only supports a single price per event; multi-tier (Free/Standard/VIP) needs schema changes.
+
+## Planned Work
+
+### PostgreSQL Migration
+- Currently using SQLite (`DATABASE_URL=sqlite:///platform_dev.db`) for local dev.
+- Production target is PostgreSQL (already configured in `docker-compose.yml`).
+- Each service gets its own database: `auth_db`, `user_db`, `event_db`, `ticketing_db`, etc.
+- To switch locally: update `.env` → `DATABASE_URL=postgresql://user:password@localhost:5432/auth_db` and run `docker-compose up postgres -d`.
+- No code changes needed — SQLAlchemy handles both dialects.
 
 ---
 

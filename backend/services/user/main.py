@@ -2,12 +2,15 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.user_endpoints import router as user_router
+from app.api.organizer_endpoints import router as organizer_router
 from app.db.session import engine
-from app.models.user_profile import Base
+from app.models.user_profile import Base as UserBase
+from app.models.organizer_profile import Base as OrganizerBase
 from app.core.config import settings
 
 # Initialize database tables
-Base.metadata.create_all(bind=engine)
+UserBase.metadata.create_all(bind=engine)
+OrganizerBase.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
@@ -25,8 +28,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Authentication Router
+# Include routers
 app.include_router(user_router)
+app.include_router(organizer_router)
 
 @app.get("/")
 def health_check():

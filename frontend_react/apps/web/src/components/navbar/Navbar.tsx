@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { organizerApi } from "@eventmind/api";
 import { useAuthStore } from "@eventmind/store";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
@@ -122,9 +124,10 @@ interface AvatarMenuProps {
   onOpen: () => void;
   onClose: () => void;
   onLogout: () => void;
+  isOrganizer: boolean;
 }
 
-function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout }: AvatarMenuProps) {
+function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout, isOrganizer }: AvatarMenuProps) {
   const triggerHover = useHoverStyle();
   const router = useRouter();
 
@@ -169,6 +172,9 @@ function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout }: AvatarMenuProps
         >
           <div className="absolute -top-1 inset-x-0 h-1" />
           <DropdownItem emoji="🎟️" label="My Dashboard" onTap={() => { onClose(); router.push("/dashboard"); }} />
+          {isOrganizer && (
+            <DropdownItem emoji="📋" label="My Organised Events" onTap={() => { onClose(); router.push("/organizer/my-events"); }} />
+          )}
           <DropdownItem emoji="🎛️" label="Organizer Console" onTap={() => { onClose(); router.push("/organizer"); }} />
           <div className="my-1 mx-3 h-px" style={{ backgroundColor: BORDER }} />
           <DropdownItem emoji="⚙️" label="Settings" onTap={() => {}} />
@@ -239,11 +245,30 @@ function Toast({ message }: { message: string }) {
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
+function subFromToken(token: string | null): string {
+  if (!token) return "";
+  try { return JSON.parse(atob(token.split(".")[1])).sub ?? ""; }
+  catch { return ""; }
+}
+
 export function Navbar() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userEmail = useAuthStore((s) => s.userEmail);
+  const tokens = useAuthStore((s) => s.tokens);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  const userId = subFromToken(tokens?.access_token ?? null);
+
+  const { data: organizerProfile } = useQuery({
+    queryKey: ["organizer-profile", userId],
+    queryFn: () => organizerApi.get(userId).then((r) => r.data),
+    enabled: isAuthenticated && !!userId,
+    retry: false,
+    staleTime: 5 * 60 * 1000, // cache for 5 min — no re-fetch on every nav
+  });
+
+  const isOrganizer = !!organizerProfile;
 
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -401,6 +426,7 @@ export function Navbar() {
             isOpen={activeMenu === "avatar"}
             onOpen={() => setActiveMenu("avatar")}
             onClose={closeAll}
+            isOrganizer={isOrganizer}
             onLogout={handleLogout}
           />
         )}

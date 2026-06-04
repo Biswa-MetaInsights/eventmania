@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { eventsApi } from "@eventmind/api";
-import { useAuthStore } from "@eventmind/store";
+import { eventsApi, organizerApi } from "@eventmind/api";
+import { useAuthStore, CITIES } from "@eventmind/store";
+import type { City } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
 const CATEGORIES = ["Technology", "Creative", "Business", "Summit", "Networking", "Gaming"];
+const EVENT_TYPES = ["In-Person", "Online", "Hybrid"] as const;
+type EventType = typeof EVENT_TYPES[number];
 
-// Extract user ID from JWT payload (read-only, no verification needed client-side)
 function subFromToken(token: string | null): string {
   if (!token) return "00000000-0000-0000-0000-000000000001";
   try {
@@ -27,168 +29,337 @@ export default function CreateEventPage() {
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Technology");
+  const [eventType, setEventType] = useState<EventType>("In-Person");
   const [description, setDescription] = useState("");
+  const [city, setCity] = useState<City>(CITIES[0]);
   const [address, setAddress] = useState("");
+  const [onlineUrl, setOnlineUrl] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [capacity, setCapacity] = useState("100");
   const [price, setPrice] = useState("0");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMode, setSubmitMode] = useState<"publish" | "draft">("publish");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
+  const [verificationChecked, setVerificationChecked] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+    if (!isAuthenticated) { router.replace("/auth"); return; }
+    const userId = subFromToken(tokens?.access_token ?? null);
+    if (!userId) return;
+    organizerApi.get(userId)
+      .then(() => setVerificationChecked(true))
+      .catch(() => router.replace("/organizer/onboarding"));
+  }, [isAuthenticated, router, tokens]);
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || !verificationChecked) return null;
 
-  async function handlePublish(e: { preventDefault(): void }) {
+  function validate(): boolean {
+    const errors: Record<string, string> = {};
+
+    if (title.trim().length < 5) errors.title = "Title must be at least 5 characters.";
+    if (description.trim().length < 20) errors.description = "Description must be at least 20 characters.";
+    if (eventType !== "Online" && !address.trim()) errors.address = "Venue address is required for in-person events.";
+    if (eventType !== "In-Person" && !onlineUrl.trim()) errors.onlineUrl = "Online link is required for online/hybrid events.";
+    if (!startDate) errors.startDate = "Start date is required.";
+    if (!endDate) errors.endDate = "End date is required.";
+    if (startDate && endDate && new Date(endDate) <= new Date(startDate))
+      errors.endDate = "End date must be after start date.";
+    if (parseInt(capacity) < 1) errors.capacity = "Capacity must be at least 1.";
+    if (parseFloat(price) < 0) errors.price = "Price cannot be negative.";
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  async function handleSubmit(e: React.FormEvent, mode: "publish" | "draft") {
     e.preventDefault();
+    if (!validate()) return;
+
     setError(null);
     setIsSubmitting(true);
+    setSubmitMode(mode);
 
     try {
       const organizerId = subFromToken(tokens?.access_token ?? null);
+      const location: Record<string, unknown> = {
+        event_type: eventType,
+        latitude: eventType !== "Online" ? city.lat : null,
+        longitude: eventType !== "Online" ? city.lng : null,
+      };
+      if (address.trim()) location.address = address.trim();
+      if (onlineUrl.trim()) location.online_url = onlineUrl.trim();
+
       await eventsApi.create({
         organizer_id: organizerId,
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         category,
-        location: { address, latitude: 0.0, longitude: 0.0 },
+        location,
         start_date: new Date(startDate).toISOString(),
         end_date: new Date(endDate).toISOString(),
         capacity: parseInt(capacity) || 100,
         price: parseFloat(price) || 0,
-        status: "published",
+        status: mode === "publish" ? "published" : "draft",
       });
+
       setSuccess(true);
       setTimeout(() => router.push("/organizer"), 1500);
     } catch {
-      setError("Failed to publish event. Please check all fields and try again.");
+      setError("Failed to save event. Please check all fields and try again.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  const descMax = 1000;
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ backgroundColor: "#F2EFEA" }}>
       <Navbar />
 
-      <div className="px-12 py-10 max-w-3xl">
+      <div className="px-12 py-10 max-w-3xl mx-auto">
+        {/* Header */}
         <div className="flex items-center gap-4 mb-10">
-          <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#F2EFEA] transition-colors"
-            style={{ border: "1px solid #E2DDD5" }}>
-            <svg className="w-4 h-4 text-[#6B7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <button
+            onClick={() => router.back()}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+            style={{ border: "1px solid #E2DDD5", backgroundColor: "white" }}
+          >
+            <svg className="w-4 h-4" style={{ color: "#6B7280" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
           </button>
-          <h1 className="text-[28px] font-bold text-[#111827]">Publish New Event</h1>
+          <div>
+            <h1 className="text-[28px] font-bold" style={{ color: "#111827" }}>Create New Event</h1>
+            <p className="text-sm" style={{ color: "#9CA3AF" }}>Fill in the details below to publish or save as draft.</p>
+          </div>
         </div>
 
-        <form onSubmit={handlePublish} className="space-y-12">
+        <form onSubmit={(e) => handleSubmit(e, submitMode)} className="space-y-6">
 
           {/* ── Event Basics ── */}
-          <section>
-            <h2 className="text-[22px] font-bold text-[#111827] mb-8">Event Basics</h2>
-            <div className="space-y-6">
-              <FormField label="Event Title">
-                <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., EventMind AI Summit 2026" className={inputCls} />
-              </FormField>
+          <Section title="Event Basics">
+            <FormField label="Event Title" error={fieldErrors.title}>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., EventMind AI Summit 2026"
+                className={inputCls(!!fieldErrors.title)}
+              />
+            </FormField>
 
+            <div className="grid grid-cols-2 gap-6">
               <FormField label="Category">
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls(false)}>
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </FormField>
 
-              <FormField label="Description">
-                <textarea required value={description} onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What is this event about?" rows={5} className={inputCls} />
+              <FormField label="Event Type">
+                <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid #E2DDD5" }}>
+                  {EVENT_TYPES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setEventType(t)}
+                      className="flex-1 py-3 text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: eventType === t ? GREEN : "white",
+                        color: eventType === t ? "white" : "#111827",
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </FormField>
             </div>
-          </section>
+
+            <FormField label={`Description (${description.length}/${descMax})`} error={fieldErrors.description}>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value.slice(0, descMax))}
+                placeholder="What is this event about? Who should attend?"
+                rows={5}
+                className={inputCls(!!fieldErrors.description)}
+              />
+            </FormField>
+          </Section>
 
           {/* ── Time & Location ── */}
-          <section>
-            <h2 className="text-[22px] font-bold text-[#111827] mb-8">Time & Location</h2>
-            <div className="space-y-6">
-              <FormField label="Venue Address">
-                <input type="text" required value={address} onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g., 123 Tech Lane, San Francisco" className={inputCls} />
+          <Section title="Time & Location">
+            {eventType !== "Online" && (
+              <FormField label="City">
+                <select
+                  value={city.name}
+                  onChange={(e) => setCity(CITIES.find((c) => c.name === e.target.value) ?? CITIES[0])}
+                  className={inputCls(false)}
+                >
+                  {CITIES.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}, {c.country}</option>
+                  ))}
+                </select>
               </FormField>
+            )}
 
-              <div className="grid grid-cols-2 gap-6">
-                <FormField label="Start Date & Time">
-                  <input type="datetime-local" required value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
-                </FormField>
-                <FormField label="End Date & Time">
-                  <input type="datetime-local" required value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)} className={inputCls} />
-                </FormField>
-              </div>
+            {eventType !== "Online" && (
+              <FormField label="Venue Address" error={fieldErrors.address}>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="e.g., 123 Tech Lane, San Francisco"
+                  className={inputCls(!!fieldErrors.address)}
+                />
+              </FormField>
+            )}
 
-              <FormField label="Capacity">
-                <input type="number" required min="1" value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  placeholder="Max number of attendees" className={inputCls} />
+            {eventType !== "In-Person" && (
+              <FormField label="Online Event Link" error={fieldErrors.onlineUrl}>
+                <input
+                  type="url"
+                  value={onlineUrl}
+                  onChange={(e) => setOnlineUrl(e.target.value)}
+                  placeholder="e.g., https://zoom.us/j/..."
+                  className={inputCls(!!fieldErrors.onlineUrl)}
+                />
+              </FormField>
+            )}
+
+            <div className="grid grid-cols-2 gap-6">
+              <FormField label="Start Date & Time" error={fieldErrors.startDate}>
+                <input
+                  type="datetime-local"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className={inputCls(!!fieldErrors.startDate)}
+                />
+              </FormField>
+              <FormField label="End Date & Time" error={fieldErrors.endDate}>
+                <input
+                  type="datetime-local"
+                  value={endDate}
+                  min={startDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className={inputCls(!!fieldErrors.endDate)}
+                />
               </FormField>
             </div>
-          </section>
+          </Section>
 
-          {/* ── Ticket Pricing ── */}
-          <section>
-            <h2 className="text-[22px] font-bold text-[#111827] mb-8">Ticket Pricing</h2>
-            <FormField label="Price (USD)">
-              <input type="number" required min="0" step="0.01" value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00 for FREE events" className={inputCls} />
-            </FormField>
-          </section>
+          {/* ── Tickets & Pricing ── */}
+          <Section title="Tickets & Pricing">
+            <div className="grid grid-cols-2 gap-6">
+              <FormField label="Capacity (max attendees)" error={fieldErrors.capacity}>
+                <input
+                  type="number"
+                  min="1"
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  placeholder="100"
+                  className={inputCls(!!fieldErrors.capacity)}
+                />
+              </FormField>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+              <FormField label="Ticket Price (USD)" error={fieldErrors.price}>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium" style={{ color: "#9CA3AF" }}>$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className={`${inputCls(!!fieldErrors.price)} pl-8`}
+                  />
+                </div>
+                {parseFloat(price) === 0 && (
+                  <p className="text-xs font-medium mt-1" style={{ color: GREEN }}>This will be a FREE event.</p>
+                )}
+              </FormField>
+            </div>
+          </Section>
 
+          {/* Error */}
+          {error && (
+            <p className="text-sm px-4 py-3 rounded-xl bg-red-50 text-red-600 border border-red-200">{error}</p>
+          )}
+
+          {/* Success */}
           {success && (
-            <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: GREEN }}>
+            <div className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl" style={{ color: GREEN, backgroundColor: "#F0F7F6" }}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
               </svg>
-              Event published! Redirecting to your console…
+              {submitMode === "publish" ? "Event published!" : "Draft saved!"} Redirecting…
             </div>
           )}
 
-          <button type="submit" disabled={isSubmitting || success}
-            className="w-full py-5 rounded-2xl text-white text-[18px] font-bold transition-colors disabled:opacity-60"
-            style={{ backgroundColor: GREEN }}
-            onMouseEnter={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = "#133d39")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = GREEN)}
-          >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin border-white" />
-                Publishing…
-              </span>
-            ) : "Publish Event Now"}
-          </button>
+          {/* Actions */}
+          <div className="flex gap-4 pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting || success}
+              onClick={() => setSubmitMode("draft")}
+              className="flex-1 py-4 rounded-2xl text-sm font-bold transition-colors disabled:opacity-50"
+              style={{ border: `2px solid ${GREEN}`, color: GREEN, backgroundColor: "white" }}
+            >
+              {isSubmitting && submitMode === "draft" ? "Saving…" : "Save as Draft"}
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || success}
+              onClick={() => setSubmitMode("publish")}
+              className="flex-[2] py-4 rounded-2xl text-white text-sm font-bold transition-colors disabled:opacity-50"
+              style={{ backgroundColor: GREEN }}
+            >
+              {isSubmitting && submitMode === "publish" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin border-white" />
+                  Publishing…
+                </span>
+              ) : "Publish Event"}
+            </button>
+          </div>
+
         </form>
       </div>
     </div>
   );
 }
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-bold text-[#111827]">{label}</label>
+    <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "white", border: "1px solid #E2DDD5" }}>
+      <h2 className="text-[18px] font-bold" style={{ color: "#111827" }}>{title}</h2>
       {children}
     </div>
   );
 }
 
-const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-[#E2DDD5] bg-white text-[#111827] text-sm " +
-  "placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#184E4A]/20 " +
-  "focus:border-[#184E4A] transition-colors resize-none";
+function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-semibold" style={{ color: "#111827" }}>{label}</label>
+      {children}
+      {error && <p className="text-xs" style={{ color: "#EF4444" }}>{error}</p>}
+    </div>
+  );
+}
+
+function inputCls(hasError: boolean): string {
+  return (
+    "w-full px-4 py-3 rounded-xl text-sm transition-colors " +
+    "placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 resize-none " +
+    (hasError
+      ? "border border-red-400 bg-red-50 focus:ring-red-200"
+      : "border border-[#E2DDD5] bg-white text-[#111827] focus:ring-[#184E4A]/20 focus:border-[#184E4A]")
+  );
+}

@@ -2,7 +2,7 @@ import { apiClient } from "./client";
 import type { Event } from "@eventmind/types";
 
 export const eventsApi = {
-  search: (params?: { q?: string; category?: string; lat?: number; lng?: number }) =>
+  search: (params?: { q?: string; category?: string; lat?: number; lng?: number; radius?: number; organizer_id?: string }) =>
     apiClient.get<Event[]>("/event/search", {
       params: { status: "published", ...params },
     }),

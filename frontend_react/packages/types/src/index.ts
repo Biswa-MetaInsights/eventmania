@@ -44,3 +44,16 @@ export interface ApiError {
   detail: string;
   status_code?: number;
 }
+
+export type VerificationStatus = "unverified" | "pending" | "verified";
+
+export interface OrganizerProfile {
+  id: string;
+  user_id: string;
+  company_name: string;
+  company_address: string;
+  company_email: string;
+  country: string;
+  registration_number: string;
+  verification_status: VerificationStatus;
+}

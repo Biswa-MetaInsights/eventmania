@@ -3,14 +3,71 @@
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsApi } from "@eventmind/api";
+import { eventsApi, communitiesApi } from "@eventmind/api";
+import type { Event, Community } from "@eventmind/types";
 import { Navbar } from "@/components/navbar/Navbar";
 import { HeroCarousel } from "@/components/HeroCarousel";
-import { EventCard } from "@/components/EventCard";
-import { EventsCarousel, SAMPLE_EVENTS } from "@/components/EventsCarousel";
-import { CommunityCarousel, SAMPLE_COMMUNITIES } from "@/components/CommunityCarousel";
+import { EventsCarousel, type CarouselEvent } from "@/components/EventsCarousel";
+import { CommunityCarousel, type CommunityItem } from "@/components/CommunityCarousel";
 
-const GREEN = "#184E4A";
+function toCarouselEvent(event: Event): CarouselEvent {
+  const start = new Date(event.start_date);
+  const date = start.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+  const time = start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const venue = (event.location as Record<string, string>)?.name ?? "Venue TBC";
+  const price = Number(event.price);
+  const isFree = price === 0;
+  const isSoldOut = event.capacity > 0 && event.tickets_sold >= event.capacity;
+  const sellingFast = !isSoldOut && event.capacity > 0 && event.tickets_sold / event.capacity > 0.7;
+
+  return {
+    id: String(event.id),
+    title: event.title,
+    date,
+    time,
+    venue,
+    price: isFree ? "Free" : `₹${price.toLocaleString("en-IN")} onwards`,
+    imageUrl: `https://picsum.photos/seed/${event.id}/800/450`,
+    badge: isSoldOut ? "Sold Out" : sellingFast ? "Selling Fast" : isFree ? "Free" : undefined,
+    badgeType: isSoldOut ? "sold-out" : sellingFast ? "selling-fast" : isFree ? "free" : undefined,
+    isSoldOut,
+    category: event.category.toLowerCase(),
+  };
+}
+
+function toCommunityItem(community: Community): CommunityItem {
+  const location = community.location as Record<string, string>;
+  const venue = location?.name ?? "Venue TBC";
+  const price = Number(community.price);
+  const isFree = price === 0;
+
+  let date = "";
+  let time = "";
+  if (community.next_event_date) {
+    const next = new Date(community.next_event_date);
+    date = next.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+    time = next.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+
+  const count = community.member_count;
+  const memberCount = count >= 1000
+    ? `${(count / 1000).toFixed(count % 1000 === 0 ? 0 : 1)}k`
+    : String(count);
+
+  return {
+    id: String(community.id),
+    title: community.name,
+    date,
+    time,
+    venue,
+    price: isFree ? "Free" : `₹${price.toLocaleString("en-IN")}/month onwards`,
+    memberCount,
+    imageUrl: `https://picsum.photos/seed/${community.id}/800/450`,
+    badge: isFree ? "Free" : undefined,
+    badgeType: isFree ? "free" : undefined,
+    category: community.category.toLowerCase(),
+  };
+}
 
 // Wrapped in Suspense because useSearchParams requires it in Next.js App Router
 export default function Home() {
@@ -26,85 +83,38 @@ function DiscoveryPage() {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? undefined;
 
-  const { data: events, isLoading } = useQuery({
+  const { data: events, isLoading: eventsLoading } = useQuery({
     queryKey: ["events", q],
     queryFn: () => eventsApi.search({ q }).then((r) => r.data),
   });
+
+  const { data: communities, isLoading: communitiesLoading } = useQuery({
+    queryKey: ["communities", q],
+    queryFn: () => communitiesApi.search({ q }).then((r) => r.data),
+  });
+
+  const carouselEvents = (events ?? []).map(toCarouselEvent);
+  const carouselCommunities = (communities ?? []).map(toCommunityItem);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F2EFEA" }}>
       <Navbar />
       <HeroCarousel />
 
-      {/* ── Horizontal event carousel ── */}
       <EventsCarousel
-        events={SAMPLE_EVENTS}
+        events={carouselEvents}
         location="Thiruvananthapuram"
         seeAllHref="/events/thiruvananthapuram"
+        isLoading={eventsLoading}
+        onBookNow={(id) => router.push(`/event/${id}`)}
       />
 
-      {/* ── Community carousel ── */}
       <CommunityCarousel
-        communities={SAMPLE_COMMUNITIES}
+        communities={carouselCommunities}
         location="Thiruvananthapuram"
         seeAllHref="/communities/thiruvananthapuram"
+        isLoading={communitiesLoading}
       />
-
-      {/* ── Section header ── */}
-      <div className="flex items-end justify-between px-12 pt-8 pb-7">
-        <div>
-          <h2
-            className="font-extrabold tracking-[-0.5px]"
-            style={{ fontSize: 26, color: "#111827" }}
-          >
-            Upcoming Events
-          </h2>
-          <p className="text-sm mt-1" style={{ color: "#6B7280" }}>
-            Discover what&apos;s happening around you
-          </p>
-        </div>
-        <button
-          className="flex items-center gap-1 text-sm font-semibold"
-          style={{ color: GREEN }}
-        >
-          View All
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-          </svg>
-        </button>
-      </div>
-
-      {/* ── Event grid ── */}
-      <div className="px-12 pb-20">
-        {isLoading ? (
-          <div className="flex justify-center py-24">
-            <div
-              className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
-              style={{ borderColor: `${GREEN} transparent transparent transparent` }}
-            />
-          </div>
-        ) : !events || events.length === 0 ? (
-          <div className="flex flex-col items-center py-20 gap-4">
-            <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
-            </svg>
-            <p className="text-[16px]" style={{ color: "#94A3B8" }}>
-              No events found. Try searching above.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                onTap={() => router.push(`/event/${event.id}`)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

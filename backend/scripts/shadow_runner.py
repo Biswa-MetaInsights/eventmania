@@ -12,6 +12,7 @@ SERVICES = {
     "ticketing": ("services/ticketing", 8004),
     "notification": ("services/notification", 8006),
     "agents": ("agents", 8010),
+    "community": ("services/community", 8011),
 }
 
 # Base Directory (backend/)

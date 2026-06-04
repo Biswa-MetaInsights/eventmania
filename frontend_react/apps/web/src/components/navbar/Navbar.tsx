@@ -169,6 +169,7 @@ function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout }: AvatarMenuProps
         >
           <div className="absolute -top-1 inset-x-0 h-1" />
           <DropdownItem emoji="🎟️" label="My Dashboard" onTap={() => { onClose(); router.push("/dashboard"); }} />
+          <DropdownItem emoji="❤️" label="My Wishlist" onTap={() => { onClose(); router.push("/dashboard?tab=wishlist"); }} />
           <DropdownItem emoji="🎛️" label="Organizer Console" onTap={() => { onClose(); router.push("/organizer"); }} />
           <div className="my-1 mx-3 h-px" style={{ backgroundColor: BORDER }} />
           <DropdownItem emoji="⚙️" label="Settings" onTap={() => {}} />

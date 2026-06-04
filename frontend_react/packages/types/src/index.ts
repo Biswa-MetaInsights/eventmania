@@ -40,6 +40,21 @@ export interface AuthTokens {
   token_type: string;
 }
 
+export interface Community {
+  id: string;
+  organizer_id: string;
+  name: string;
+  description?: string;
+  category: string;
+  location: Record<string, unknown>;
+  next_event_date?: string;
+  member_count: number;
+  price: number;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ApiError {
   detail: string;
   status_code?: number;

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Roboto } from 'next/font/google'
+import { useWishlistStore } from '@eventmind/store'
 
 const roboto = Roboto({ subsets: ['latin'], style: ['normal', 'italic'] })
 
@@ -324,8 +325,9 @@ function ShareButton() {
 
 // ─── Heart / favourite button ──────────────────────────────────────────────────
 
-function HeartButton() {
-  const [liked, setLiked] = useState(false)
+function HeartButton({ community }: { community: CommunityItem }) {
+  const toggle = useWishlistStore((s) => s.toggleItem)
+  const liked = useWishlistStore((s) => s.items.some((i) => i.id === community.id))
   const [hovered, setHovered] = useState(false)
   return (
     <div className="flex items-center gap-1.5">
@@ -338,7 +340,25 @@ function HeartButton() {
       <button
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLiked((v) => !v) }}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          toggle({
+            kind: 'community',
+            id: community.id,
+            title: community.title,
+            date: community.date,
+            time: community.time,
+            venue: community.venue,
+            price: community.price,
+            imageUrl: community.imageUrl,
+            badge: community.badge,
+            badgeType: community.badgeType,
+            isSoldOut: community.isSoldOut,
+            category: community.category,
+            memberCount: community.memberCount,
+          })
+        }}
         aria-label={liked ? 'Remove from wishlist' : 'Add to wishlist'}
         className="w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90"
         style={{ backgroundColor: LINEN }}
@@ -421,7 +441,7 @@ function CommunityCardItem({
           sizes="(max-width: 768px) calc(100vw - 96px), (max-width: 1024px) calc(50vw - 72px), (max-width: 1280px) calc(33vw - 60px), calc(25vw - 60px)"
         />
         <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><ShareButton /></div>
-        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton /></div>
+        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton community={community} /></div>
         {badgeCfg && !community.isSoldOut && (
           <div className={`absolute bottom-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
             <span className="px-2.5 py-1 rounded-full text-[16px] font-bold"
@@ -533,7 +553,7 @@ function OnlineCommunityCard({
           style={{ transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 0.3s ease' }}
         />
         <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><ShareButton /></div>
-        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton /></div>
+        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton community={community} /></div>
         {badgeCfg && !community.isSoldOut && (
           <div className={`absolute bottom-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
             <span className="px-2.5 py-1 rounded-full text-[16px] font-bold"
@@ -614,14 +634,15 @@ function OnlineCommunitiesRow({
   communities,
   seeAllHref,
   onJoin,
+  isLoading = false,
 }: {
   communities: CommunityItem[]
   seeAllHref: string
   onJoin?: (id: string) => void
+  isLoading?: boolean
 }) {
   const [activeTab, setActiveTab] = useState('All')
   const onlineCommunities = communities.filter((c) => c.category === 'online')
-  if (onlineCommunities.length === 0) return null
 
   const filtered: CommunityItem[] = (() => {
     if (activeTab === 'All') return onlineCommunities
@@ -647,7 +668,7 @@ function OnlineCommunitiesRow({
         <Link
           href={seeAllHref}
           aria-label="View all online communities"
-          className="flex items-center gap-1.5 text-base font-semibold transition-opacity hover:opacity-70"
+          className="flex items-center gap-1.5 text-lg font-semibold transition-opacity hover:opacity-70"
           style={{ color: GREEN }}
         >
           View all
@@ -682,12 +703,28 @@ function OnlineCommunitiesRow({
       </div>
 
       <div className="px-12 pb-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {visible.map((c) => (
-            <OnlineCommunityCard key={c.id} community={c} onJoin={onJoin} />
-          ))}
-          {showSeeAll && <SeeAllTile communities={onlineCommunities} href={seeAllHref} />}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {Array.from({ length: GRID_LIMIT }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : onlineCommunities.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3" style={{ color: MUTED }}>
+            <VideoCallIcon color={MUTED} />
+            <p className="text-lg">No online communities right now. Check back soon.</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3" style={{ color: MUTED }}>
+            <VideoCallIcon color={MUTED} />
+            <p className="text-lg">No online communities in this category yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {visible.map((c) => (
+              <OnlineCommunityCard key={c.id} community={c} onJoin={onJoin} />
+            ))}
+            {showSeeAll && <SeeAllTile communities={onlineCommunities} href={seeAllHref} />}
+          </div>
+        )}
       </div>
     </section>
   )
@@ -818,7 +855,7 @@ export function CommunityCarousel({
         <Link
           href={seeAllHref}
           aria-label={`View all communities in ${location}`}
-          className="flex items-center gap-1.5 text-base font-semibold transition-opacity hover:opacity-70"
+          className="flex items-center gap-1.5 text-lg font-semibold transition-opacity hover:opacity-70"
           style={{ color: GREEN }}
         >
           View all
@@ -864,7 +901,7 @@ export function CommunityCarousel({
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
             </svg>
-            <p className="text-sm">No communities in this category yet.</p>
+            <p className="text-lg">No communities in this category yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -876,7 +913,7 @@ export function CommunityCarousel({
         )}
       </div>
 
-      <OnlineCommunitiesRow communities={communities} seeAllHref={seeAllHref} onJoin={onJoin} />
+      <OnlineCommunitiesRow communities={communities} seeAllHref={seeAllHref} onJoin={onJoin} isLoading={isLoading} />
     </section>
   )
 }

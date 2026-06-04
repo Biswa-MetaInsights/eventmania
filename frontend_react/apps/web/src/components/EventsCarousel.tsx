@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Roboto } from 'next/font/google'
+import { useWishlistStore } from '@eventmind/store'
 
 const roboto = Roboto({ subsets: ['latin'], style: ['normal', 'italic'] })
 
@@ -413,8 +414,9 @@ function ShareButton() {
 
 // ─── Heart / favourite button ──────────────────────────────────────────────────
 
-function HeartButton() {
-  const [liked, setLiked] = useState(false)
+function HeartButton({ event }: { event: CarouselEvent }) {
+  const toggle = useWishlistStore((s) => s.toggleItem)
+  const liked = useWishlistStore((s) => s.items.some((i) => i.id === event.id))
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -433,7 +435,20 @@ function HeartButton() {
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
-          setLiked((v) => !v)
+          toggle({
+            kind: 'event',
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            time: event.time,
+            venue: event.venue,
+            price: event.price,
+            imageUrl: event.imageUrl,
+            badge: event.badge,
+            badgeType: event.badgeType,
+            isSoldOut: event.isSoldOut,
+            category: event.category,
+          })
         }}
         aria-label={liked ? 'Remove from wishlist' : 'Add to wishlist'}
         className="w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90"
@@ -526,7 +541,7 @@ function EventCardItem({
           sizes="(max-width: 768px) calc(100vw - 96px), (max-width: 1024px) calc(50vw - 72px), (max-width: 1280px) calc(33vw - 60px), calc(25vw - 60px)"
         />
         <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><ShareButton /></div>
-        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton /></div>
+        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton event={event} /></div>
         {badgeCfg && !event.isSoldOut && (
           <div className={`absolute bottom-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
             <span className="px-2.5 py-1 rounded-full text-[16px] font-bold"
@@ -633,7 +648,7 @@ function OnlineEventCard({
           style={{ transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 0.3s ease' }}
         />
         <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><ShareButton /></div>
-        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton /></div>
+        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton event={event} /></div>
         {badgeCfg && !event.isSoldOut && (
           <div className={`absolute bottom-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
             <span className="px-2.5 py-1 rounded-full text-[16px] font-bold"
@@ -708,14 +723,15 @@ function OnlineEventsRow({
   events,
   seeAllHref,
   onBookNow,
+  isLoading = false,
 }: {
   events: CarouselEvent[]
   seeAllHref: string
   onBookNow?: (id: string) => void
+  isLoading?: boolean
 }) {
   const [activeTab, setActiveTab] = useState('All')
   const onlineEvents = events.filter((e) => e.category === 'online')
-  if (onlineEvents.length === 0) return null
 
   const filteredOnline: CarouselEvent[] = (() => {
     if (activeTab === 'All') return onlineEvents
@@ -741,7 +757,7 @@ function OnlineEventsRow({
         <Link
           href={seeAllHref}
           aria-label="View all online events"
-          className="flex items-center gap-1.5 text-base font-semibold transition-opacity hover:opacity-70"
+          className="flex items-center gap-1.5 text-lg font-semibold transition-opacity hover:opacity-70"
           style={{ color: GREEN }}
         >
           View all
@@ -776,12 +792,28 @@ function OnlineEventsRow({
       </div>
 
       <div className="px-12 pb-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {visibleOnlineEvents.map((event) => (
-            <OnlineEventCard key={event.id} event={event} onBookNow={onBookNow} />
-          ))}
-          {showSeeAll && <SeeAllTile events={onlineEvents} href={seeAllHref} />}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {Array.from({ length: GRID_LIMIT }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : onlineEvents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3" style={{ color: MUTED }}>
+            <VideoCallIcon color={MUTED} />
+            <p className="text-lg">No online events right now. Check back soon.</p>
+          </div>
+        ) : filteredOnline.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3" style={{ color: MUTED }}>
+            <VideoCallIcon color={MUTED} />
+            <p className="text-lg">No online events in this category yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {visibleOnlineEvents.map((event) => (
+              <OnlineEventCard key={event.id} event={event} onBookNow={onBookNow} />
+            ))}
+            {showSeeAll && <SeeAllTile events={onlineEvents} href={seeAllHref} />}
+          </div>
+        )}
       </div>
     </section>
   )
@@ -941,7 +973,7 @@ export function EventsCarousel({
         <Link
           href={seeAllHref}
           aria-label={`View all events in ${location}`}
-          className="flex items-center gap-1.5 text-base font-semibold transition-opacity hover:opacity-70"
+          className="flex items-center gap-1.5 text-lg font-semibold transition-opacity hover:opacity-70"
           style={{ color: GREEN }}
         >
           View all
@@ -987,7 +1019,7 @@ export function EventsCarousel({
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25" />
             </svg>
-            <p className="text-sm">No events in this category yet.</p>
+            <p className="text-lg">No events in this category yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -999,7 +1031,7 @@ export function EventsCarousel({
         )}
       </div>
 
-      <OnlineEventsRow events={events} seeAllHref={seeAllHref} onBookNow={onBookNow} />
+      <OnlineEventsRow events={events} seeAllHref={seeAllHref} onBookNow={onBookNow} isLoading={isLoading} />
     </section>
   )
 }

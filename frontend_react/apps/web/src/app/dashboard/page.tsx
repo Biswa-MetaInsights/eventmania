@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore, useTicketsStore } from "@eventmind/store";
-import type { StoredTicket } from "@eventmind/store";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuthStore, useTicketsStore, useWishlistStore } from "@eventmind/store";
+import type { StoredTicket, WishlistItem } from "@eventmind/store";
+import Image from "next/image";
+import Link from "next/link";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
@@ -16,11 +18,31 @@ function qrUrl(data: string) {
 }
 
 export default function DashboardPage() {
+  return (
+    <Suspense>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+type TabId = "tickets" | "wishlist" | "profile";
+
+const TAB_LABELS: Record<TabId, string> = {
+  tickets: "My Tickets",
+  wishlist: "My Wishlist",
+  profile: "Networking Profile",
+};
+
+function DashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userEmail = useAuthStore((s) => s.userEmail);
   const tickets = useTicketsStore((s) => s.tickets);
-  const [activeTab, setActiveTab] = useState<"tickets" | "profile">("tickets");
+  const wishlistItems = useWishlistStore((s) => s.items);
+
+  const initialTab = (searchParams.get("tab") as TabId | null) ?? "tickets";
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
   useEffect(() => {
     if (!isAuthenticated) router.replace("/auth");
@@ -42,14 +64,22 @@ export default function DashboardPage() {
 
       {/* ── Tabs ── */}
       <div className="px-12 mt-6 flex gap-1 border-b border-[#E2DDD5]">
-        {(["tickets", "profile"] as const).map((tab) => (
+        {(["tickets", "wishlist", "profile"] as TabId[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className="px-5 py-3 text-sm font-semibold transition-colors relative"
             style={{ color: activeTab === tab ? GREEN : "#6B7280" }}
           >
-            {tab === "tickets" ? "My Tickets" : "Networking Profile"}
+            {TAB_LABELS[tab]}
+            {tab === "wishlist" && wishlistItems.length > 0 && (
+              <span
+                className="ml-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold"
+                style={{ backgroundColor: GREEN, color: "#F2EFEA" }}
+              >
+                {wishlistItems.length}
+              </span>
+            )}
             {activeTab === tab && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: GREEN }} />
             )}
@@ -61,9 +91,106 @@ export default function DashboardPage() {
       <div className="px-12 py-8">
         {activeTab === "tickets" ? (
           <TicketsTab tickets={tickets} />
+        ) : activeTab === "wishlist" ? (
+          <WishlistTab items={wishlistItems} />
         ) : (
           <ProfileTab name={capitalized} email={userEmail ?? ""} interests={MOCK_INTERESTS} />
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Wishlist tab ──────────────────────────────────────────────────────────────
+
+function WishlistTab({ items }: { items: WishlistItem[] }) {
+  const router = useRouter();
+  const removeItem = useWishlistStore((s) => s.removeItem);
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-24 gap-4">
+        <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <path strokeLinecap="round" strokeLinejoin="round"
+            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+        </svg>
+        <p className="text-[18px] text-[#9CA3AF]">Your wishlist is empty.</p>
+        <button
+          onClick={() => router.push("/")}
+          className="px-6 py-3 rounded-xl text-white text-sm font-semibold"
+          style={{ backgroundColor: GREEN }}
+        >
+          Explore Events
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {items.map((item) => (
+        <WishlistCard key={item.id} item={item} onRemove={() => removeItem(item.id)} />
+      ))}
+    </div>
+  );
+}
+
+function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove: () => void }) {
+  const href = item.kind === "event" ? `/event/${item.id}` : `/community/${item.id}`;
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden flex gap-0"
+      style={{ backgroundColor: "#ffffff", border: "1px solid #E2DDD5" }}
+    >
+      {/* Thumbnail */}
+      <div className="relative w-40 shrink-0 self-stretch overflow-hidden">
+        <Image
+          src={item.imageUrl}
+          alt={item.title}
+          fill
+          className="object-cover"
+          sizes="160px"
+        />
+        <span
+          className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase"
+          style={{ backgroundColor: GREEN, color: "#F2EFEA" }}
+        >
+          {item.kind}
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="flex flex-col justify-between flex-1 p-5 min-w-0">
+        <div>
+          <h3 className="text-[18px] font-bold text-[#111827] mb-1 line-clamp-2">{item.title}</h3>
+          <p className="text-sm text-[#6B7280]">
+            {item.date} · {item.time} · {item.venue}
+          </p>
+          {item.kind === "community" && item.memberCount && (
+            <p className="text-sm mt-0.5" style={{ color: GREEN }}>
+              {item.memberCount} members
+            </p>
+          )}
+          <p className="text-sm font-semibold mt-1" style={{ color: GREEN }}>{item.price}</p>
+        </div>
+
+        <div className="flex items-center gap-3 mt-4">
+          <Link
+            href={href}
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-white"
+            style={{ backgroundColor: GREEN }}
+          >
+            {item.kind === "event" ? "View Event" : "View Community"}
+          </Link>
+          <button
+            onClick={onRemove}
+            className="px-5 py-2 rounded-xl text-sm font-semibold"
+            style={{ border: `1px solid #E2DDD5`, color: "#6B7280" }}
+          >
+            Remove
+          </button>
+        </div>
       </div>
     </div>
   );

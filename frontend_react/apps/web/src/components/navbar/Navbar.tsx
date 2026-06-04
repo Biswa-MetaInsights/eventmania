@@ -53,7 +53,7 @@ function DropdownItem({ emoji, label, onTap }: NavItem) {
   return (
     <button
       onClick={onTap}
-      className="w-full text-left px-4 py-3 text-sm font-medium whitespace-nowrap"
+      className="w-full text-left px-4 py-3 text-base font-medium whitespace-nowrap"
       style={{ ...hover.style, color: hover.style.color }}
       onMouseEnter={hover.onMouseEnter}
       onMouseLeave={hover.onMouseLeave}
@@ -82,7 +82,7 @@ function NavDropdown({ label, items, isOpen, onOpen, onClose }: NavDropdownProps
       onMouseLeave={() => { hover.onMouseLeave(); onClose(); }}
     >
       <button
-        className="flex items-center gap-0.5 px-3 py-1.5 rounded-md text-[15px] font-medium"
+        className="flex items-center gap-0.5 px-3 py-1.5 rounded-md text-[16px] font-medium"
         style={hover.style}
       >
         {label}
@@ -135,10 +135,10 @@ function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout }: AvatarMenuProps
       onMouseLeave={() => { triggerHover.onMouseLeave(); onClose(); }}
     >
       <button
-        className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm font-medium"
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-base font-medium"
         style={triggerHover.style}
       >
-        {name && <span className="text-[14px] font-medium">{name}</span>}
+        {name && <span className="text-base font-medium">{name}</span>}
         <div
           className="w-[34px] h-[34px] rounded-full flex items-center justify-center"
           style={{
@@ -184,7 +184,7 @@ function LogoutItem({ onLogout }: { onLogout: () => void }) {
   return (
     <button
       onClick={onLogout}
-      className="w-full text-left px-4 py-3 text-sm font-medium whitespace-nowrap"
+      className="w-full text-left px-4 py-3 text-base font-medium whitespace-nowrap"
       style={{
         backgroundColor: hovered ? GREEN : "transparent",
         color: hovered ? LINEN : GREEN,
@@ -230,7 +230,7 @@ function BellButton() {
 function Toast({ message }: { message: string }) {
   return (
     <div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-sm font-medium shadow-lg z-[100]"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-base font-medium shadow-lg z-[100]"
       style={{ backgroundColor: GREEN, color: LINEN }}
     >
       {message}
@@ -300,7 +300,7 @@ export function Navbar() {
         >
           <Link href="/" className="flex items-center gap-2.5 no-underline">
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold"
               style={{ backgroundColor: GREEN, color: LINEN }}
             >
               E
@@ -309,7 +309,7 @@ export function Navbar() {
               className="text-[19px] font-extrabold tracking-[0.2px]"
               style={{ color: GREEN }}
             >
-              EventMind
+              NewFind
             </span>
           </Link>
         </div>
@@ -319,8 +319,8 @@ export function Navbar() {
         {/* ── Search bar ── */}
         <div onMouseEnter={closeAll} className="shrink-0">
           <div
-            className="flex items-center w-[380px] h-10 rounded-lg bg-white px-3 gap-2"
-            style={{ border: `1px solid ${BORDER}` }}
+            className="flex items-center w-[400px] h-10 rounded-lg px-3 gap-2"
+            style={{ backgroundColor: LINEN, border: '1.5px solid rgba(17,24,39,0.5)' }}
           >
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill={HINT}>
               <path
@@ -333,11 +333,11 @@ export function Navbar() {
               type="text"
               value={searchQuery}
               onChange={(e) => { setHasSearched(true); setSearchQuery(e.target.value); }}
-              placeholder="Search events or event groups"
-              className="flex-1 text-sm bg-transparent outline-none min-w-0"
+              placeholder="Search events or communities"
+              className="flex-1 text-base bg-transparent outline-none min-w-0"
               style={{ color: TEXT }}
             />
-            <div className="w-px h-[18px] shrink-0" style={{ backgroundColor: BORDER }} />
+            <div className="w-px self-stretch shrink-0" style={{ backgroundColor: 'rgba(17,24,39,0.5)' }} />
             <div className="flex items-center gap-1 shrink-0">
               <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill={HINT}>
                 <path
@@ -346,7 +346,7 @@ export function Navbar() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="text-sm" style={{ color: HINT }}>
+              <span className="text-base" style={{ color: HINT }}>
                 Add Location
               </span>
             </div>
@@ -416,7 +416,7 @@ function HelpButton({ onMouseEnter }: { onMouseEnter: () => void }) {
   const hover = useHoverStyle();
   return (
     <button
-      className="px-4 py-1.5 rounded-md text-[15px] font-medium"
+      className="px-4 py-1.5 rounded-md text-[16px] font-medium"
       style={hover.style}
       onMouseEnter={() => { hover.onMouseEnter(); onMouseEnter(); }}
       onMouseLeave={hover.onMouseLeave}
@@ -431,7 +431,7 @@ function SignInButton() {
   return (
     <Link
       href="/auth"
-      className="px-[22px] py-[10px] rounded-lg text-sm font-semibold no-underline"
+      className="px-[22px] py-[10px] rounded-lg text-base font-semibold no-underline"
       style={{ backgroundColor: GREEN, color: LINEN }}
     >
       Sign In

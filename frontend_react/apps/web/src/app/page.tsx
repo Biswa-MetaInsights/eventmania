@@ -7,6 +7,8 @@ import { eventsApi } from "@eventmind/api";
 import { Navbar } from "@/components/navbar/Navbar";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { EventCard } from "@/components/EventCard";
+import { EventsCarousel, SAMPLE_EVENTS } from "@/components/EventsCarousel";
+import { CommunityCarousel, SAMPLE_COMMUNITIES } from "@/components/CommunityCarousel";
 
 const GREEN = "#184E4A";
 
@@ -33,6 +35,20 @@ function DiscoveryPage() {
     <div className="min-h-screen" style={{ backgroundColor: "#F2EFEA" }}>
       <Navbar />
       <HeroCarousel />
+
+      {/* ── Horizontal event carousel ── */}
+      <EventsCarousel
+        events={SAMPLE_EVENTS}
+        location="Thiruvananthapuram"
+        seeAllHref="/events/thiruvananthapuram"
+      />
+
+      {/* ── Community carousel ── */}
+      <CommunityCarousel
+        communities={SAMPLE_COMMUNITIES}
+        location="Thiruvananthapuram"
+        seeAllHref="/communities/thiruvananthapuram"
+      />
 
       {/* ── Section header ── */}
       <div className="flex items-end justify-between px-12 pt-8 pb-7">

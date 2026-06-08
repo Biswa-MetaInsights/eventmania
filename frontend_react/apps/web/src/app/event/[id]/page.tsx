@@ -7,6 +7,7 @@ import { eventsApi, reviewsApi } from "@eventmind/api";
 import type { Review, ReviewAggregates } from "@eventmind/api";
 import { useAuthStore } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
+import { EventChatWidget } from "@/components/EventChatWidget";
 
 const GREEN = "#184E4A";
 
@@ -175,6 +176,9 @@ export default function EventDetailPage({
           </div>
         </div>
       </div>
+
+      {/* ── AI Event Assistant widget ── */}
+      <EventChatWidget event={event} />
 
       {/* ── Sticky booking bar ── */}
       <div

@@ -88,7 +88,11 @@ def create_event(event_in: EventCreate, background_tasks: BackgroundTasks, db: S
 def search_events(
     q: Optional[str] = Query(None, description="Search query"),
     category: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None, description="In-Person | Online | Hybrid"),
     date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    price_max: Optional[float] = Query(None, description="Maximum ticket price (0 = free only)"),
+    community_id: Optional[UUID] = Query(None, description="Filter by community"),
     status: Optional[EventStatus] = Query(EventStatus.PUBLISHED),
     lat: Optional[float] = Query(None, description="User latitude"),
     lng: Optional[float] = Query(None, description="User longitude"),
@@ -97,7 +101,6 @@ def search_events(
     limit: Optional[int] = Query(50, description="Max results to return"),
     db: Session = Depends(get_db)
 ):
-    # Check cache first
     ck = _cache_key(lat, lng, radius, status, q, organizer_id, limit)
     cached = _cache_get(ck)
     if cached is not None:
@@ -107,20 +110,23 @@ def search_events(
 
     if organizer_id:
         query = query.filter(Event.organizer_id == organizer_id)
-
+    if community_id:
+        query = query.filter(Event.community_id == community_id)
     if q:
         query = query.filter(Event.title.ilike(f"%{q}%") | Event.description.ilike(f"%{q}%"))
-
     if category:
         query = query.filter(Event.category == category)
-
+    if event_type:
+        query = query.filter(Event.event_type == event_type)
     if date_from:
         query = query.filter(Event.start_date >= date_from)
+    if date_to:
+        query = query.filter(Event.start_date <= date_to)
+    if price_max is not None:
+        query = query.filter(Event.price <= price_max)
 
-    # Sort by upcoming events first
     query = query.order_by(Event.start_date)
 
-    # Spatial filtering: fetch all candidates, apply Haversine, then limit
     if lat is not None and lng is not None:
         all_events = query.all()
         filtered = []
@@ -132,7 +138,7 @@ def search_events(
                 if haversine(lat, lng, float(ev_lat), float(ev_lng)) <= radius:
                     filtered.append(ev)
             else:
-                filtered.append(ev)  # No coordinates — include online events everywhere
+                filtered.append(ev)
         result = filtered[:limit]
         _cache_set(ck, result)
         return result

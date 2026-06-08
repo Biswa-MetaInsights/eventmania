@@ -8,21 +8,20 @@ import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
 
-// Country list with their company registration number label and placeholder
 const COUNTRIES: { code: string; name: string; regLabel: string; regPlaceholder: string }[] = [
-  { code: "BE", name: "Belgium",        regLabel: "BE-VAT Number",              regPlaceholder: "BE0123456789" },
-  { code: "GB", name: "United Kingdom", regLabel: "Companies House Number",     regPlaceholder: "12345678" },
-  { code: "US", name: "United States",  regLabel: "EIN (Employer ID Number)",   regPlaceholder: "12-3456789" },
-  { code: "DE", name: "Germany",        regLabel: "HRB / HRA Number",           regPlaceholder: "HRB 12345" },
-  { code: "NL", name: "Netherlands",    regLabel: "KvK Number",                 regPlaceholder: "12345678" },
-  { code: "FR", name: "France",         regLabel: "SIREN Number",               regPlaceholder: "123 456 789" },
-  { code: "IN", name: "India",          regLabel: "CIN / GST Number",           regPlaceholder: "U12345MH2020PTC123456" },
-  { code: "AU", name: "Australia",      regLabel: "ABN (Australian Business Number)", regPlaceholder: "51 824 753 556" },
-  { code: "CA", name: "Canada",         regLabel: "Business Number (BN)",       regPlaceholder: "123456789" },
-  { code: "SG", name: "Singapore",      regLabel: "UEN",                        regPlaceholder: "201234567C" },
-  { code: "AE", name: "UAE",            regLabel: "Trade Licence Number",       regPlaceholder: "CN-1234567" },
-  { code: "ZA", name: "South Africa",   regLabel: "Company Registration Number", regPlaceholder: "2020/123456/07" },
-  { code: "OTHER", name: "Other",       regLabel: "Company Registration Number", regPlaceholder: "Enter your registration number" },
+  { code: "BE", name: "Belgium",         regLabel: "BE-VAT Number",                    regPlaceholder: "BE0123456789" },
+  { code: "GB", name: "United Kingdom",  regLabel: "Companies House Number",           regPlaceholder: "12345678" },
+  { code: "US", name: "United States",   regLabel: "EIN (Employer ID Number)",         regPlaceholder: "12-3456789" },
+  { code: "DE", name: "Germany",         regLabel: "HRB / HRA Number",                regPlaceholder: "HRB 12345" },
+  { code: "NL", name: "Netherlands",     regLabel: "KvK Number",                       regPlaceholder: "12345678" },
+  { code: "FR", name: "France",          regLabel: "SIREN Number",                     regPlaceholder: "123 456 789" },
+  { code: "IN", name: "India",           regLabel: "CIN / GST Number",                regPlaceholder: "U12345MH2020PTC123456" },
+  { code: "AU", name: "Australia",       regLabel: "ABN (Australian Business Number)", regPlaceholder: "51 824 753 556" },
+  { code: "CA", name: "Canada",          regLabel: "Business Number (BN)",             regPlaceholder: "123456789" },
+  { code: "SG", name: "Singapore",       regLabel: "UEN",                              regPlaceholder: "201234567C" },
+  { code: "AE", name: "UAE",             regLabel: "Trade Licence Number",             regPlaceholder: "CN-1234567" },
+  { code: "ZA", name: "South Africa",    regLabel: "Company Registration Number",      regPlaceholder: "2020/123456/07" },
+  { code: "OTHER", name: "Other",        regLabel: "Company Registration Number",      regPlaceholder: "Enter your registration number" },
 ];
 
 function subFromToken(token: string | null): string {
@@ -40,9 +39,11 @@ export default function OrganizerOnboardingPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const tokens = useAuthStore((s) => s.tokens);
 
+  const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
   const [country, setCountry] = useState("BE");
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -53,25 +54,24 @@ export default function OrganizerOnboardingPage() {
   const selectedCountry = COUNTRIES.find((c) => c.code === country) ?? COUNTRIES[0];
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace("/auth");
-      return;
-    }
-    // If already verified, skip onboarding
+    if (!isAuthenticated) { router.replace("/auth"); return; }
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
     organizerApi.get(userId)
       .then(() => router.replace("/organizer/create"))
-      .catch(() => { /* not verified yet, stay on page */ });
+      .catch(() => { /* not verified yet — stay */ });
   }, [isAuthenticated, router, tokens]);
 
   if (!isAuthenticated) return null;
 
   function validate(): boolean {
     const errors: Record<string, string> = {};
+    if (fullName.trim().length < 2) errors.fullName = "Full name is required.";
     if (companyName.trim().length < 2) errors.companyName = "Company name is required.";
     if (companyAddress.trim().length < 5) errors.companyAddress = "Company address is required.";
     if (!companyEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) errors.companyEmail = "Enter a valid company email.";
+    if (companyWebsite && !companyWebsite.match(/^https?:\/\/.+/))
+      errors.companyWebsite = "Website must start with http:// or https://";
     if (!country) errors.country = "Please select a country.";
     if (registrationNumber.trim().length < 3) errors.registrationNumber = `${selectedCountry.regLabel} is required.`;
     setFieldErrors(errors);
@@ -81,16 +81,16 @@ export default function OrganizerOnboardingPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-
     setError(null);
     setIsSubmitting(true);
-
     try {
       const userId = subFromToken(tokens?.access_token ?? null);
       await organizerApi.submit(userId, {
+        full_name: fullName.trim(),
         company_name: companyName.trim(),
         company_address: companyAddress.trim(),
         company_email: companyEmail.trim(),
+        company_website: companyWebsite.trim() || undefined,
         country: selectedCountry.name,
         registration_number: registrationNumber.trim(),
       });
@@ -108,8 +108,6 @@ export default function OrganizerOnboardingPage() {
       <Navbar />
 
       <div className="px-12 py-10 max-w-2xl mx-auto">
-
-        {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4"
             style={{ backgroundColor: "#E8F0EF", color: GREEN }}>
@@ -124,7 +122,6 @@ export default function OrganizerOnboardingPage() {
           </p>
         </div>
 
-        {/* Trust indicators */}
         <div className="grid grid-cols-3 gap-3 mb-8">
           {[
             { icon: "🔒", text: "Data kept private" },
@@ -139,67 +136,97 @@ export default function OrganizerOnboardingPage() {
           ))}
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "white", border: "1px solid #E2DDD5" }}>
-            <h2 className="text-[16px] font-bold" style={{ color: "#111827" }}>Company Details</h2>
 
-            <FormField label="Company Name" error={fieldErrors.companyName}>
-              <input
-                type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="e.g., Acme Events Ltd."
-                className={inputCls(!!fieldErrors.companyName)}
-              />
-            </FormField>
-
-            <FormField label="Company Address" error={fieldErrors.companyAddress}>
-              <input
-                type="text"
-                value={companyAddress}
-                onChange={(e) => setCompanyAddress(e.target.value)}
-                placeholder="e.g., 42 Innovation Street, Brussels 1000"
-                className={inputCls(!!fieldErrors.companyAddress)}
-              />
-            </FormField>
-
-            <FormField label="Company Email" error={fieldErrors.companyEmail}>
-              <input
-                type="email"
-                value={companyEmail}
-                onChange={(e) => setCompanyEmail(e.target.value)}
-                placeholder="e.g., info@acmeevents.com"
-                className={inputCls(!!fieldErrors.companyEmail)}
-              />
-            </FormField>
-
-            <div className="grid grid-cols-2 gap-6">
-              <FormField label="Country of Registration" error={fieldErrors.country}>
-                <select
-                  value={country}
-                  onChange={(e) => { setCountry(e.target.value); setRegistrationNumber(""); }}
-                  className={inputCls(!!fieldErrors.country)}
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
-                  ))}
-                </select>
-              </FormField>
-
-              <FormField label={selectedCountry.regLabel} error={fieldErrors.registrationNumber}>
+            {/* Contact Person */}
+            <div>
+              <h2 className="text-[15px] font-bold mb-4" style={{ color: "#111827" }}>Contact Person</h2>
+              <FormField label="Full Name" error={fieldErrors.fullName}>
                 <input
                   type="text"
-                  value={registrationNumber}
-                  onChange={(e) => setRegistrationNumber(e.target.value)}
-                  placeholder={selectedCountry.regPlaceholder}
-                  className={inputCls(!!fieldErrors.registrationNumber)}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g., Jane Smith"
+                  className={inputCls(!!fieldErrors.fullName)}
                 />
               </FormField>
             </div>
+
+            <div className="border-t" style={{ borderColor: "#E2DDD5" }} />
+
+            {/* Company Details */}
+            <div className="space-y-6">
+              <h2 className="text-[15px] font-bold" style={{ color: "#111827" }}>Company Details</h2>
+
+              <FormField label="Company Name" error={fieldErrors.companyName}>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="e.g., Acme Events Ltd."
+                  className={inputCls(!!fieldErrors.companyName)}
+                />
+              </FormField>
+
+              <FormField label="Company Address" error={fieldErrors.companyAddress}>
+                <input
+                  type="text"
+                  value={companyAddress}
+                  onChange={(e) => setCompanyAddress(e.target.value)}
+                  placeholder="e.g., 42 Innovation Street, Brussels 1000"
+                  className={inputCls(!!fieldErrors.companyAddress)}
+                />
+              </FormField>
+
+              <div className="grid grid-cols-2 gap-6">
+                <FormField label="Company Email" error={fieldErrors.companyEmail}>
+                  <input
+                    type="email"
+                    value={companyEmail}
+                    onChange={(e) => setCompanyEmail(e.target.value)}
+                    placeholder="e.g., info@acmeevents.com"
+                    className={inputCls(!!fieldErrors.companyEmail)}
+                  />
+                </FormField>
+
+                <FormField label="Company Website" hint="Optional" error={fieldErrors.companyWebsite}>
+                  <input
+                    type="url"
+                    value={companyWebsite}
+                    onChange={(e) => setCompanyWebsite(e.target.value)}
+                    placeholder="https://acmeevents.com"
+                    className={inputCls(!!fieldErrors.companyWebsite)}
+                  />
+                </FormField>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <FormField label="Country of Registration" error={fieldErrors.country}>
+                  <select
+                    value={country}
+                    onChange={(e) => { setCountry(e.target.value); setRegistrationNumber(""); }}
+                    className={inputCls(!!fieldErrors.country)}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                </FormField>
+
+                <FormField label={selectedCountry.regLabel} error={fieldErrors.registrationNumber}>
+                  <input
+                    type="text"
+                    value={registrationNumber}
+                    onChange={(e) => setRegistrationNumber(e.target.value)}
+                    placeholder={selectedCountry.regPlaceholder}
+                    className={inputCls(!!fieldErrors.registrationNumber)}
+                  />
+                </FormField>
+              </div>
+            </div>
           </div>
 
-          {/* Disclaimer */}
           <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9CA3AF" }}>
             By submitting, you confirm that the information provided is accurate and belongs to a legally
             registered entity. EventMind reserves the right to suspend accounts where false information is provided.
@@ -238,10 +265,23 @@ export default function OrganizerOnboardingPage() {
   );
 }
 
-function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function FormField({
+  label,
+  hint,
+  error,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-semibold" style={{ color: "#111827" }}>{label}</label>
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-semibold" style={{ color: "#111827" }}>{label}</label>
+        {hint && <span className="text-xs" style={{ color: "#9CA3AF" }}>{hint}</span>}
+      </div>
       {children}
       {error && <p className="text-xs" style={{ color: "#EF4444" }}>{error}</p>}
     </div>

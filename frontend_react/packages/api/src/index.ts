@@ -1,6 +1,7 @@
 export { apiClient, configureApiBaseUrl } from "./client";
 export { authApi } from "./auth";
 export { eventsApi } from "./events";
+export type { EventSearchParams, EventCreateData, ChatMessage, ChatResponse } from "./events";
 export { isAxiosError } from "axios";
 export { reviewsApi } from "./reviews";
 export type { Review, ReviewAggregates } from "./reviews";
@@ -8,3 +9,5 @@ export { paymentsApi } from "./payments";
 export { organizerApi } from "./organizer";
 export type { OrganizerProfileCreate } from "./organizer";
 export { recommendationsApi } from "./recommendations";
+export { communityApi } from "./community";
+export type { CommunityCreateData } from "./community";

@@ -31,6 +31,7 @@ app.add_middleware(
 SERVICE_MAP: Dict[str, str] = {
     "auth": "http://localhost:8001/auth",
     "user": "http://localhost:8002/users",
+    "community": "http://localhost:8002/users/communities",
     "event": "http://localhost:8003/events",
     "ticket": "http://localhost:8004/tickets",
     "ticketing": "http://localhost:8004/tickets",

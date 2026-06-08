@@ -298,15 +298,15 @@ export function Navbar() {
   }
 
   const eventsItems: NavItem[] = [
-    { emoji: "🔍", label: "Explore Events", onTap: () => { closeAll(); router.push("/"); } },
+    { emoji: "🔍", label: "Explore Events", onTap: () => { closeAll(); router.push("/explore"); } },
     { emoji: "➕", label: "Create Event",   onTap: () => { closeAll(); router.push("/organizer/create"); } },
     { emoji: "📅", label: "My Events",      onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard" : "/auth"); } },
   ];
 
   const groupsItems: NavItem[] = [
-    { emoji: "🔍", label: "Explore Communities", onTap: () => showToast("Communities — coming soon!") },
-    { emoji: "➕", label: "Create Community",    onTap: () => showToast("Communities — coming soon!") },
-    { emoji: "👥", label: "My Communities",      onTap: () => showToast("Communities — coming soon!") },
+    { emoji: "🔍", label: "Explore Communities", onTap: () => { closeAll(); router.push("/communities"); } },
+    { emoji: "➕", label: "Create Community",    onTap: () => { closeAll(); router.push(isAuthenticated ? "/community/create" : "/auth"); } },
+    { emoji: "👥", label: "My Community",        onTap: () => { closeAll(); router.push(isAuthenticated ? "/community/create" : "/auth"); } },
   ];
 
   return (

@@ -16,9 +16,11 @@ class OrganizerProfile(Base):
 
     id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(Uuid(as_uuid=True), unique=True, index=True, nullable=False)
+    full_name = Column(String(300), nullable=False)
     company_name = Column(String(300), nullable=False)
     company_address = Column(String(500), nullable=False)
     company_email = Column(String(255), nullable=False)
+    company_website = Column(String(500), nullable=True)
     country = Column(String(100), nullable=False)
     registration_number = Column(String(100), nullable=False)
     verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.VERIFIED, nullable=False)

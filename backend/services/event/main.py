@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.event_endpoints import router as event_router
+from app.api.chat_endpoint import router as chat_router
 from app.db.session import engine
 from app.models.event import Base
 from app.core.config import settings
@@ -25,8 +26,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Event Router
+# Include routers
 app.include_router(event_router)
+app.include_router(chat_router)
 
 @app.get("/")
 def health_check():

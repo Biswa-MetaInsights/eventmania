@@ -3,15 +3,33 @@ import os
 import sys
 import time
 
+
+def _load_dotenv(path: str) -> dict:
+    """Parse a .env file and return a dict of key=value pairs, skipping comments and blanks."""
+    result = {}
+    if not os.path.exists(path):
+        return result
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            result[key.strip()] = value.strip()
+    return result
+
 # Service Registry (Name: (Relative Path, Port))
 SERVICES = {
-    "gateway": ("gateway", 8000),
-    "auth": ("services/auth", 8001),
-    "user": ("services/user", 8002),
-    "event": ("services/event", 8003),
-    "ticketing": ("services/ticketing", 8004),
-    "notification": ("services/notification", 8006),
-    "agents": ("agents", 8010),
+    "auth":           ("services/auth",           8001),
+    "user":           ("services/user",           8002),
+    "event":          ("services/event",          8003),
+    "ticketing":      ("services/ticketing",      8004),
+    "payment":        ("services/payment",        8005),
+    "notification":   ("services/notification",   8006),
+    "chat":           ("services/chat",           8007),
+    "recommendation": ("services/recommendation", 8008),
+    "review":         ("services/review",         8009),
+    "gateway":        ("gateway",                 8000),
 }
 
 # Base Directory (backend/)
@@ -27,30 +45,39 @@ def run_shadow_mode():
     # 1. Prepare shared SQLite DB for all services
     db_path = os.path.abspath(os.path.join(BASE_DIR, "platform_dev.db"))
     db_url = f"sqlite:///{db_path}"
-    
+
+    # Project Root (absolute parent of backend/)
+    PROJECT_ROOT = os.path.dirname(os.path.abspath(BASE_DIR))
+
+    # Load .env from project root so secrets (OPENAI_API_KEY etc.) are available to all services
+    dotenv_path = os.path.join(PROJECT_ROOT, ".env")
+    dotenv_vars = _load_dotenv(dotenv_path)
+    if dotenv_vars:
+        print(f"📄 Loaded {len(dotenv_vars)} vars from {dotenv_path}")
+
     # 2. Iterate and Start Services
     for name, (rel_path, port) in SERVICES.items():
         print(f"🚀 Launching {name.upper()} on port {port}...")
         service_cwd = os.path.join(BASE_DIR, rel_path)
-        
-        # Project Root (absolute parent of backend/)
-        PROJECT_ROOT = os.path.dirname(os.path.abspath(BASE_DIR))
-        
-        # Inject Mock Env Vars
+
+        # Start with current process env, then overlay .env, then enforce shadow-mode overrides
         env = os.environ.copy()
+        env.update(dotenv_vars)
+
+        # Shadow-mode overrides (always win over .env)
         env["DATABASE_URL"] = db_url
         env["MOCK_KAFKA"] = "TRUE"
-        env["REDIS_HOST"] = "MOCK" # Services should check this for local in-memory redis
-        
+        env["REDIS_HOST"] = "MOCK"
+
         # Inject required Pydantic fields (Satisfy validation in Shadow Mode)
-        env["JWT_SECRET"] = "dev_secret_key_64_bits_long_minimum_integrity"
-        env["STRIPE_PUBLISHABLE_KEY"] = "pk_test_mock"
-        env["STRIPE_SECRET_KEY"] = "sk_test_mock"
-        env["STRIPE_WEBHOOK_SECRET"] = "whsec_mock"
+        env.setdefault("JWT_SECRET", "dev_secret_key_64_bits_long_minimum_integrity")
+        env.setdefault("STRIPE_PUBLISHABLE_KEY", "pk_test_mock")
+        env.setdefault("STRIPE_SECRET_KEY", "sk_test_mock")
+        env.setdefault("STRIPE_WEBHOOK_SECRET", "whsec_mock")
         
-        # Fixing PYTHONPATH so each service can find its own 'app' module
-        # and also access 'backend.shared' from the project root.
-        env["PYTHONPATH"] = f"{PROJECT_ROOT};{service_cwd}" if os.name == 'nt' else f"{PROJECT_ROOT}:{service_cwd}"
+        # PYTHONPATH: project root (for backend.shared) + service dir (for app module)
+        sep = ";" if os.name == "nt" else ":"
+        env["PYTHONPATH"] = f"{PROJECT_ROOT}{sep}{service_cwd}"
         
         # Log injection for debugging
         print(f"🚀 Starting {name} on port {port}...")

@@ -86,7 +86,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col h-screen bg-[#F2EFEA]">
       <Navbar />
 
       {/* ── Chat header ── */}
@@ -141,7 +141,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
                 className="px-5 py-3 rounded-2xl max-w-[60%] text-[16px] leading-relaxed"
                 style={{
                   backgroundColor: isMe ? GREEN : "#F3F4F6",
-                  color: isMe ? "white" : "#111827",
+                  color: isMe ? "#F2EFEA" : "#111827",
                   borderBottomRightRadius: isMe ? 4 : undefined,
                   borderBottomLeftRadius: isMe ? undefined : 4,
                 }}
@@ -173,7 +173,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
           <button
             onClick={sendMessage}
             disabled={!isConnected || !input.trim()}
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors disabled:opacity-40"
+            className="w-12 h-12 rounded-full flex items-center justify-center text-[#F2EFEA] transition-colors disabled:opacity-40"
             style={{ backgroundColor: GREEN }}
           >
             <svg className="w-5 h-5 -translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

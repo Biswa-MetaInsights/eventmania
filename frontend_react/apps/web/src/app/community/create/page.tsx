@@ -56,7 +56,7 @@ export default function CreateCommunityPage() {
       eventsApi.search({ organizer_id: userId, limit: 100 }).catch(() => null),
     ]).then(([communityRes, eventsRes]) => {
       if (communityRes) {
-        setExistingCommunitySlug(communityRes.data.slug);
+        setExistingCommunitySlug(communityRes.data.slug ?? "");
         setPageState("already_has");
         return;
       }
@@ -92,7 +92,7 @@ export default function CreateCommunityPage() {
           </p>
           <button
             onClick={() => router.push(`/community/${existingCommunitySlug}`)}
-            className="px-8 py-4 rounded-2xl text-sm font-bold text-white"
+            className="px-8 py-4 rounded-2xl text-sm font-bold text-[#F2EFEA]"
             style={{ backgroundColor: GREEN }}
           >
             View My Community
@@ -108,7 +108,7 @@ export default function CreateCommunityPage() {
       <div className="min-h-screen" style={{ backgroundColor: "#F2EFEA" }}>
         <Navbar />
         <div className="px-12 py-20 max-w-lg mx-auto">
-          <div className="rounded-2xl p-10 text-center" style={{ backgroundColor: "white", border: "1px solid #E2DDD5" }}>
+          <div className="rounded-2xl p-10 text-center" style={{ backgroundColor: "#F2EFEA", border: "1px solid #E2DDD5" }}>
             <div className="text-5xl mb-6">🔒</div>
             <h1 className="text-[24px] font-bold mb-3" style={{ color: "#111827" }}>
               Not eligible yet
@@ -133,7 +133,7 @@ export default function CreateCommunityPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => router.push("/organizer/create")}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-[#F2EFEA]"
                 style={{ backgroundColor: GREEN }}
               >
                 Create an Event
@@ -141,7 +141,7 @@ export default function CreateCommunityPage() {
               <button
                 onClick={() => router.push("/organizer")}
                 className="flex-1 py-3 rounded-xl text-sm font-bold"
-                style={{ border: `2px solid ${GREEN}`, color: GREEN, backgroundColor: "white" }}
+                style={{ border: `2px solid ${GREEN}`, color: GREEN, backgroundColor: "#F2EFEA" }}
               >
                 My Events
               </button>
@@ -197,7 +197,7 @@ export default function CreateCommunityPage() {
           <button
             onClick={() => router.back()}
             className="w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ border: "1px solid #E2DDD5", backgroundColor: "white" }}
+            style={{ border: "1px solid #E2DDD5", backgroundColor: "#F2EFEA" }}
           >
             <svg className="w-4 h-4" style={{ color: "#6B7280" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -212,7 +212,7 @@ export default function CreateCommunityPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "white", border: "1px solid #E2DDD5" }}>
+          <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "#F2EFEA", border: "1px solid #E2DDD5" }}>
             <FormField label="Community Name" error={fieldErrors.name}>
               <input
                 type="text"
@@ -279,7 +279,7 @@ export default function CreateCommunityPage() {
           <button
             type="submit"
             disabled={isSubmitting || success}
-            className="w-full mt-6 py-4 rounded-2xl text-white text-sm font-bold transition-colors disabled:opacity-50"
+            className="w-full mt-6 py-4 rounded-2xl text-[#F2EFEA] text-sm font-bold transition-colors disabled:opacity-50"
             style={{ backgroundColor: GREEN }}
           >
             {isSubmitting ? (
@@ -324,6 +324,6 @@ function inputCls(hasError: boolean): string {
     "placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 " +
     (hasError
       ? "border border-red-400 bg-red-50 focus:ring-red-200"
-      : "border border-[#E2DDD5] bg-white text-[#111827] focus:ring-[#184E4A]/20 focus:border-[#184E4A]")
+      : "border border-[#E2DDD5] bg-[#F2EFEA] text-[#111827] focus:ring-[#184E4A]/20 focus:border-[#184E4A]")
   );
 }

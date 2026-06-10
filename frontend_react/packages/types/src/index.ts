@@ -46,6 +46,23 @@ export interface AuthTokens {
   token_type: string;
 }
 
+export interface Community {
+  id: string;
+  organizer_id: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  category: string;
+  location: Record<string, unknown>;
+  website?: string;
+  next_event_date?: string;
+  member_count: number;
+  price: number;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ApiError {
   detail: string;
   status_code?: number;
@@ -64,16 +81,4 @@ export interface OrganizerProfile {
   country: string;
   registration_number: string;
   verification_status: VerificationStatus;
-}
-
-export interface Community {
-  id: string;
-  organizer_id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  category?: string;
-  website?: string;
-  created_at: string;
-  updated_at: string;
 }

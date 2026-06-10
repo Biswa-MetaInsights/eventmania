@@ -74,7 +74,7 @@ export default function MyOrganisedEventsPage() {
           </div>
           <button
             onClick={() => router.push("/organizer/create")}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition-colors"
+            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-[#F2EFEA] transition-colors"
             style={{ backgroundColor: GREEN }}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -92,7 +92,7 @@ export default function MyOrganisedEventsPage() {
           </div>
         ) : !events || events.length === 0 ? (
           <div className="flex flex-col items-center py-24 gap-5 rounded-2xl"
-            style={{ backgroundColor: "white", border: "1px solid #E2DDD5" }}>
+            style={{ backgroundColor: "#F2EFEA", border: "1px solid #E2DDD5" }}>
             <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
               style={{ backgroundColor: "#F2EFEA" }}>
               📋
@@ -105,7 +105,7 @@ export default function MyOrganisedEventsPage() {
             </div>
             <button
               onClick={() => router.push("/organizer/create")}
-              className="px-6 py-3 rounded-xl text-sm font-bold text-white"
+              className="px-6 py-3 rounded-xl text-sm font-bold text-[#F2EFEA]"
               style={{ backgroundColor: GREEN }}
             >
               Create your first event
@@ -124,7 +124,7 @@ export default function MyOrganisedEventsPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody style={{ backgroundColor: "white" }}>
+              <tbody style={{ backgroundColor: "#F2EFEA" }}>
                 {events.map((ev, i) => {
                   const loc = ev.location as Record<string, unknown>;
                   const cityName = (loc?.address as string)?.split(",").slice(-2).join(",").trim() ?? "—";

@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
+// Local hero images live in apps/web/public/hero/. Paths are served from the public
+// root, so "/hero/hero-2.png" → public/hero/hero-2.png. (hero-1 and hero-6 removed.)
 const IMAGES = [
-  "https://images.unsplash.com/photo-1540575861501-7ad060e39fe1?w=1000&q=75",
-  "https://images.unsplash.com/photo-1531058020387-3be344556be6?w=1000&q=75",
-  "https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=1000&q=75",
-  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1000&q=75",
+  "/hero/hero-2.png",
+  "/hero/hero-3.png",
+  "/hero/hero-4.png",
+  "/hero/hero-5.png",
+  "/hero/hero-7.png",
 ];
 
 const DURATION = 1500;
@@ -89,7 +92,16 @@ export function HeroCarousel() {
   const clipPath = buildClipPath(progress);
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ height: 560, backgroundColor: "#111827" }}>
+    <div
+      className="relative w-full overflow-hidden"
+      style={{
+        // Hero images are 16:9 — match that ratio so the full image shows without
+        // cropping. maxHeight keeps it from dominating on very wide / ultrawide screens.
+        aspectRatio: "16 / 9",
+        maxHeight: "85vh",
+        backgroundColor: "#111827",
+      }}
+    >
       {/* Outgoing image — static, no animation */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -109,39 +121,6 @@ export function HeroCarousel() {
           style={{ clipPath }}
         />
       )}
-
-      {/* Left gradient for text legibility */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 40%, transparent 75%)",
-        }}
-      />
-
-      {/* Text overlay */}
-      <div className="absolute left-16 top-0 bottom-14 w-[520px] flex flex-col justify-center">
-        <div
-          className="self-start px-3.5 py-1.5 rounded-full text-white text-[13px] font-semibold tracking-[0.3px] mb-[22px]"
-          style={{
-            backgroundColor: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.22)",
-          }}
-        >
-          ✦&nbsp;&nbsp;AI-Powered Event Discovery
-        </div>
-
-        <h1
-          className="text-white font-extrabold tracking-[-1px] mb-4"
-          style={{ fontSize: 58, lineHeight: 1.08 }}
-        >
-          Experience the<br />Extraordinary.
-        </h1>
-
-        <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)", lineHeight: 1.6 }}>
-          Discover events, summits & networking<br />near you — curated by AI.
-        </p>
-      </div>
 
       {/* Navigation dots */}
       <div className="absolute bottom-6 left-0 right-0 flex justify-center items-center gap-2 pointer-events-none">

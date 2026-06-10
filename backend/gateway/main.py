@@ -40,6 +40,7 @@ SERVICE_MAP: Dict[str, str] = {
     "chat": "http://localhost:8007/chat",
     "recommendation": "http://localhost:8008/recommendations",
     "review": "http://localhost:8009/reviews",
+    "community": "http://localhost:8011/communities",
 }
 
 # Shared HTTP Client for Proxying

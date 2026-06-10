@@ -20,7 +20,9 @@ def _load_dotenv(path: str) -> dict:
 
 # Service Registry (Name: (Relative Path, Port))
 SERVICES = {
+    "gateway":        ("gateway",                 8000),
     "auth":           ("services/auth",           8001),
+    "community":      ("services/community",      8011),
     "user":           ("services/user",           8002),
     "event":          ("services/event",          8003),
     "ticketing":      ("services/ticketing",      8004),
@@ -29,7 +31,7 @@ SERVICES = {
     "chat":           ("services/chat",           8007),
     "recommendation": ("services/recommendation", 8008),
     "review":         ("services/review",         8009),
-    "gateway":        ("gateway",                 8000),
+    "agents":         ("agents",                  8010),
 }
 
 # Base Directory (backend/)

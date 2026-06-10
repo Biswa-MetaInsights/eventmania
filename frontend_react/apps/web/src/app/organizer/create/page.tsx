@@ -178,7 +178,7 @@ export default function CreateEventPage() {
           <button
             onClick={() => router.back()}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-            style={{ border: "1px solid #E2DDD5", backgroundColor: "white" }}
+            style={{ border: "1px solid #E2DDD5", backgroundColor: "#F2EFEA" }}
           >
             <svg className="w-4 h-4" style={{ color: "#6B7280" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -227,8 +227,8 @@ export default function CreateEventPage() {
                     onClick={() => setEventType(t)}
                     className="flex-1 py-3 text-sm font-medium transition-colors"
                     style={{
-                      backgroundColor: eventType === t ? GREEN : "white",
-                      color: eventType === t ? "white" : "#111827",
+                      backgroundColor: eventType === t ? GREEN : "#F2EFEA",
+                      color: eventType === t ? "#F2EFEA" : "#111827",
                     }}
                   >
                     {t}
@@ -258,8 +258,8 @@ export default function CreateEventPage() {
                       onClick={() => toggleAudience(a)}
                       className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
                       style={{
-                        backgroundColor: selected ? GREEN : "white",
-                        color: selected ? "white" : "#374151",
+                        backgroundColor: selected ? GREEN : "#F2EFEA",
+                        color: selected ? "#F2EFEA" : "#374151",
                         border: `1px solid ${selected ? GREEN : "#E2DDD5"}`,
                       }}
                     >
@@ -399,8 +399,8 @@ export default function CreateEventPage() {
                   onClick={() => setCommunityId(communityId ? "" : community.id)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
                   style={{
-                    backgroundColor: communityId ? GREEN : "white",
-                    color: communityId ? "white" : "#374151",
+                    backgroundColor: communityId ? GREEN : "#F2EFEA",
+                    color: communityId ? "#F2EFEA" : "#374151",
                     border: `1px solid ${communityId ? GREEN : "#E2DDD5"}`,
                   }}
                 >
@@ -435,7 +435,7 @@ export default function CreateEventPage() {
               disabled={isSubmitting || success}
               onClick={() => setSubmitMode("draft")}
               className="flex-1 py-4 rounded-2xl text-sm font-bold transition-colors disabled:opacity-50"
-              style={{ border: `2px solid ${GREEN}`, color: GREEN, backgroundColor: "white" }}
+              style={{ border: `2px solid ${GREEN}`, color: GREEN, backgroundColor: "#F2EFEA" }}
             >
               {isSubmitting && submitMode === "draft" ? "Saving…" : "Save as Draft"}
             </button>
@@ -444,7 +444,7 @@ export default function CreateEventPage() {
               type="submit"
               disabled={isSubmitting || success}
               onClick={() => setSubmitMode("publish")}
-              className="flex-[2] py-4 rounded-2xl text-white text-sm font-bold transition-colors disabled:opacity-50"
+              className="flex-[2] py-4 rounded-2xl text-[#F2EFEA] text-sm font-bold transition-colors disabled:opacity-50"
               style={{ backgroundColor: GREEN }}
             >
               {isSubmitting && submitMode === "publish" ? (
@@ -464,7 +464,7 @@ export default function CreateEventPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "white", border: "1px solid #E2DDD5" }}>
+    <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "#F2EFEA", border: "1px solid #E2DDD5" }}>
       <h2 className="text-[18px] font-bold" style={{ color: "#111827" }}>{title}</h2>
       {children}
     </div>
@@ -500,6 +500,6 @@ function inputCls(hasError: boolean): string {
     "placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 resize-none " +
     (hasError
       ? "border border-red-400 bg-red-50 focus:ring-red-200"
-      : "border border-[#E2DDD5] bg-white text-[#111827] focus:ring-[#184E4A]/20 focus:border-[#184E4A]")
+      : "border border-[#E2DDD5] bg-[#F2EFEA] text-[#111827] focus:ring-[#184E4A]/20 focus:border-[#184E4A]")
   );
 }

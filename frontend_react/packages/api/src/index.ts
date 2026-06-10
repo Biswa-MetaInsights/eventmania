@@ -6,6 +6,7 @@ export { isAxiosError } from "axios";
 export { reviewsApi } from "./reviews";
 export type { Review, ReviewAggregates } from "./reviews";
 export { paymentsApi } from "./payments";
+export { communitiesApi } from "./communities";
 export { organizerApi } from "./organizer";
 export type { OrganizerProfileCreate } from "./organizer";
 export { recommendationsApi } from "./recommendations";

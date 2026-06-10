@@ -129,7 +129,7 @@ export default function OrganizerOnboardingPage() {
             { icon: "🌍", text: "All countries supported" },
           ].map((item) => (
             <div key={item.text} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
-              style={{ backgroundColor: "white", border: "1px solid #E2DDD5", color: "#6B7280" }}>
+              style={{ backgroundColor: "#F2EFEA", border: "1px solid #E2DDD5", color: "#6B7280" }}>
               <span>{item.icon}</span>
               <span>{item.text}</span>
             </div>
@@ -137,7 +137,7 @@ export default function OrganizerOnboardingPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "white", border: "1px solid #E2DDD5" }}>
+          <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "#F2EFEA", border: "1px solid #E2DDD5" }}>
 
             {/* Contact Person */}
             <div>
@@ -249,7 +249,7 @@ export default function OrganizerOnboardingPage() {
           <button
             type="submit"
             disabled={isSubmitting || success}
-            className="w-full mt-6 py-4 rounded-2xl text-white text-sm font-bold transition-colors disabled:opacity-50"
+            className="w-full mt-6 py-4 rounded-2xl text-[#F2EFEA] text-sm font-bold transition-colors disabled:opacity-50"
             style={{ backgroundColor: GREEN }}
           >
             {isSubmitting ? (
@@ -294,6 +294,6 @@ function inputCls(hasError: boolean): string {
     "placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 " +
     (hasError
       ? "border border-red-400 bg-red-50 focus:ring-red-200"
-      : "border border-[#E2DDD5] bg-white text-[#111827] focus:ring-[#184E4A]/20 focus:border-[#184E4A]")
+      : "border border-[#E2DDD5] bg-[#F2EFEA] text-[#111827] focus:ring-[#184E4A]/20 focus:border-[#184E4A]")
   );
 }

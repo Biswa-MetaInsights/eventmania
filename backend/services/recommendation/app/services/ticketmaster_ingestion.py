@@ -50,11 +50,8 @@ def _parse_event(ev: Dict[str, Any]) -> Dict[str, Any] | None:
         country = venue.get("country", {}).get("name", "")
         address = venue.get("address", {}).get("line1", "")
         loc = venue.get("location", {})
-        lat = float(loc.get("latitude", 0)) if loc.get("latitude") else None
-        lng = float(loc.get("longitude", 0)) if loc.get("longitude") else None
-
-        if not lat or not lng:
-            return None
+        lat = float(loc.get("latitude", 0)) if loc.get("latitude") else 0.0
+        lng = float(loc.get("longitude", 0)) if loc.get("longitude") else 0.0
 
         # Category
         classifications = ev.get("classifications", [{}])

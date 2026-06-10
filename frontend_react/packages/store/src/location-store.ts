@@ -9,6 +9,9 @@ export interface City {
 }
 
 export const CITIES: City[] = [
+  // "Online" is a pseudo-city: lat/lng 0,0 matches how online events/communities are
+  // stored. When selected, queries switch to category="online" rather than a geo radius.
+  { name: "Online",        country: "",   lat: 0,       lng: 0         },
   { name: "New York",      country: "US", lat: 40.7128,  lng: -74.0060  },
   { name: "Los Angeles",   country: "US", lat: 34.0522,  lng: -118.2437 },
   { name: "Chicago",       country: "US", lat: 41.8781,  lng: -87.6298  },
@@ -25,13 +28,17 @@ export const CITIES: City[] = [
   { name: "Singapore",     country: "SG", lat: 1.3521,   lng: 103.8198  },
   { name: "Mumbai",        country: "IN", lat: 19.0760,  lng: 72.8777   },
   { name: "Bangalore",     country: "IN", lat: 12.9716,  lng: 77.5946   },
+  { name: "Thiruvananthapuram", country: "IN", lat: 8.5241, lng: 76.9366 },
   { name: "Tokyo",         country: "JP", lat: 35.6762,  lng: 139.6503  },
   { name: "Sydney",        country: "AU", lat: -33.8688, lng: 151.2093  },
   { name: "São Paulo",     country: "BR", lat: -23.5505, lng: -46.6333  },
   { name: "Cape Town",     country: "ZA", lat: -33.9249, lng: 18.4241   },
 ];
 
-export const DEFAULT_CITY = CITIES[0]; // New York
+export const DEFAULT_CITY = CITIES.find((c) => c.name === "New York")!;
+
+/** True when the given city is the "Online" pseudo-city. */
+export const isOnlineCity = (city: City) => city.name === "Online";
 
 interface LocationState {
   selectedCity: City;

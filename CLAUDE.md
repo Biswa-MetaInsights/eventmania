@@ -24,7 +24,7 @@
 
 NewFind (formerly EventMind internally) is an AI-powered event discovery platform — think Eventbrite meets Meetup, with an AI layer for personalised recommendations and community matching. Users can discover events, register, buy tickets, and chat with other attendees. Organisers can create and manage events.
 
-The project is mid-build. A Flutter Web frontend exists and is partially working. A full React/Next.js frontend has been migrated from it and is the active codebase going forward. The Flutter version is kept as reference only.
+The project is mid-build. The frontend is a React/Next.js web app (`frontend_react/`). It was originally migrated from a Flutter Web prototype; that Flutter app has since been **deleted** and no longer exists in the repo.
 
 > **Important:** This is React/Next.js — NOT React Native. React Native is a mobile framework. This project is a Next.js web app. Do not confuse the two.
 
@@ -35,8 +35,7 @@ The project is mid-build. A Flutter Web frontend exists and is partially working
 ```
 Event mind/
 └── eventmind/
-    ├── frontend/              ← Flutter Web (reference only, do not modify)
-    ├── frontend_react/        ← React/Next.js (active codebase)
+    ├── frontend_react/        ← React/Next.js (the frontend)
     │   ├── apps/web/          ← Next.js app
     │   └── packages/          ← shared types, store, api
     ├── backend/               ← FastAPI microservices
@@ -147,7 +146,6 @@ Install these before doing anything else. If you already have them, skip ahead.
 | Python | 3.10 or higher | `python --version` |
 | Node.js | 20 or higher (project uses 24.16.0, see `.nvmrc`) | `node --version` |
 | pnpm | any recent version | `pnpm --version` |
-| Flutter | any recent stable | `flutter --version` (only needed to run the reference Flutter app) |
 
 **Install pnpm** (if not already installed):
 ```powershell
@@ -312,13 +310,6 @@ pnpm --filter @eventmind/web dev:webpack
 > Note: whether the laptop hangs has **nothing to do with the backend**. The frontend dev server
 > uses the same memory with or without the backend running — a missing backend only makes API
 > calls fail *inside the page*, it does not hang the machine.
-
-### Flutter Frontend (reference only — do not modify)
-
-```powershell
-cd "eventmind/frontend"
-flutter run -d chrome
-```
 
 ---
 
@@ -523,17 +514,6 @@ Read the full breakdown in `Eventmind_files/REACT_MIGRATION.md` under "What Is N
 
 ---
 
-## Flutter Frontend (Reference)
-
-The Flutter version at `eventmind/frontend/` is the original. It has the same pages but uses Riverpod (state), GoRouter (routing), and flutter_secure_storage (token storage). When migrating any remaining feature from Flutter to React, read the corresponding `.dart` file first to understand the intended behaviour, then reimplement — don't copy patterns directly.
-
-Key Flutter files for reference:
-- `frontend/lib/ui/components/event_navbar.dart` — navbar logic
-- `frontend/lib/blocs/auth_provider.dart` — auth state machine
-- `frontend/lib/ui/views/` — all page implementations
-
----
-
 ## Contribution Guidelines
 
 When you complete work in a session:
@@ -542,14 +522,13 @@ When you complete work in a session:
 2. **Save new documents to `Eventmind_files/`** — not inside `eventmind/`. That folder is for code only.
 3. **Keep `Eventmind_files/REACT_MIGRATION.md` current** — update the "Pages Built" table and "What Is Not Built Yet" section as features are completed.
 4. **Update the Component Registry above** — whenever a component is created or its purpose changes significantly.
-5. **Do not modify the Flutter frontend** — it is reference material only.
-6. **Run `pnpm --filter @eventmind/web type-check` before finishing** — all changes must be type-error free. This is non-negotiable.
-7. **Match the brand palette exactly** — do not introduce new colours or fonts without approval. Approved fonts: Outfit (global), DM Sans (online event cards only).
-8. **Test in the browser** — for UI changes, run the dev server and visually verify the change before reporting it done. Type-checking does not catch visual bugs.
-9. **Keep Node.js at v20+** — the project `.nvmrc` pins 24.16.0. If you use nvm, run `nvm use` inside `frontend_react/` to switch automatically.
-10. **Do not commit `.env.local` or `start.bat`** — both are in `.gitignore`. Never commit secrets or local environment files.
-11. **If you delete `platform_dev.db`** — restart all services first (so the community service creates the communities table), then re-run `seed_events.py`.
-12. **Always stop the dev server with `Ctrl+C` in its terminal** — do not just close the window or kill the terminal. On Windows, killing the terminal leaves the Next.js Turbopack worker processes orphaned. They accumulate across runs (we once found 321 zombie `node` processes), eat RAM, and cause `Zone Allocation failed / JavaScript heap out of memory` crashes on subsequent runs — especially on low-RAM (8 GB) machines. If a run ever crashes, clean up the orphans before retrying:
+5. **Run `pnpm --filter @eventmind/web type-check` before finishing** — all changes must be type-error free. This is non-negotiable.
+6. **Match the brand palette exactly** — do not introduce new colours or fonts without approval. Approved fonts: Outfit (global), DM Sans (online event cards only).
+7. **Test in the browser** — for UI changes, run the dev server and visually verify the change before reporting it done. Type-checking does not catch visual bugs.
+8. **Keep Node.js at v20+** — the project `.nvmrc` pins 24.16.0. If you use nvm, run `nvm use` inside `frontend_react/` to switch automatically.
+9. **Do not commit `.env.local` or `start.bat`** — both are in `.gitignore`. Never commit secrets or local environment files.
+10. **If you delete `platform_dev.db`** — restart all services first (so the community service creates the communities table), then re-run `seed_events.py`.
+11. **Always stop the dev server with `Ctrl+C` in its terminal** — do not just close the window or kill the terminal. On Windows, killing the terminal leaves the Next.js Turbopack worker processes orphaned. They accumulate across runs (we once found 321 zombie `node` processes), eat RAM, and cause `Zone Allocation failed / JavaScript heap out of memory` crashes on subsequent runs — especially on low-RAM (8 GB) machines. If a run ever crashes, clean up the orphans before retrying:
     ```powershell
     Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'next' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
     ```

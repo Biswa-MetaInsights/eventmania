@@ -172,16 +172,17 @@ To fill the catalogue with real, ticketed events (concerts, sports, theatre) for
 # One-time: add the provenance columns to an existing dev DB
 python backend\scripts\migrate_add_source_columns.py
 
-# Sync (backend must be running). --dry-run fetches without writing.
+# Sync (full backend must be running — gateway + recommendation service).
 python backend\scripts\sync_ticketmaster.py
-python backend\scripts\sync_ticketmaster.py --city London --dry-run
+python backend\scripts\sync_ticketmaster.py --city London --radius 150
 ```
 
 **How aggregated events work:**
+- There is **one** Ticketmaster pipeline. The fetch + normalisation logic lives in `backend/services/recommendation/app/services/ticketmaster_ingestion.py`, exposed as `POST /recommendation/ingest-city?city=&lat=&lng=&radius=` (the frontend city picker calls this on-demand). `backend/scripts/sync_ticketmaster.py` is just a thin launcher that calls that endpoint for each launch city — it does not duplicate any logic.
 - Every `events` row now carries `source` (`"native"` for organiser events, `"ticketmaster"` for synced), `external_id` (provider id), and `image_url`.
-- Ingestion is idempotent — `POST /event/ingest` upserts on `(source, external_id)`, so re-running the sync updates rather than duplicates. Cron it (every 30–60 min) for continuous refresh; Celery is not needed at this stage.
+- Ingestion is idempotent — the pipeline upserts via `POST /event/ingest` on `(source, external_id)`, so re-running updates rather than duplicates. Cron the launcher (every 30–60 min) for continuous refresh; Celery is not needed at this stage.
 - Aggregated events are **discover-and-redirect**: the frontend should send users to the event's `event_website` ("Buy on Ticketmaster") rather than into the native checkout/chat flow. Treat them as top-of-funnel; native organiser events remain the long-term value. Respect Ticketmaster's API terms on caching/retention before production.
-- The Discovery API caps any single query at 1,000 results, so the sync slices by `(city × segment)`. Launch cities are configured at the top of `sync_ticketmaster.py`.
+- The Discovery API caps any single query at 1,000 results, so the pipeline slices by classification segment and paginates within each. Ticketmaster segments are mapped onto EventMind categories (Music→Creative, Sports→Networking, …) so aggregated events sit alongside native ones.
 
 ---
 

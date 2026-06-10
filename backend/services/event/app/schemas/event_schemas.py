@@ -22,6 +22,17 @@ class EventCreate(BaseModel):
     price: float = 0.0
     status: Optional[EventStatus] = EventStatus.DRAFT
 
+
+class EventIngest(EventCreate):
+    """Payload for aggregated (externally-sourced) events.
+
+    Same shape as EventCreate plus provenance fields. Ingestion upserts on
+    (source, external_id), so re-running a sync updates rather than duplicates.
+    """
+    source: str = Field(..., min_length=2, max_length=50)
+    external_id: str = Field(..., min_length=1, max_length=255)
+    image_url: Optional[str] = None
+
 class EventOut(BaseModel):
     id: UUID
     organizer_id: UUID
@@ -29,6 +40,9 @@ class EventOut(BaseModel):
     slug: str
     description: Optional[str] = None
     category: str
+    source: str = "native"
+    external_id: Optional[str] = None
+    image_url: Optional[str] = None
     event_type: Optional[str] = "In-Person"
     location: Dict[str, Any]
     target_audience: Optional[str] = None

@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { organizerApi } from "@eventmind/api";
 import { useAuthStore } from "@eventmind/store";
+import { CityPicker } from "@/components/CityPicker";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 const GREEN = "#184E4A";
@@ -122,9 +125,10 @@ interface AvatarMenuProps {
   onOpen: () => void;
   onClose: () => void;
   onLogout: () => void;
+  isOrganizer: boolean;
 }
 
-function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout }: AvatarMenuProps) {
+function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout, isOrganizer }: AvatarMenuProps) {
   const triggerHover = useHoverStyle();
   const router = useRouter();
 
@@ -170,6 +174,9 @@ function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout }: AvatarMenuProps
           <div className="absolute -top-1 inset-x-0 h-1" />
           <DropdownItem emoji="🎟️" label="My Dashboard" onTap={() => { onClose(); router.push("/dashboard"); }} />
           <DropdownItem emoji="❤️" label="My Wishlist" onTap={() => { onClose(); router.push("/dashboard?tab=wishlist"); }} />
+          {isOrganizer && (
+            <DropdownItem emoji="📋" label="My Organised Events" onTap={() => { onClose(); router.push("/organizer/my-events"); }} />
+          )}
           <DropdownItem emoji="🎛️" label="Organizer Console" onTap={() => { onClose(); router.push("/organizer"); }} />
           <div className="my-1 mx-3 h-px" style={{ backgroundColor: BORDER }} />
           <DropdownItem emoji="⚙️" label="Settings" onTap={() => {}} />
@@ -240,25 +247,47 @@ function Toast({ message }: { message: string }) {
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
+function subFromToken(token: string | null): string {
+  if (!token) return "";
+  try { return JSON.parse(atob(token.split(".")[1])).sub ?? ""; }
+  catch { return ""; }
+}
+
 export function Navbar() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userEmail = useAuthStore((s) => s.userEmail);
+  const tokens = useAuthStore((s) => s.tokens);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  const userId = subFromToken(tokens?.access_token ?? null);
+
+  const { data: organizerProfile } = useQuery({
+    queryKey: ["organizer-profile", userId],
+    queryFn: () => organizerApi.get(userId).then((r) => r.data),
+    enabled: isAuthenticated && !!userId,
+    retry: false,
+    staleTime: 5 * 60 * 1000, // cache for 5 min — no re-fetch on every nav
+  });
+
+  const isOrganizer = !!organizerProfile;
 
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchActive, setSearchActive] = useState(false);
 
   function closeAll() { setActiveMenu(null); }
 
-  // Only navigate after the user has actually typed — avoids redirecting on mount
+  // Only navigate after the user has actually typed — avoids redirecting on mount.
+  // Searching takes the user to the Explore page with the query pre-filled.
   useEffect(() => {
     if (!hasSearched) return;
     const t = setTimeout(() => {
       const q = searchQuery.trim();
-      router.push(q ? `/?q=${encodeURIComponent(q)}` : "/");
+      if (q) { router.push(`/explore?q=${encodeURIComponent(q)}`); setMobileOpen(false); }
     }, 300);
     return () => clearTimeout(t);
   }, [searchQuery, router, hasSearched]);
@@ -274,141 +303,249 @@ export function Navbar() {
   }
 
   const eventsItems: NavItem[] = [
-    { emoji: "🔍", label: "Explore Events", onTap: () => { closeAll(); router.push("/"); } },
+    { emoji: "🔍", label: "Explore Events", onTap: () => { closeAll(); router.push("/explore?view=events"); } },
     { emoji: "➕", label: "Create Event",   onTap: () => { closeAll(); router.push("/organizer/create"); } },
     { emoji: "📅", label: "My Events",      onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard" : "/auth"); } },
   ];
 
   const groupsItems: NavItem[] = [
-    { emoji: "🔍", label: "Explore Communities", onTap: () => showToast("Communities — coming soon!") },
-    { emoji: "➕", label: "Create Community",    onTap: () => showToast("Communities — coming soon!") },
-    { emoji: "👥", label: "My Communities",      onTap: () => showToast("Communities — coming soon!") },
+    { emoji: "🔍", label: "Explore Communities", onTap: () => { closeAll(); router.push("/explore?view=communities"); } },
+    { emoji: "➕", label: "Create Community",    onTap: () => { closeAll(); router.push(isAuthenticated ? "/community/create" : "/auth"); } },
+    { emoji: "👥", label: "My Community",        onTap: () => { closeAll(); router.push(isAuthenticated ? "/community/create" : "/auth"); } },
   ];
+
+  const searchPlaceholder = "Search events or communities";
 
   return (
     <>
-      <nav
-        className="sticky top-0 z-40 flex items-center h-[72px] px-12"
-        style={{
-          backgroundColor: LINEN,
-          borderBottom: `1px solid ${NAV_BORDER}`,
-        }}
+      <header
+        className="sticky top-0 z-40"
+        style={{ backgroundColor: LINEN, borderBottom: `1px solid ${NAV_BORDER}` }}
       >
-        {/* ── Logo + wordmark ── */}
-        <div
-          className="flex items-center gap-2.5 shrink-0"
-          onMouseEnter={closeAll}
-        >
-          <Link href="/" className="flex items-center gap-2.5 no-underline">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold"
-              style={{ backgroundColor: GREEN, color: LINEN }}
-            >
-              E
+        <nav className="flex items-center h-[72px] px-4 sm:px-6 lg:px-12">
+          {/* ── Logo + wordmark (always visible) ── */}
+          <div className="flex items-center gap-2.5 shrink-0" onMouseEnter={closeAll}>
+            <Link href="/" className="flex items-center gap-2.5 no-underline">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold"
+                style={{ backgroundColor: GREEN, color: LINEN }}
+              >
+                E
+              </div>
+              <span className="text-[19px] font-extrabold tracking-[0.2px]" style={{ color: GREEN }}>
+                NewFind
+              </span>
+            </Link>
+          </div>
+
+          {/* ══════════ Desktop nav (lg and up) ══════════ */}
+          <div className="hidden lg:flex items-center flex-1">
+            <div className="w-6 shrink-0" />
+
+            {/* ── Search bar ── */}
+            <div onMouseEnter={closeAll} className="shrink-0">
+              <div
+                className="flex items-center w-[360px] xl:w-[400px] h-10 rounded-lg px-3 gap-2"
+                style={{ backgroundColor: LINEN, border: '1.5px solid rgba(17,24,39,0.5)' }}
+                onMouseEnter={() => setSearchActive(true)}
+                onMouseLeave={() => setSearchActive(false)}
+              >
+                <svg
+                  className="w-4 h-4 shrink-0 transition-colors"
+                  viewBox="0 0 20 20"
+                  style={{ fill: searchActive ? TEXT : HINT }}
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setHasSearched(true); setSearchQuery(e.target.value); }}
+                  onFocus={() => setSearchActive(true)}
+                  onBlur={() => setSearchActive(false)}
+                  placeholder={searchPlaceholder}
+                  className="flex-1 text-base bg-transparent outline-none min-w-0"
+                  style={{ color: TEXT }}
+                />
+                <div className="w-px self-stretch shrink-0" style={{ backgroundColor: 'rgba(17,24,39,0.5)' }} />
+                <CityPicker variant="inline" />
+              </div>
             </div>
-            <span
-              className="text-[19px] font-extrabold tracking-[0.2px]"
-              style={{ color: GREEN }}
-            >
-              NewFind
-            </span>
-          </Link>
-        </div>
 
-        <div className="w-6 shrink-0" />
+            <div className="flex-1" />
 
-        {/* ── Search bar ── */}
-        <div onMouseEnter={closeAll} className="shrink-0">
-          <div
-            className="flex items-center w-[400px] h-10 rounded-lg px-3 gap-2"
-            style={{ backgroundColor: LINEN, border: '1.5px solid rgba(17,24,39,0.5)' }}
-          >
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill={HINT}>
-              <path
-                fillRule="evenodd"
-                d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setHasSearched(true); setSearchQuery(e.target.value); }}
-              placeholder="Search events or communities"
-              className="flex-1 text-base bg-transparent outline-none min-w-0"
-              style={{ color: TEXT }}
+            <NavDropdown
+              label="Events"
+              items={eventsItems}
+              isOpen={activeMenu === "events"}
+              onOpen={() => setActiveMenu("events")}
+              onClose={closeAll}
             />
-            <div className="w-px self-stretch shrink-0" style={{ backgroundColor: 'rgba(17,24,39,0.5)' }} />
-            <div className="flex items-center gap-1 shrink-0">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill={HINT}>
+            <div className="w-2" />
+            <NavDropdown
+              label="Communities"
+              items={groupsItems}
+              isOpen={activeMenu === "groups"}
+              onOpen={() => setActiveMenu("groups")}
+              onClose={closeAll}
+            />
+            <div className="w-2" />
+            <HelpButton onMouseEnter={closeAll} />
+
+            {isAuthenticated && (
+              <>
+                <div className="w-2" />
+                <div onMouseEnter={closeAll}>
+                  <BellButton />
+                </div>
+              </>
+            )}
+
+            <div className="w-3" />
+
+            {!isAuthenticated ? (
+              <div onMouseEnter={closeAll}>
+                <SignInButton />
+              </div>
+            ) : (
+              <AvatarMenu
+                name={displayName(userEmail)}
+                isOpen={activeMenu === "avatar"}
+                onOpen={() => setActiveMenu("avatar")}
+                onClose={closeAll}
+                isOrganizer={isOrganizer}
+                onLogout={handleLogout}
+              />
+            )}
+          </div>
+
+          {/* ══════════ Mobile hamburger (below lg) ══════════ */}
+          <button
+            className="lg:hidden ml-auto p-2 rounded-md"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            onClick={() => setMobileOpen((v) => !v)}
+            style={{ color: TEXT }}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {mobileOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+              )}
+            </svg>
+          </button>
+        </nav>
+
+        {/* ══════════ Mobile dropdown panel ══════════ */}
+        {mobileOpen && (
+          <div
+            className="lg:hidden px-4 sm:px-6 pb-5 pt-1 flex flex-col gap-4 max-h-[calc(100vh-72px)] overflow-y-auto"
+            style={{ backgroundColor: LINEN, borderTop: `1px solid ${BORDER}` }}
+          >
+            {/* Search */}
+            <div
+              className="flex items-center h-11 rounded-lg px-3 gap-2"
+              style={{ backgroundColor: LINEN, border: '1.5px solid rgba(17,24,39,0.5)' }}
+              onMouseEnter={() => setSearchActive(true)}
+              onMouseLeave={() => setSearchActive(false)}
+            >
+              <svg
+                className="w-4 h-4 shrink-0 transition-colors"
+                viewBox="0 0 20 20"
+                style={{ fill: searchActive ? TEXT : HINT }}
+              >
                 <path
                   fillRule="evenodd"
-                  d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 15.327 17 12.992 17 10A7 7 0 1 0 3 10c0 2.992 1.698 5.327 3.354 6.585.83.8 1.654 1.38 2.274 1.766.311.192.571.337.757.433a5.741 5.741 0 0 0 .281.14l.018.008.006.003ZM10 11.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"
+                  d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="text-base" style={{ color: HINT }}>
-                Add Location
-              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => { setHasSearched(true); setSearchQuery(e.target.value); }}
+                onFocus={() => setSearchActive(true)}
+                onBlur={() => setSearchActive(false)}
+                placeholder={searchPlaceholder}
+                className="flex-1 text-base bg-transparent outline-none min-w-0"
+                style={{ color: TEXT }}
+              />
             </div>
-          </div>
-        </div>
 
-        <div className="flex-1" />
-
-        {/* ── Events dropdown ── */}
-        <NavDropdown
-          label="Events"
-          items={eventsItems}
-          isOpen={activeMenu === "events"}
-          onOpen={() => setActiveMenu("events")}
-          onClose={closeAll}
-        />
-        <div className="w-2" />
-
-        {/* ── Community dropdown ── */}
-        <NavDropdown
-          label="Communities"
-          items={groupsItems}
-          isOpen={activeMenu === "groups"}
-          onOpen={() => setActiveMenu("groups")}
-          onClose={closeAll}
-        />
-        <div className="w-2" />
-
-        {/* ── Help ── */}
-        <HelpButton onMouseEnter={closeAll} />
-
-        {/* ── Bell (logged in only) ── */}
-        {isAuthenticated && (
-          <>
-            <div className="w-2" />
-            <div onMouseEnter={closeAll}>
-              <BellButton />
+            {/* City picker */}
+            <div className="px-0.5">
+              <CityPicker />
             </div>
-          </>
-        )}
 
-        <div className="w-3" />
+            {/* Events */}
+            <MobileNavSection title="Events" items={eventsItems} onNavigate={() => setMobileOpen(false)} />
 
-        {/* ── Sign In or Avatar ── */}
-        {!isAuthenticated ? (
-          <div onMouseEnter={closeAll}>
-            <SignInButton />
+            {/* Communities */}
+            <MobileNavSection title="Communities" items={groupsItems} onNavigate={() => setMobileOpen(false)} />
+
+            <div className="h-px" style={{ backgroundColor: BORDER }} />
+
+            {/* Auth section */}
+            {!isAuthenticated ? (
+              <Link
+                href="/auth"
+                onClick={() => setMobileOpen(false)}
+                className="w-full text-center px-5 py-3 rounded-lg text-base font-semibold no-underline"
+                style={{ backgroundColor: GREEN, color: LINEN }}
+              >
+                Sign In
+              </Link>
+            ) : (
+              <div className="flex flex-col">
+                <MobileNavButton emoji="🎟️" label="My Dashboard" onTap={() => { setMobileOpen(false); router.push("/dashboard"); }} />
+                <MobileNavButton emoji="❤️" label="My Wishlist" onTap={() => { setMobileOpen(false); router.push("/dashboard?tab=wishlist"); }} />
+                {isOrganizer && (
+                  <MobileNavButton emoji="📋" label="My Organised Events" onTap={() => { setMobileOpen(false); router.push("/organizer/my-events"); }} />
+                )}
+                <MobileNavButton emoji="🎛️" label="Organizer Console" onTap={() => { setMobileOpen(false); router.push("/organizer"); }} />
+                <MobileNavButton emoji="🚪" label="Log Out" onTap={() => { setMobileOpen(false); handleLogout(); }} />
+              </div>
+            )}
           </div>
-        ) : (
-          <AvatarMenu
-            name={displayName(userEmail)}
-            isOpen={activeMenu === "avatar"}
-            onOpen={() => setActiveMenu("avatar")}
-            onClose={closeAll}
-            onLogout={handleLogout}
-          />
         )}
-      </nav>
+      </header>
 
       {toast && <Toast message={toast} />}
     </>
+  );
+}
+
+// ── Mobile nav helpers ──────────────────────────────────────────────────────────
+function MobileNavSection({ title, items, onNavigate }: { title: string; items: NavItem[]; onNavigate: () => void }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <p className="px-2 text-xs font-bold uppercase tracking-wide" style={{ color: HINT }}>{title}</p>
+      {items.map((item) => (
+        <MobileNavButton
+          key={item.label}
+          emoji={item.emoji}
+          label={item.label}
+          onTap={() => { item.onTap(); onNavigate(); }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MobileNavButton({ emoji, label, onTap }: { emoji: string; label: string; onTap: () => void }) {
+  return (
+    <button
+      onClick={onTap}
+      className="flex items-center gap-3 px-2 py-3 text-base font-medium text-left rounded-md"
+      style={{ color: TEXT }}
+    >
+      <span className="text-lg leading-none">{emoji}</span>
+      {label}
+    </button>
   );
 }
 

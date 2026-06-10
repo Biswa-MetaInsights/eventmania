@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Roboto } from 'next/font/google'
@@ -19,7 +19,8 @@ export interface CarouselEvent {
   price: string
   imageUrl: string
   badge?: string
-  badgeType?: 'free' | 'selling-fast' | 'today' | 'sold-out'
+  badgeTypes?: Array<'free' | 'selling-fast' | 'today' | 'sold-out' | 'this-week' | 'recommended'>
+  startDate?: string
   rating?: number
   reviewCount?: number
   isSoldOut?: boolean
@@ -31,8 +32,12 @@ export interface EventsCarouselProps {
   events: CarouselEvent[]
   location: string
   seeAllHref: string
+  /** "View all" target for the Online Events row. Defaults to seeAllHref. */
+  onlineSeeAllHref?: string
   isLoading?: boolean
   onBookNow?: (id: string) => void
+  /** Optional control rendered in place of the default edit-location button (e.g. <CityPicker variant="icon" />). */
+  locationSlot?: ReactNode
 }
 
 // ─── Brand constants ───────────────────────────────────────────────────────────
@@ -45,14 +50,16 @@ const MUTED = '#9CA3AF'
 const NAV_BORDER = '#C8C1B8'
 
 const BADGE_CONFIG = {
-  'free': { bg: '#DC2626', text: '#FFFFFF', label: 'Free' },
-  'selling-fast': { bg: '#D97706', text: '#FFFFFF', label: 'Selling Fast' },
-  'today': { bg: '#2563EB', text: '#FFFFFF', label: 'Today' },
-  'sold-out': { bg: '#6B7280', text: '#FFFFFF', label: 'Sold Out' },
+  'free': { bg: '#DC2626', text: '#F2EFEA', label: 'Free' },
+  'selling-fast': { bg: '#D97706', text: '#F2EFEA', label: 'Selling Fast' },
+  'today': { bg: '#2563EB', text: '#F2EFEA', label: 'Today' },
+  'this-week': { bg: '#F59E0B', text: '#F2EFEA', label: 'This Week' },
+  'recommended': { bg: '#7C3AED', text: '#F2EFEA', label: 'Recommended' },
+  'sold-out': { bg: '#6B7280', text: '#F2EFEA', label: 'Sold Out' },
 } as const
 
-const FILTER_TABS = ['All', 'This Weekend', 'Free', 'Music', 'Food']
-const ONLINE_FILTER_TABS = ['All', 'Free', 'This Weekend', 'Selling Fast']
+const FILTER_TABS = ['All', 'Recommended', 'This Week', 'Free', 'Music', 'Food']
+const ONLINE_FILTER_TABS = ['All', 'Recommended', 'Free', 'This Week', 'Selling Fast']
 
 // ─── Sample data ───────────────────────────────────────────────────────────────
 
@@ -67,7 +74,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: '₹499 onwards',
     imageUrl: 'https://picsum.photos/seed/evt001/800/450',
     badge: 'Selling Fast',
-    badgeType: 'selling-fast',
+    badgeTypes: ['selling-fast'],
     rating: 4.7,
     reviewCount: 128,
     category: 'music',
@@ -82,7 +89,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt002/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.5,
     reviewCount: 312,
     category: 'food',
@@ -97,7 +104,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt003/800/450',
     badge: 'Today',
-    badgeType: 'today',
+    badgeTypes: ['today'],
     rating: 4.8,
     reviewCount: 87,
     category: 'online',
@@ -112,7 +119,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt004/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.3,
     reviewCount: 59,
     category: 'wellness',
@@ -127,7 +134,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: '₹799 onwards',
     imageUrl: 'https://picsum.photos/seed/evt005/800/450',
     badge: 'Sold Out',
-    badgeType: 'sold-out',
+    badgeTypes: ['sold-out'],
     isSoldOut: true,
     rating: 4.9,
     reviewCount: 254,
@@ -156,7 +163,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: '₹999 onwards',
     imageUrl: 'https://picsum.photos/seed/evt007/800/450',
     badge: 'Selling Fast',
-    badgeType: 'selling-fast',
+    badgeTypes: ['selling-fast'],
     rating: 4.6,
     reviewCount: 91,
     category: 'music',
@@ -171,7 +178,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt008/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.2,
     reviewCount: 38,
     category: 'food',
@@ -186,7 +193,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt009/800/450',
     badge: 'Today',
-    badgeType: 'today',
+    badgeTypes: ['today'],
     rating: 4.4,
     reviewCount: 67,
     category: 'food',
@@ -201,7 +208,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: '₹1,299 onwards',
     imageUrl: 'https://picsum.photos/seed/evt010/800/450',
     badge: 'Selling Fast',
-    badgeType: 'selling-fast',
+    badgeTypes: ['selling-fast'],
     rating: 4.7,
     reviewCount: 143,
     category: 'online',
@@ -229,7 +236,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt012/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.8,
     reviewCount: 196,
     category: 'music',
@@ -245,7 +252,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: '₹399 onwards',
     imageUrl: 'https://picsum.photos/seed/evt013/800/450',
     badge: 'Selling Fast',
-    badgeType: 'selling-fast',
+    badgeTypes: ['selling-fast'],
     rating: 4.6,
     reviewCount: 83,
     category: 'online',
@@ -260,7 +267,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt014/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.7,
     reviewCount: 215,
     category: 'online',
@@ -275,7 +282,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt015/800/450',
     badge: 'Today',
-    badgeType: 'today',
+    badgeTypes: ['today'],
     rating: 4.5,
     reviewCount: 61,
     category: 'online',
@@ -290,7 +297,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt016/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.4,
     reviewCount: 97,
     category: 'online',
@@ -318,7 +325,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: '₹599 onwards',
     imageUrl: 'https://picsum.photos/seed/evt018/800/450',
     badge: 'Selling Fast',
-    badgeType: 'selling-fast',
+    badgeTypes: ['selling-fast'],
     rating: 4.9,
     reviewCount: 178,
     category: 'online',
@@ -333,7 +340,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt019/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.2,
     reviewCount: 134,
     category: 'online',
@@ -348,7 +355,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     price: 'Free',
     imageUrl: 'https://picsum.photos/seed/evt020/800/450',
     badge: 'Free',
-    badgeType: 'free',
+    badgeTypes: ['free'],
     rating: 4.6,
     reviewCount: 44,
     category: 'online',
@@ -445,7 +452,7 @@ function HeartButton({ event }: { event: CarouselEvent }) {
             price: event.price,
             imageUrl: event.imageUrl,
             badge: event.badge,
-            badgeType: event.badgeType,
+            badgeType: event.badgeTypes?.[0],
             isSoldOut: event.isSoldOut,
             category: event.category,
           })
@@ -506,7 +513,7 @@ function EditLocationButton() {
 
 // ─── Individual event card ─────────────────────────────────────────────────────
 
-function EventCardItem({
+export function EventCardItem({
   event,
   onBookNow,
 }: {
@@ -514,7 +521,7 @@ function EventCardItem({
   onBookNow?: (id: string) => void
 }) {
   const [hovered, setHovered] = useState(false)
-  const badgeCfg = event.badgeType ? BADGE_CONFIG[event.badgeType] : null
+  const activeBadges = (event.badgeTypes ?? []).filter(t => t !== 'sold-out').map(t => BADGE_CONFIG[t])
   const priceFg = event.isSoldOut ? MUTED : GREEN
 
   return (
@@ -522,7 +529,7 @@ function EventCardItem({
       href={`/event/${event.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className={`${roboto.className} relative rounded-2xl overflow-hidden flex flex-col`}
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -542,12 +549,14 @@ function EventCardItem({
         />
         <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><ShareButton /></div>
         <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton event={event} /></div>
-        {badgeCfg && !event.isSoldOut && (
-          <div className={`absolute bottom-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="px-2.5 py-1 rounded-full text-[16px] font-bold"
-              style={{ backgroundColor: badgeCfg.bg, color: badgeCfg.text }}>
-              {badgeCfg.label}
-            </span>
+        {activeBadges.length > 0 && !event.isSoldOut && (
+          <div className={`absolute bottom-2 left-2 flex gap-1.5 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
+            {activeBadges.map((cfg) => (
+              <span key={cfg.label} className="px-2.5 py-1 rounded-full text-[16px] font-bold"
+                style={{ backgroundColor: cfg.bg, color: cfg.text }}>
+                {cfg.label}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -620,7 +629,7 @@ function OnlineEventCard({
   onBookNow?: (id: string) => void
 }) {
   const [hovered, setHovered] = useState(false)
-  const badgeCfg = event.badgeType ? BADGE_CONFIG[event.badgeType] : null
+  const activeBadges = (event.badgeTypes ?? []).filter(t => t !== 'sold-out').map(t => BADGE_CONFIG[t])
   const priceFg = event.isSoldOut ? MUTED : GREEN
 
   return (
@@ -628,7 +637,7 @@ function OnlineEventCard({
       href={`/event/${event.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className={`${roboto.className} relative rounded-2xl overflow-hidden flex flex-col`}
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -649,12 +658,14 @@ function OnlineEventCard({
         />
         <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><ShareButton /></div>
         <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><HeartButton event={event} /></div>
-        {badgeCfg && !event.isSoldOut && (
-          <div className={`absolute bottom-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="px-2.5 py-1 rounded-full text-[16px] font-bold"
-              style={{ backgroundColor: badgeCfg.bg, color: badgeCfg.text }}>
-              {badgeCfg.label}
-            </span>
+        {activeBadges.length > 0 && !event.isSoldOut && (
+          <div className={`absolute bottom-2 left-2 flex gap-1.5 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
+            {activeBadges.map((cfg) => (
+              <span key={cfg.label} className="px-2.5 py-1 rounded-full text-[16px] font-bold"
+                style={{ backgroundColor: cfg.bg, color: cfg.text }}>
+                {cfg.label}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -735,12 +746,14 @@ function OnlineEventsRow({
 
   const filteredOnline: CarouselEvent[] = (() => {
     if (activeTab === 'All') return onlineEvents
+    if (activeTab === 'Recommended')
+      return onlineEvents.filter((e) => e.badgeTypes?.includes('recommended'))
     if (activeTab === 'Free')
-      return onlineEvents.filter((e) => e.badgeType === 'free' || e.price === 'Free')
-    if (activeTab === 'This Weekend')
-      return onlineEvents.filter((e) => e.badgeType === 'today' || e.badgeType === 'selling-fast')
+      return onlineEvents.filter((e) => e.price === 'Free')
+    if (activeTab === 'This Week')
+      return onlineEvents.filter((e) => e.badgeTypes?.includes('this-week'))
     if (activeTab === 'Selling Fast')
-      return onlineEvents.filter((e) => e.badgeType === 'selling-fast')
+      return onlineEvents.filter((e) => e.badgeTypes?.includes('selling-fast'))
     return onlineEvents
   })()
 
@@ -750,8 +763,8 @@ function OnlineEventsRow({
   return (
     <section aria-label="Online Events" className="pb-10">
       {/* Header */}
-      <div className="flex items-center justify-between px-12 mb-4">
-        <h2 className="font-extrabold tracking-[-0.5px]" style={{ fontSize: 30, color: TEXT }}>
+      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-12 mb-4">
+        <h2 className="font-extrabold tracking-[-0.5px]" style={{ fontSize: "clamp(22px, 4vw, 30px)", color: TEXT }}>
           Online Events
         </h2>
         <Link
@@ -768,7 +781,7 @@ function OnlineEventsRow({
       </div>
 
       {/* Filter tabs */}
-      <div className="px-12 mb-5">
+      <div className="px-4 sm:px-6 lg:px-12 mb-5">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
           {ONLINE_FILTER_TABS.map((tab) => {
             const active = tab === activeTab
@@ -780,7 +793,7 @@ function OnlineEventsRow({
                 className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
                 style={
                   active
-                    ? { backgroundColor: GREEN, color: '#FFFFFF', border: `1.5px solid ${GREEN}` }
+                    ? { backgroundColor: GREEN, color: '#F2EFEA', border: `1.5px solid ${GREEN}` }
                     : { backgroundColor: 'transparent', color: TEXT, border: `1.5px solid ${BORDER}` }
                 }
               >
@@ -791,9 +804,9 @@ function OnlineEventsRow({
         </div>
       </div>
 
-      <div className="px-12 pb-3">
+      <div className="px-4 sm:px-6 lg:px-12 pb-3">
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {Array.from({ length: GRID_LIMIT }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : onlineEvents.length === 0 ? (
@@ -807,7 +820,7 @@ function OnlineEventsRow({
             <p className="text-lg">No online events in this category yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {visibleOnlineEvents.map((event) => (
               <OnlineEventCard key={event.id} event={event} onBookNow={onBookNow} />
             ))}
@@ -915,7 +928,7 @@ function LocationPinIcon({ color = TEXT }: { color?: string }) {
   return (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
       <path fill={color} d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7z" />
-      <circle cx="12" cy="9" r="2.6" fill="white" />
+      <circle cx="12" cy="9" r="2.6" fill="#F2EFEA" />
     </svg>
   )
 }
@@ -936,8 +949,10 @@ export function EventsCarousel({
   events,
   location,
   seeAllHref,
+  onlineSeeAllHref,
   isLoading = false,
   onBookNow,
+  locationSlot,
 }: EventsCarouselProps) {
   const [activeTab, setActiveTab] = useState('All')
 
@@ -945,10 +960,12 @@ export function EventsCarousel({
 
   const filteredEvents: CarouselEvent[] = (() => {
     if (activeTab === 'All') return offlineEvents
+    if (activeTab === 'Recommended')
+      return offlineEvents.filter((e) => e.badgeTypes?.includes('recommended'))
     if (activeTab === 'Free')
-      return offlineEvents.filter((e) => e.badgeType === 'free' || e.price === 'Free')
-    if (activeTab === 'This Weekend')
-      return offlineEvents.filter((e) => e.badgeType === 'today' || e.badgeType === 'selling-fast')
+      return offlineEvents.filter((e) => e.price === 'Free')
+    if (activeTab === 'This Week')
+      return offlineEvents.filter((e) => e.badgeTypes?.includes('this-week'))
     return offlineEvents.filter((e) => e.category.toLowerCase() === activeTab.toLowerCase())
   })()
 
@@ -962,13 +979,13 @@ export function EventsCarousel({
     <section aria-label={`Events in ${location}`} className={`${roboto.className} py-8`}>
 
       {/* ── Section header ── */}
-      <div className="flex items-center justify-between px-12 mb-5">
-        <h2 className="font-extrabold tracking-[-0.5px] flex items-center gap-2" style={{ fontSize: 30, color: TEXT }}>
-          <span>
-            Events in{' '}
+      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-12 mb-5">
+        <h2 className="font-extrabold tracking-[-0.5px] flex items-center gap-1" style={{ fontSize: "clamp(22px, 4vw, 30px)", color: TEXT }}>
+          Events in{' '}
+          <span className="relative inline-flex items-center gap-2">
             <span style={{ color: GREEN }}>{location}</span>
+            {locationSlot ?? <EditLocationButton />}
           </span>
-          <EditLocationButton />
         </h2>
         <Link
           href={seeAllHref}
@@ -984,7 +1001,7 @@ export function EventsCarousel({
       </div>
 
       {/* ── Filter tabs ── */}
-      <div className="px-12 mb-5">
+      <div className="px-4 sm:px-6 lg:px-12 mb-5">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
           {FILTER_TABS.map((tab) => {
             const active = tab === activeTab
@@ -996,7 +1013,7 @@ export function EventsCarousel({
                 className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
                 style={
                   active
-                    ? { backgroundColor: GREEN, color: '#FFFFFF', border: `1.5px solid ${GREEN}` }
+                    ? { backgroundColor: GREEN, color: '#F2EFEA', border: `1.5px solid ${GREEN}` }
                     : { backgroundColor: 'transparent', color: TEXT, border: `1.5px solid ${BORDER}` }
                 }
               >
@@ -1008,9 +1025,9 @@ export function EventsCarousel({
       </div>
 
       {/* ── Event grid ── */}
-      <div className="px-12 pb-8">
+      <div className="px-4 sm:px-6 lg:px-12 pb-8">
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {Array.from({ length: GRID_LIMIT }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filteredEvents.length === 0 ? (
@@ -1022,7 +1039,7 @@ export function EventsCarousel({
             <p className="text-lg">No events in this category yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {visibleEvents.map((event) => (
               <EventCardItem key={event.id} event={event} onBookNow={onBookNow} />
             ))}
@@ -1031,7 +1048,7 @@ export function EventsCarousel({
         )}
       </div>
 
-      <OnlineEventsRow events={events} seeAllHref={seeAllHref} onBookNow={onBookNow} isLoading={isLoading} />
+      <OnlineEventsRow events={events} seeAllHref={onlineSeeAllHref ?? seeAllHref} onBookNow={onBookNow} isLoading={isLoading} />
     </section>
   )
 }

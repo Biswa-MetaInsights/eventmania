@@ -117,7 +117,7 @@ function WishlistTab({ items }: { items: WishlistItem[] }) {
         <p className="text-[18px] text-[#9CA3AF]">Your wishlist is empty.</p>
         <button
           onClick={() => router.push("/")}
-          className="px-6 py-3 rounded-xl text-white text-sm font-semibold"
+          className="px-6 py-3 rounded-xl text-[#F2EFEA] text-sm font-semibold"
           style={{ backgroundColor: GREEN }}
         >
           Explore Events
@@ -141,7 +141,7 @@ function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove: () => 
   return (
     <div
       className="rounded-2xl overflow-hidden flex gap-0"
-      style={{ backgroundColor: "#ffffff", border: "1px solid #E2DDD5" }}
+      style={{ backgroundColor: "#F2EFEA", border: "1px solid #E2DDD5" }}
     >
       {/* Thumbnail */}
       <div className="relative w-40 shrink-0 self-stretch overflow-hidden">
@@ -178,7 +178,7 @@ function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove: () => 
         <div className="flex items-center gap-3 mt-4">
           <Link
             href={href}
-            className="px-5 py-2 rounded-xl text-sm font-semibold text-white"
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-[#F2EFEA]"
             style={{ backgroundColor: GREEN }}
           >
             {item.kind === "event" ? "View Event" : "View Community"}
@@ -208,7 +208,7 @@ function TicketsTab({ tickets }: { tickets: StoredTicket[] }) {
         <p className="text-[18px] text-[#9CA3AF]">No tickets found.</p>
         <button
           onClick={() => router.push("/")}
-          className="px-6 py-3 rounded-xl text-white text-sm font-semibold"
+          className="px-6 py-3 rounded-xl text-[#F2EFEA] text-sm font-semibold"
           style={{ backgroundColor: GREEN }}
         >
           Browse Events
@@ -237,7 +237,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
   });
 
   return (
-    <div className="bg-white rounded-3xl overflow-hidden flex" style={{ border: "1px solid #E2DDD5" }}>
+    <div className="bg-[#F2EFEA] rounded-3xl overflow-hidden flex" style={{ border: "1px solid #E2DDD5" }}>
       {/* QR section */}
       <div className="flex items-center justify-center p-8 shrink-0"
         style={{ backgroundColor: "#F9F9F9", borderRight: "1px solid #E2DDD5" }}>
@@ -264,7 +264,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
         <div className="flex items-center gap-3 mt-6">
           <button
             onClick={() => router.push(`/event/${ticket.event_id}`)}
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-[#F2EFEA]"
             style={{ backgroundColor: GREEN }}
           >
             View Event
@@ -312,7 +312,7 @@ function ProfileTab({ name, email, interests }: { name: string; email: string; i
       <div className="flex flex-wrap gap-3 mb-12">
         {interests.map((interest) => (
           <span key={interest}
-            className="px-4 py-2 rounded-xl text-sm font-semibold bg-white"
+            className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#F2EFEA]"
             style={{ border: `1px solid ${GREEN}33`, color: GREEN }}>
             {interest}
           </span>
@@ -320,7 +320,7 @@ function ProfileTab({ name, email, interests }: { name: string; email: string; i
       </div>
 
       <button
-        className="px-10 py-4 rounded-2xl text-white font-bold"
+        className="px-10 py-4 rounded-2xl text-[#F2EFEA] font-bold"
         style={{ backgroundColor: GREEN }}
       >
         Update AI Profile

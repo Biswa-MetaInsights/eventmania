@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Roboto } from 'next/font/google'
@@ -20,7 +20,7 @@ export interface CommunityItem {
   memberCount: string
   imageUrl: string
   badge?: string
-  badgeType?: 'free' | 'selling-fast' | 'today' | 'sold-out'
+  badgeType?: 'free' | 'selling-fast' | 'today' | 'sold-out' | 'recommended'
   isSoldOut?: boolean
   category: string
   organiser?: string
@@ -31,8 +31,11 @@ export interface CommunityCarouselProps {
   communities: CommunityItem[]
   location: string
   seeAllHref: string
+  /** "View all" target for the Online Communities row. Defaults to seeAllHref. */
+  onlineSeeAllHref?: string
   isLoading?: boolean
   onJoin?: (id: string) => void
+  locationSlot?: ReactNode
 }
 
 // ─── Brand constants ───────────────────────────────────────────────────────────
@@ -45,14 +48,15 @@ const MUTED = '#9CA3AF'
 const NAV_BORDER = '#C8C1B8'
 
 const BADGE_CONFIG = {
-  'free': { bg: '#DC2626', text: '#FFFFFF', label: 'Free' },
-  'selling-fast': { bg: '#D97706', text: '#FFFFFF', label: 'Selling Fast' },
-  'today': { bg: '#2563EB', text: '#FFFFFF', label: 'Today' },
-  'sold-out': { bg: '#6B7280', text: '#FFFFFF', label: 'Sold Out' },
+  'free': { bg: '#DC2626', text: '#F2EFEA', label: 'Free' },
+  'recommended': { bg: '#7C3AED', text: '#F2EFEA', label: 'Recommended' },
+  'selling-fast': { bg: '#D97706', text: '#F2EFEA', label: 'Selling Fast' },
+  'today': { bg: '#2563EB', text: '#F2EFEA', label: 'Today' },
+  'sold-out': { bg: '#6B7280', text: '#F2EFEA', label: 'Sold Out' },
 } as const
 
-const FILTER_TABS = ['All', 'Tech', 'Arts', 'Sports', 'Food']
-const ONLINE_FILTER_TABS = ['All', 'Free', 'This Weekend', 'Selling Fast']
+const FILTER_TABS = ['All', 'Recommended', 'Tech', 'Arts', 'Sports', 'Food']
+const ONLINE_FILTER_TABS = ['All', 'Recommended', 'Free', 'This Week', 'Selling Fast']
 
 // ─── Sample data ───────────────────────────────────────────────────────────────
 
@@ -407,7 +411,7 @@ function EditLocationButton() {
 
 // ─── Individual community card ─────────────────────────────────────────────────
 
-function CommunityCardItem({
+export function CommunityCardItem({
   community,
   onJoin,
 }: {
@@ -422,7 +426,7 @@ function CommunityCardItem({
       href={`/community/${community.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className={`${roboto.className} relative rounded-2xl overflow-hidden flex flex-col`}
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -533,7 +537,7 @@ function OnlineCommunityCard({
       href={`/community/${community.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className={`${roboto.className} relative rounded-2xl overflow-hidden flex flex-col`}
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -646,10 +650,12 @@ function OnlineCommunitiesRow({
 
   const filtered: CommunityItem[] = (() => {
     if (activeTab === 'All') return onlineCommunities
+    if (activeTab === 'Recommended')
+      return onlineCommunities.filter((c) => c.badgeType === 'recommended')
     if (activeTab === 'Free')
-      return onlineCommunities.filter((c) => c.badgeType === 'free' || c.price === 'Free')
-    if (activeTab === 'This Weekend')
-      return onlineCommunities.filter((c) => c.badgeType === 'today' || c.badgeType === 'selling-fast')
+      return onlineCommunities.filter((c) => c.price === 'Free')
+    if (activeTab === 'This Week')
+      return onlineCommunities.filter((c) => c.badgeType === 'today')
     if (activeTab === 'Selling Fast')
       return onlineCommunities.filter((c) => c.badgeType === 'selling-fast')
     return onlineCommunities
@@ -661,8 +667,8 @@ function OnlineCommunitiesRow({
   return (
     <section aria-label="Online Communities" className="pb-10">
       {/* Header */}
-      <div className="flex items-center justify-between px-12 mb-4">
-        <h2 className="font-extrabold tracking-[-0.5px]" style={{ fontSize: 30, color: TEXT }}>
+      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-12 mb-4">
+        <h2 className="font-extrabold tracking-[-0.5px]" style={{ fontSize: "clamp(22px, 4vw, 30px)", color: TEXT }}>
           Online Communities
         </h2>
         <Link
@@ -679,7 +685,7 @@ function OnlineCommunitiesRow({
       </div>
 
       {/* Filter tabs */}
-      <div className="px-12 mb-5">
+      <div className="px-4 sm:px-6 lg:px-12 mb-5">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
           {ONLINE_FILTER_TABS.map((tab) => {
             const active = tab === activeTab
@@ -691,7 +697,7 @@ function OnlineCommunitiesRow({
                 className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
                 style={
                   active
-                    ? { backgroundColor: GREEN, color: '#FFFFFF', border: `1.5px solid ${GREEN}` }
+                    ? { backgroundColor: GREEN, color: '#F2EFEA', border: `1.5px solid ${GREEN}` }
                     : { backgroundColor: 'transparent', color: TEXT, border: `1.5px solid ${BORDER}` }
                 }
               >
@@ -702,9 +708,9 @@ function OnlineCommunitiesRow({
         </div>
       </div>
 
-      <div className="px-12 pb-3">
+      <div className="px-4 sm:px-6 lg:px-12 pb-3">
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {Array.from({ length: GRID_LIMIT }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : onlineCommunities.length === 0 ? (
@@ -718,7 +724,7 @@ function OnlineCommunitiesRow({
             <p className="text-lg">No online communities in this category yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {visible.map((c) => (
               <OnlineCommunityCard key={c.id} community={c} onJoin={onJoin} />
             ))}
@@ -800,7 +806,7 @@ function LocationPinIcon({ color = TEXT }: { color?: string }) {
   return (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
       <path fill={color} d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7z" />
-      <circle cx="12" cy="9" r="2.6" fill="white" />
+      <circle cx="12" cy="9" r="2.6" fill="#F2EFEA" />
     </svg>
   )
 }
@@ -821,8 +827,10 @@ export function CommunityCarousel({
   communities,
   location,
   seeAllHref,
+  onlineSeeAllHref,
   isLoading = false,
   onJoin,
+  locationSlot,
 }: CommunityCarouselProps) {
   const [activeTab, setActiveTab] = useState('All')
 
@@ -830,6 +838,8 @@ export function CommunityCarousel({
 
   const filtered: CommunityItem[] = (() => {
     if (activeTab === 'All') return offlineCommunities
+    if (activeTab === 'Recommended')
+      return offlineCommunities.filter((c) => c.badgeType === 'recommended')
     if (activeTab === 'Tech') return offlineCommunities.filter((c) => c.category === 'tech')
     if (activeTab === 'Arts') return offlineCommunities.filter((c) => c.category === 'arts')
     if (activeTab === 'Sports') return offlineCommunities.filter((c) => c.category === 'sports')
@@ -844,13 +854,13 @@ export function CommunityCarousel({
     <section aria-label={`Communities in ${location}`} className={`${roboto.className} py-8`}>
 
       {/* ── Section header ── */}
-      <div className="flex items-center justify-between px-12 mb-5">
-        <h2 className="font-extrabold tracking-[-0.5px] flex items-center gap-2" style={{ fontSize: 30, color: TEXT }}>
-          <span>
-            Communities in{' '}
+      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-12 mb-5">
+        <h2 className="font-extrabold tracking-[-0.5px] flex items-center gap-1" style={{ fontSize: "clamp(22px, 4vw, 30px)", color: TEXT }}>
+          Communities in{' '}
+          <span className="relative inline-flex items-center gap-2">
             <span style={{ color: GREEN }}>{location}</span>
+            {locationSlot ?? <EditLocationButton />}
           </span>
-          <EditLocationButton />
         </h2>
         <Link
           href={seeAllHref}
@@ -866,7 +876,7 @@ export function CommunityCarousel({
       </div>
 
       {/* ── Filter tabs ── */}
-      <div className="px-12 mb-5">
+      <div className="px-4 sm:px-6 lg:px-12 mb-5">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
           {FILTER_TABS.map((tab) => {
             const active = tab === activeTab
@@ -878,7 +888,7 @@ export function CommunityCarousel({
                 className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
                 style={
                   active
-                    ? { backgroundColor: GREEN, color: '#FFFFFF', border: `1.5px solid ${GREEN}` }
+                    ? { backgroundColor: GREEN, color: '#F2EFEA', border: `1.5px solid ${GREEN}` }
                     : { backgroundColor: 'transparent', color: TEXT, border: `1.5px solid ${BORDER}` }
                 }
               >
@@ -890,9 +900,9 @@ export function CommunityCarousel({
       </div>
 
       {/* ── Community grid ── */}
-      <div className="px-12 pb-8">
+      <div className="px-4 sm:px-6 lg:px-12 pb-8">
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {Array.from({ length: GRID_LIMIT }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
@@ -904,7 +914,7 @@ export function CommunityCarousel({
             <p className="text-lg">No communities in this category yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             {visible.map((c) => (
               <CommunityCardItem key={c.id} community={c} onJoin={onJoin} />
             ))}
@@ -913,7 +923,7 @@ export function CommunityCarousel({
         )}
       </div>
 
-      <OnlineCommunitiesRow communities={communities} seeAllHref={seeAllHref} onJoin={onJoin} isLoading={isLoading} />
+      <OnlineCommunitiesRow communities={communities} seeAllHref={onlineSeeAllHref ?? seeAllHref} onJoin={onJoin} isLoading={isLoading} />
     </section>
   )
 }

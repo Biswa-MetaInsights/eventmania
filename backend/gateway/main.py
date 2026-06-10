@@ -31,6 +31,7 @@ app.add_middleware(
 SERVICE_MAP: Dict[str, str] = {
     "auth": "http://localhost:8001/auth",
     "user": "http://localhost:8002/users",
+    "community": "http://localhost:8002/users/communities",
     "event": "http://localhost:8003/events",
     "ticket": "http://localhost:8004/tickets",
     "ticketing": "http://localhost:8004/tickets",
@@ -79,7 +80,7 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
             params=params,
             content=body,
             headers=headers,
-            timeout=10.0
+            timeout=30.0
         )
         
         # Return matched response to the client

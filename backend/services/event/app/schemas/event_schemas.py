@@ -9,7 +9,13 @@ class EventCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=200)
     description: Optional[str] = None
     category: Optional[str] = "General"
+    event_type: Optional[str] = "In-Person"
     location: Dict[str, Any] = {}
+    target_audience: Optional[str] = None
+    tags: Optional[List[str]] = []
+    language: Optional[str] = "English"
+    event_website: Optional[str] = None
+    community_id: Optional[UUID] = None
     start_date: datetime
     end_date: datetime
     capacity: int = 0
@@ -23,7 +29,13 @@ class EventOut(BaseModel):
     slug: str
     description: Optional[str] = None
     category: str
+    event_type: Optional[str] = "In-Person"
     location: Dict[str, Any]
+    target_audience: Optional[str] = None
+    tags: Optional[List[Any]] = []
+    language: Optional[str] = "English"
+    event_website: Optional[str] = None
+    community_id: Optional[UUID] = None
     start_date: datetime
     end_date: datetime
     capacity: int
@@ -42,7 +54,13 @@ class EventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
+    event_type: Optional[str] = None
     location: Optional[Dict[str, Any]] = None
+    target_audience: Optional[str] = None
+    tags: Optional[List[str]] = None
+    language: Optional[str] = None
+    event_website: Optional[str] = None
+    community_id: Optional[UUID] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     capacity: Optional[int] = None

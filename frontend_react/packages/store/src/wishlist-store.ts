@@ -11,7 +11,7 @@ export interface WishlistItem {
   price: string;
   imageUrl: string;
   badge?: string;
-  badgeType?: "free" | "selling-fast" | "today" | "sold-out";
+  badgeType?: "free" | "selling-fast" | "today" | "sold-out" | "this-week" | "recommended";
   isSoldOut?: boolean;
   category: string;
   memberCount?: string;

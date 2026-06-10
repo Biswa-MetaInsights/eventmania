@@ -20,6 +20,7 @@ def create_community(community_in: CommunityCreate, db: Session = Depends(get_db
 def search_communities(
     q: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
+    city: Optional[str] = Query(None),
     status: Optional[str] = Query("active"),
     db: Session = Depends(get_db),
 ):
@@ -33,7 +34,19 @@ def search_communities(
     if category:
         query = query.filter(Community.category == category)
 
-    return query.order_by(Community.member_count.desc()).limit(100).all()
+    results = query.order_by(Community.member_count.desc()).limit(100).all()
+
+    # Filter by city against location["city"]. Done in Python so it works
+    # identically on SQLite (dev) and Postgres (prod) without JSON-path SQL.
+    if city:
+        city_l = city.strip().lower()
+        results = [
+            c for c in results
+            if isinstance(c.location, dict)
+            and str(c.location.get("city", "")).strip().lower() == city_l
+        ]
+
+    return results
 
 @router.get("/{community_id}", response_model=CommunityOut)
 def get_community(community_id: UUID, db: Session = Depends(get_db)):

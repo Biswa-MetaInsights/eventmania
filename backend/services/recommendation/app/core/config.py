@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
 
     # AI Agent Config
-    GOOGLE_API_KEY: Optional[str] = None # For Gemini/Agent Model interaction
+    GOOGLE_API_KEY: Optional[str] = None
+    OPENAI_API_KEY: Optional[str] = None
+    TICKETMASTER_API_KEY: Optional[str] = None
     
     # Kafka
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"

@@ -2,7 +2,7 @@ import { apiClient } from "./client";
 import type { Community } from "@eventmind/types";
 
 export const communitiesApi = {
-  search: (params?: { q?: string; category?: string }) =>
+  search: (params?: { q?: string; category?: string; city?: string }) =>
     apiClient.get<Community[]>("/community/search", {
       params: { status: "active", ...params },
     }),

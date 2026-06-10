@@ -7,6 +7,7 @@ import { eventsApi, reviewsApi } from "@eventmind/api";
 import type { Review, ReviewAggregates } from "@eventmind/api";
 import { useAuthStore } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
+import { EventChatWidget } from "@/components/EventChatWidget";
 
 const GREEN = "#184E4A";
 
@@ -77,7 +78,7 @@ export default function EventDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-white text-left">
+    <div className="min-h-screen bg-[#F2EFEA] text-left">
       <Navbar />
 
       {/* ── Hero image ── */}
@@ -90,7 +91,7 @@ export default function EventDetailPage({
         />
         <button
           onClick={() => router.back()}
-          className="absolute top-6 left-6 w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors"
+          className="absolute top-6 left-6 w-10 h-10 rounded-full bg-[#F2EFEA] flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors"
         >
           <svg className="w-5 h-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -176,9 +177,12 @@ export default function EventDetailPage({
         </div>
       </div>
 
+      {/* ── AI Event Assistant widget ── */}
+      <EventChatWidget event={event} />
+
       {/* ── Sticky booking bar ── */}
       <div
-        className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-12 bg-white z-30"
+        className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-12 bg-[#F2EFEA] z-30"
         style={{ height: 88, borderTop: "1px solid #E2DDD5" }}
       >
         <div style={{ textAlign: "left" }}>
@@ -189,7 +193,7 @@ export default function EventDetailPage({
         </div>
         <button
           onClick={handleBookNow}
-          className="px-16 py-4 rounded-2xl text-[18px] font-bold text-white transition-colors"
+          className="px-16 py-4 rounded-2xl text-[18px] font-bold text-[#F2EFEA] transition-colors"
           style={{ backgroundColor: GREEN }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#133d39")}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = GREEN)}

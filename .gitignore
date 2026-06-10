@@ -27,3 +27,4 @@ Thumbs.db
 *.pem
 *.key
 requirements-slim.txt
+start.bat

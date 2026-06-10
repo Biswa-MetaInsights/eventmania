@@ -13,7 +13,13 @@ export interface Event {
   slug: string;
   description?: string;
   category: string;
-  location: Record<string, unknown>; // { address?, latitude?, longitude?, ... }
+  event_type?: string;
+  location: Record<string, unknown>;
+  target_audience?: string;
+  tags?: string[];
+  language?: string;
+  event_website?: string;
+  community_id?: string;
   start_date: string;
   end_date: string;
   capacity: number;
@@ -44,9 +50,11 @@ export interface Community {
   id: string;
   organizer_id: string;
   name: string;
+  slug?: string;
   description?: string;
   category: string;
   location: Record<string, unknown>;
+  website?: string;
   next_event_date?: string;
   member_count: number;
   price: number;
@@ -58,4 +66,19 @@ export interface Community {
 export interface ApiError {
   detail: string;
   status_code?: number;
+}
+
+export type VerificationStatus = "unverified" | "pending" | "verified";
+
+export interface OrganizerProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  company_name: string;
+  company_address: string;
+  company_email: string;
+  company_website?: string;
+  country: string;
+  registration_number: string;
+  verification_status: VerificationStatus;
 }

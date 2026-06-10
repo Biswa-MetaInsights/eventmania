@@ -39,7 +39,7 @@ export default function OrganizerPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/organizer/create")}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold"
+            className="flex items-center gap-2 px-5 py-3 rounded-xl text-[#F2EFEA] text-sm font-bold"
             style={{ backgroundColor: GREEN }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#133d39")}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = GREEN)}
@@ -61,13 +61,13 @@ export default function OrganizerPage() {
         <div>
           <h2 className="text-[22px] font-bold text-[#111827] mb-6">Your Managed Events</h2>
 
-          <div className="bg-white rounded-3xl overflow-hidden" style={{ border: "1px solid #E2DDD5" }}>
+          <div className="bg-[#F2EFEA] rounded-3xl overflow-hidden" style={{ border: "1px solid #E2DDD5" }}>
             {events.length === 0 ? (
               <div className="py-16 text-center">
                 <p className="text-[#9CA3AF] text-[16px]">You haven&apos;t created any events yet.</p>
                 <button
                   onClick={() => router.push("/organizer/create")}
-                  className="mt-4 px-6 py-3 rounded-xl text-white text-sm font-semibold"
+                  className="mt-4 px-6 py-3 rounded-xl text-[#F2EFEA] text-sm font-semibold"
                   style={{ backgroundColor: GREEN }}
                 >
                   Create your first event
@@ -157,7 +157,7 @@ function IconBtn({ children, title, onClick }: { children: React.ReactNode; titl
 
 function StatCard({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) {
   return (
-    <div className="bg-white rounded-3xl p-8 flex items-center gap-6" style={{ border: "1px solid #E2DDD5" }}>
+    <div className="bg-[#F2EFEA] rounded-3xl p-8 flex items-center gap-6" style={{ border: "1px solid #E2DDD5" }}>
       <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0"
         style={{ backgroundColor: `${color}14` }}>
         <span style={{ color }}>{icon}</span>

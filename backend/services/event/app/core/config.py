@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
 
+    # AI & internal services
+    OPENAI_API_KEY: Optional[str] = None
+    TICKETING_SERVICE_URL: str = "http://localhost:8004"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

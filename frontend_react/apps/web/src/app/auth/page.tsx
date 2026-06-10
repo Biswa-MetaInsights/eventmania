@@ -58,7 +58,7 @@ export default function AuthPage() {
         style={{ background: "linear-gradient(135deg, #F3FAFA 0%, #E5F6F6 100%)" }}>
         <div className="max-w-md">
           <div className="w-24 h-24 rounded-2xl bg-[#184E4A] flex items-center justify-center mb-10">
-            <span className="text-white text-3xl font-bold">E</span>
+            <span className="text-[#F2EFEA] text-3xl font-bold">E</span>
           </div>
           <h1 className="text-5xl font-extrabold text-[#111827] leading-tight mb-6">
             Unlock Your Next<br />Great Experience.
@@ -126,7 +126,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 rounded-2xl bg-[#184E4A] text-white text-lg font-bold
+              className="w-full py-4 rounded-2xl bg-[#184E4A] text-[#F2EFEA] text-lg font-bold
                          hover:bg-[#133d39] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? "Please wait…" : isLogin ? "Sign In" : "Sign Up"}
@@ -161,7 +161,7 @@ export default function AuthPage() {
 }
 
 const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-[#E2DDD5] bg-white text-[#111827] " +
+  "w-full px-4 py-3 rounded-xl border border-[#E2DDD5] bg-[#F2EFEA] text-[#111827] " +
   "placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#184E4A]/30 " +
   "focus:border-[#184E4A] transition-colors";
 
@@ -181,10 +181,10 @@ function SocialButton({ label, color, initial }: { label: string; color: string;
       disabled
       title="Coming soon"
       className="w-full flex items-center justify-center gap-3 py-4 rounded-xl border border-[#E2DDD5]
-                 bg-white text-[#111827] font-semibold hover:bg-[#F9F9F9] transition-colors
+                 bg-[#F2EFEA] text-[#111827] font-semibold hover:bg-[#F9F9F9] transition-colors
                  disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold"
+      <span className="w-6 h-6 rounded-full flex items-center justify-center text-[#F2EFEA] text-sm font-bold"
         style={{ backgroundColor: color }}>
         {initial}
       </span>

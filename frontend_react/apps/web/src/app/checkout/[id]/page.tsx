@@ -104,7 +104,7 @@ export default function CheckoutPage({
           <div>
             <h2 className="text-[22px] font-bold text-[#111827] mb-6">Your Order</h2>
 
-            <div className="bg-white rounded-3xl p-8" style={{ border: "1px solid #E2DDD5" }}>
+            <div className="bg-[#F2EFEA] rounded-3xl p-8" style={{ border: "1px solid #E2DDD5" }}>
               {/* Event row */}
               <div className="flex items-center gap-6 pb-6" style={{ borderBottom: "1px solid #E2DDD5" }}>
                 <div className="w-24 h-24 rounded-2xl flex items-center justify-center shrink-0"
@@ -163,7 +163,7 @@ export default function CheckoutPage({
               {isFree ? "Confirm Registration" : "Payment Method"}
             </h2>
 
-            <div className="bg-white rounded-3xl p-8"
+            <div className="bg-[#F2EFEA] rounded-3xl p-8"
               style={{ border: "1px solid #E2DDD5", boxShadow: "0 10px 40px rgba(0,0,0,0.05)" }}>
 
               {isFree ? (
@@ -203,7 +203,7 @@ export default function CheckoutPage({
               <button
                 onClick={handlePay}
                 disabled={isProcessing}
-                className="mt-6 w-full py-4 rounded-2xl text-white text-[18px] font-bold transition-colors disabled:opacity-60"
+                className="mt-6 w-full py-4 rounded-2xl text-[#F2EFEA] text-[18px] font-bold transition-colors disabled:opacity-60"
                 style={{ backgroundColor: GREEN }}
                 onMouseEnter={(e) => !isProcessing && (e.currentTarget.style.backgroundColor = "#133d39")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = GREEN)}
@@ -232,7 +232,7 @@ export default function CheckoutPage({
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="bg-white rounded-3xl p-10 max-w-md w-full mx-6 text-center shadow-2xl">
+          <div className="bg-[#F2EFEA] rounded-3xl p-10 max-w-md w-full mx-6 text-center shadow-2xl">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
               style={{ backgroundColor: `${GREEN}14` }}>
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke={GREEN} strokeWidth={2.5}>
@@ -249,7 +249,7 @@ export default function CheckoutPage({
             </p>
             <button
               onClick={() => router.push("/dashboard")}
-              className="w-full py-4 rounded-2xl text-white text-[16px] font-bold"
+              className="w-full py-4 rounded-2xl text-[#F2EFEA] text-[16px] font-bold"
               style={{ backgroundColor: GREEN }}
             >
               Go to My Tickets

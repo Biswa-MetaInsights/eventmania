@@ -4,6 +4,7 @@ import uuid
 import datetime
 import enum
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Boolean
 
 Base = declarative_base()
 
@@ -23,20 +24,24 @@ class Event(Base):
     description = Column(Text, nullable=True)
     category = Column(String(100), index=True)
     
-    # Store dynamic location data (address, coordinates, etc.)
-    location = Column(JSON, default={}) 
-    
+    event_type = Column(String(20), default="In-Person")  # In-Person | Online | Hybrid
+    location = Column(JSON, default={})
+    target_audience = Column(Text, nullable=True)
+    tags = Column(JSON, default=[])
+    language = Column(String(50), default="English")
+    event_website = Column(String(500), nullable=True)
+    community_id = Column(Uuid(as_uuid=True), nullable=True, index=True)
+
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
-    
+
     capacity = Column(Integer, default=0)
     tickets_sold = Column(Integer, default=0)
     price = Column(DECIMAL(12, 2), default=0.00)
-    
+
     status = Column(Enum(EventStatus), default=EventStatus.DRAFT)
-    
-    # Agent-related metadata
-    content_generated = Column(JSON, default={}) # AI generated title/desc results
+
+    content_generated = Column(JSON, default={})
     moderation_score = Column(DECIMAL(4, 2), default=0.00)
 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

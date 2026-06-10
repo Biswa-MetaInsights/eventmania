@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Background
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.event import Event, EventStatus
-from app.schemas.event_schemas import EventCreate, EventOut, EventUpdate, EventSearch
+from app.schemas.event_schemas import EventCreate, EventOut, EventUpdate, EventSearch, EventIngest
 from typing import List, Optional
 from datetime import datetime
 from uuid import UUID
@@ -82,6 +82,44 @@ def create_event(event_in: EventCreate, background_tasks: BackgroundTasks, db: S
     background_tasks.add_task(kafka_manager.send, "event.created", event_data)
 
     _cache_invalidate()  # New event — clear search cache
+    return new_event
+
+@router.post("/ingest", response_model=EventOut)
+def ingest_event(event_in: EventIngest, db: Session = Depends(get_db)):
+    """Idempotently upsert an externally-sourced event.
+
+    Keyed on (source, external_id). On first sight the event is inserted; on
+    subsequent syncs the existing row is updated in place. Unlike create_event
+    this does not publish to Kafka — aggregated events bypass the moderation and
+    content-generation agents, which only apply to native organiser content.
+    """
+    existing = (
+        db.query(Event)
+        .filter(Event.source == event_in.source, Event.external_id == event_in.external_id)
+        .first()
+    )
+
+    data = event_in.model_dump()
+
+    if existing:
+        # Preserve identity fields; refresh everything the provider may change.
+        for field, value in data.items():
+            setattr(existing, field, value)
+        db.add(existing)
+        db.commit()
+        db.refresh(existing)
+        _cache_invalidate()
+        return existing
+
+    # Stable slug derived from source + external_id (not a timestamp) so the
+    # slug stays constant across re-syncs.
+    slug = f"{event_in.source}-{event_in.external_id}".lower().replace(" ", "-")[:350]
+    new_event = Event(**data, slug=slug)
+    db.add(new_event)
+    db.commit()
+    db.refresh(new_event)
+
+    _cache_invalidate()
     return new_event
 
 @router.get("/search", response_model=List[EventOut])

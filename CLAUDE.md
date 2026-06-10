@@ -161,6 +161,28 @@ python backend\scripts\seed_events.py
 
 You only need to do this once. The data is saved to `platform_dev.db` (SQLite) and persists across restarts.
 
+**Step 5 (optional) — Populate real events from Ticketmaster**
+
+To fill the catalogue with real, ticketed events (concerts, sports, theatre) for the launch cities, sync from the Ticketmaster Discovery API:
+
+```powershell
+# One-time: add your free key to the project-root .env (see .env.example)
+#   TICKETMASTER_API_KEY=your_key_here   (get one at developer.ticketmaster.com)
+
+# One-time: add the provenance columns to an existing dev DB
+python backend\scripts\migrate_add_source_columns.py
+
+# Sync (backend must be running). --dry-run fetches without writing.
+python backend\scripts\sync_ticketmaster.py
+python backend\scripts\sync_ticketmaster.py --city London --dry-run
+```
+
+**How aggregated events work:**
+- Every `events` row now carries `source` (`"native"` for organiser events, `"ticketmaster"` for synced), `external_id` (provider id), and `image_url`.
+- Ingestion is idempotent — `POST /event/ingest` upserts on `(source, external_id)`, so re-running the sync updates rather than duplicates. Cron it (every 30–60 min) for continuous refresh; Celery is not needed at this stage.
+- Aggregated events are **discover-and-redirect**: the frontend should send users to the event's `event_website` ("Buy on Ticketmaster") rather than into the native checkout/chat flow. Treat them as top-of-funnel; native organiser events remain the long-term value. Respect Ticketmaster's API terms on caching/retention before production.
+- The Discovery API caps any single query at 1,000 results, so the sync slices by `(city × segment)`. Launch cities are configured at the top of `sync_ticketmaster.py`.
+
 ---
 
 ### React Frontend — First-Time Setup
@@ -307,7 +329,7 @@ Read the full breakdown in `Eventmind_files/REACT_MIGRATION.md` under "What Is N
 - **Social login** — buttons present but disabled.
 - **SEO metadata** — event pages need `generateMetadata()` for Google indexing.
 - **Mobile app** — monorepo is structured for it (`apps/mobile`), not started yet.
-- **Event image/banner upload** — no image field in the backend schema yet; needs backend change before frontend work.
+- **Event image/banner upload** — the schema now has an `image_url` column (populated for synced Ticketmaster events). Native organiser upload (file → storage → `image_url`) is still not wired up; the create form has no image field yet.
 - **Ticket tiers** — backend only supports a single price per event; multi-tier (Free/Standard/VIP) needs schema changes.
 
 ## Planned Work

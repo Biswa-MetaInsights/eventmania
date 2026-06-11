@@ -528,12 +528,28 @@ Read the full breakdown in `Eventmind_files/REACT_MIGRATION.md` under "What Is N
 - **Current bug:** Many Ticketmaster events have no venue coordinates. Temporary fix saves them with `lat:0, lng:0`. Real fix requires geocoding (not yet implemented).
 - Once geocoding is added and this works end-to-end, `seed_events.py` becomes unnecessary for populating events (though it will still be useful for seeding communities)
 
-### PostgreSQL Migration
-- Currently using SQLite (`DATABASE_URL=sqlite:///platform_dev.db`) for local dev.
-- Production target is PostgreSQL (already configured in `docker-compose.yml`).
-- Each service gets its own database: `auth_db`, `user_db`, `event_db`, `ticketing_db`, etc.
-- To switch locally: update `.env` → `DATABASE_URL=postgresql://user:password@localhost:5432/auth_db` and run `docker-compose up postgres -d`.
-- No code changes needed — SQLAlchemy handles both dialects.
+### Running on PostgreSQL (implemented)
+Shadow mode (`shadow_runner.py`) uses one shared SQLite file. To run on Postgres instead — one database per service, matching production — use `postgres_runner.py`. No code/model changes are needed; SQLAlchemy handles both dialects and `create_all` builds the schema on startup.
+
+```powershell
+# 1. Start Postgres (creates the 8 per-service DBs on first init via
+#    backend/db/init/01-create-databases.sql; data persists in the pgdata volume)
+docker compose up -d postgres
+
+# 2. Install the driver (also in each DB-backed service's requirements.txt)
+python -m pip install psycopg2-binary
+
+# 3. Start all services against Postgres (Kafka + Redis still mocked)
+python backend\scripts\postgres_runner.py
+
+# 4. Load data (use PYTHONUTF8=1 on Windows so seed prints don't crash on cp1252)
+$env:PYTHONUTF8=1; python backend\scripts\seed_events.py
+python backend\scripts\sync_ticketmaster.py
+```
+
+- **Per-service DBs:** only services whose `config.py` declares `DATABASE_URL` get one — `auth_db, user_db, event_db, ticketing_db, payment_db, chat_db, review_db, community_db`. `gateway`, `agents`, `recommendation`, `notification` are stateless.
+- **Host port 55432**, not 5432 — `docker-compose.yml` maps `55432:5432` to avoid clashing with a native Postgres that may already own 5432. Connect with `postgresql://user:password@localhost:55432/<svc>_db`. Override via `PG_DSN_BASE`.
+- **Inspect:** `docker compose exec -T postgres psql -U user -d event_db -c "\dt"`.
 
 ---
 

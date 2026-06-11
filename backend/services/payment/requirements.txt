@@ -8,3 +8,5 @@ python-dotenv==1.0.1
 alembic==1.13.1
 stripe==9.0.0 # Stripe official SDK
 aiokafka==0.10.0 # For event communication
+
+psycopg2-binary==2.9.9

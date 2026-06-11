@@ -9,3 +9,5 @@ alembic==1.13.1
 redis==5.0.4 # For seat locking & inventory management
 qrcode[pil]==7.4.2 # For QR code generation
 aiokafka==0.10.0 # For event communication
+
+psycopg2-binary==2.9.9

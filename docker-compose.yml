@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # --- Infrastructure ---
   postgres:
@@ -7,7 +5,13 @@ services:
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-    ports: [ "5432:5432" ]
+    # Host port 55432 to avoid clashing with a native Postgres on 5432.
+    ports: [ "55432:5432" ]
+    volumes:
+      # Persist data across container recreation.
+      - pgdata:/var/lib/postgresql/data
+      # Runs once on first init (empty volume): creates the per-service DBs.
+      - ./backend/db/init:/docker-entrypoint-initdb.d
 
   redis:
     image: redis:7-alpine
@@ -65,3 +69,6 @@ services:
       - REDIS_HOST=redis
 
   # Add other services as needed...
+
+volumes:
+  pgdata:

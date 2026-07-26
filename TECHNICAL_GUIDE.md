@@ -1,60 +1,108 @@
-# ⚙️ EventMind: Deep Technical Reference
+# NewFind (NewFind) — Technical Reference
 
-**EventMind** is built as a **Distributed, Data-Centric Architecture (DDCA)**, leveraging high-concurrency Python/FastAPI microservices.
-
----
-
-## 🏛️ 1. Core Architecture Overview
-
-| Component | Standard | Purpose |
-| :--- | :--- | :--- |
-| **Backend** | **Python 3.14 (FastAPI)** | High-throughput, asynchronous API backend. |
-| **Frontend** | **Flutter Web (Dart)** | Low-latency UI with complex state management. |
-| **Communication** | **Kafka & Redis** | Event-sourcing and real-time state caching. |
-| **Identity** | **JWT (Auth0-style)** | Decentralized stateless authentication. |
-| **Database** | **PostgreSQL** | Strict data isolation (one DB per service). |
-| **Gateway** | **FastAPI Proxy** | Unified entry point for all 10 services. |
+For the full end-to-end documentation including deployment and Ticketmaster sync, see **[DOCUMENTATION.md](DOCUMENTATION.md)**.
 
 ---
 
-## 🛡️ 2. Authentication & Identity Flow
+## Architecture Overview
 
-### 🔄 The Auth Handshake
-```mermaid
-sequenceDiagram
-    participant FE as Flutter Web
-    participant GW as API Gateway (8000)
-    participant AS as Auth Service (8001)
-    participant US as User Service (8002)
+NewFind is built as a distributed microservices platform. All client traffic enters through a single API gateway that proxies to the appropriate backend service by URL prefix.
 
-    FE->>GW: POST /auth/register
-    GW->>AS: Proxy Register Request
-    AS->>US: Create Profile (Internal API)
-    US-->>AS: Profile Created
-    AS-->>FE: 201 Created (Success)
+| Component | Tech | Purpose |
+|---|---|---|
+| Frontend | Next.js 16 (App Router), TypeScript, Tailwind v4 | Web UI |
+| Backend | Python 3.10+, FastAPI | 12 microservices |
+| Communication | Kafka (mocked in dev) + Redis (mocked in dev) | Async events, caching |
+| Identity | JWT (HS256), bcrypt | Stateless auth |
+| Database | PostgreSQL (one DB per service) | Strict data isolation |
+| Gateway | FastAPI proxy | Unified entry point |
 
-    FE->>GW: POST /auth/login
-    GW->>AS: Verify Credentials
-    AS-->>FE: Return JWT Access Token
+---
+
+## Authentication Flow
+
+```
+POST /auth/register → Auth Service → creates User + Profile → 201
+POST /auth/login    → Auth Service → returns { access_token, refresh_token }
+Frontend stores token in localStorage (key: newfind-auth)
+All requests: Authorization: Bearer <token>
+Gateway forwards header unchanged to each service
+```
+
+JWT payload: `{ sub: <uuid>, email, role, exp }`. `sub` is used as `organizer_id` when creating events.
+
+---
+
+## Ticketing & Concurrent Safety
+
+To prevent overbooking, the Ticketing service uses Redis distributed locking:
+
+1. **Reserve** — Ticketing service sets a Redis key `event:<id>:lock` with a 10-minute TTL
+2. **Pay** — Attendee completes Stripe checkout within the window
+3. **Confirm** — Payment webhook fires → Redis lock cleared → ticket row set to `issued`
+
+In dev, Stripe is mocked (no real money) and Redis is mocked (`REDIS_HOST=MOCK`).
+
+---
+
+## Agentic Workflows
+
+The Agents service runs CrewAI crews that subscribe to Kafka topics:
+
+| Kafka topic | Crew | What it does |
+|---|---|---|
+| `event.published` | Moderation crew | Policy check + SEO optimisation |
+| `user.registered` | Mosaic crew | Generates an interest profile for the user |
+| `ticket.confirmed` | Networking crew | Matches attendees with shared interests |
+
+In dev (mocked Kafka) these do not fire. The service starts but sits idle.
+
+---
+
+## Ticketmaster Ingestion
+
+Single pipeline in `backend/services/recommendation/app/services/ticketmaster_ingestion.py`.
+
+- Triggered on-demand by the frontend city picker (`POST /recommendation/ingest-city`)
+- Bulk-triggered by `backend/scripts/sync_ticketmaster.py` (cron for production)
+- Idempotent: upserts on `(source, external_id)` — re-running never duplicates
+- 60 global cities configured: USA, UAE, Europe, Asia
+- Slices by Ticketmaster segment (Music, Sports, Arts, Film, Misc) to beat the 1,000-result-per-query cap
+
+See **[DOCUMENTATION.md §13](DOCUMENTATION.md#13-periodic-ticketmaster-sync--global-cities)** for the full city list and cron schedule.
+
+---
+
+## Database Topology
+
+One PostgreSQL database per stateful service:
+
+| Service | Database |
+|---|---|
+| Auth | auth_db |
+| User | user_db |
+| Event | event_db |
+| Ticketing | ticketing_db |
+| Payment | payment_db |
+| Chat | chat_db |
+| Review | review_db |
+| Community | community_db |
+
+Stateless services (Gateway, Agents, Recommendation, Notification) have no database.
+
+In dev, all services share a single SQLite file (`platform_dev.db`). Switch to Postgres with:
+
+```powershell
+docker compose up -d postgres
+python backend\scripts\postgres_runner.py
 ```
 
 ---
 
-## 🎟️ 3. Ticketing & Concurrent Safety
+## Deployment
 
-To prevent "overbooking," **EventMind** uses **Distributed Locking via Redis**:
+Target: **Hetzner Cloud VPS + Supabase managed Postgres**.
 
-1.  **Selection**: Attendee selects a ticket.
-2.  **Reservation**: The **Ticketing Service** sets an EXPIRE-key in Redis (`event:123:tier:gold:lock`).
-3.  **Payment**: Attendee has 10 minutes to finish the **Stripe** checkout.
-4.  **Confirmation**: Once the **Payment Service** receives the webhook, it clears the Redis lock and updates the PostgreSQL inventory.
+See **[DOCUMENTATION.md §14](DOCUMENTATION.md#14-deployment-on-hetzner--supabase)** for step-by-step instructions including Nginx config, SSL, Docker Compose, Stripe webhook setup, and cron scheduling.
 
----
-
-## 🤖 4. Agentic Workflows (The Data Mosaic)
-
-We follow the **Observer Pattern** over Kafka:
-1.  **ES (Event Service)** publishes an `event.published` message.
-2.  **AS (Agent Service)** consumes the message and triggers its **CrewAI** agents (Mosaic Crew).
-3.  **Agents** analyze the event and publish an `event.moderated` response.
-4.  **ES** consumes the update and changes the event visibility to **Live**.
+Estimated cost: ~$45/month (Hetzner CX32 + Supabase Pro + Vercel free tier).

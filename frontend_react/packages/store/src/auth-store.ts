@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AuthTokens } from "@eventmind/types";
+import type { AuthTokens } from "@newfind/types";
 
 interface AuthState {
   userEmail: string | null;
@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthState>()(
       setHasHydrated: (v) => set({ _hasHydrated: v }),
     }),
     {
-      name: "eventmind-auth",
+      name: "newfind-auth",
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

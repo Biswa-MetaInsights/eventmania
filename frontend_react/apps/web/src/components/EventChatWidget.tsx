@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { eventsApi } from "@eventmind/api";
-import type { ChatMessage } from "@eventmind/api";
-import { useAuthStore, useTicketsStore } from "@eventmind/store";
-import type { Event } from "@eventmind/types";
+import { eventsApi } from "@newfind/api";
+import type { ChatMessage } from "@newfind/api";
+import { useAuthStore, useTicketsStore } from "@newfind/store";
+import type { Event } from "@newfind/types";
 
 const GREEN = "#184E4A";
 const LINEN = "#F2EFEA";

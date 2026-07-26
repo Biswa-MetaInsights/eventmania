@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsApi } from "@eventmind/api";
-import type { Event } from "@eventmind/types";
-import { useAuthStore } from "@eventmind/store";
+import { eventsApi } from "@newfind/api";
+import type { Event } from "@newfind/types";
+import { useAuthStore } from "@newfind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
@@ -13,10 +13,11 @@ const GREEN = "#184E4A";
 export default function OrganizerPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
 
   useEffect(() => {
-    if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+    if (hasHydrated && !isAuthenticated) router.replace("/auth");
+  }, [hasHydrated, isAuthenticated, router]);
 
   const { data: events = [] } = useQuery<Event[]>({
     queryKey: ["my-events"],
@@ -24,6 +25,7 @@ export default function OrganizerPage() {
     enabled: isAuthenticated,
   });
 
+  if (!hasHydrated) return null;
   if (!isAuthenticated) return null;
 
   return (

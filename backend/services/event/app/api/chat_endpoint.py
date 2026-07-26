@@ -90,8 +90,8 @@ YOUR ROLE:
 - Help attendees know what to bring, where to go, what to expect.
 - If you don't know a specific detail not in the event data, say so honestly.
 - Keep replies concise — 2–4 sentences unless a longer answer is clearly needed.
-- Do not answer questions unrelated to this event or the EventMind platform.
-- Always be warm, professional, and on-brand for EventMind."""
+- Do not answer questions unrelated to this event or the NewFind platform.
+- Always be warm, professional, and on-brand for NewFind."""
 
 
 # ── Chat endpoint ──────────────────────────────────────────────────────────────

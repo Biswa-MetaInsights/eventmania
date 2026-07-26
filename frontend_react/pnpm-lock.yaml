@@ -17,13 +17,13 @@ importers:
 
   apps/web:
     dependencies:
-      '@eventmind/api':
+      '@newfind/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@eventmind/store':
+      '@newfind/store':
         specifier: workspace:*
         version: link:../../packages/store
-      '@eventmind/types':
+      '@newfind/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@tanstack/react-query':
@@ -66,7 +66,7 @@ importers:
 
   packages/api:
     dependencies:
-      '@eventmind/types':
+      '@newfind/types':
         specifier: workspace:*
         version: link:../types
       axios:
@@ -79,7 +79,7 @@ importers:
 
   packages/store:
     dependencies:
-      '@eventmind/types':
+      '@newfind/types':
         specifier: workspace:*
         version: link:../types
       zustand:

@@ -10,7 +10,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
-    description="Community Management Service for EventMind",
+    description="Community Management Service for NewFind",
     version="1.0.0",
     docs_url="/docs" if settings.DEBUG else None,
 )

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthStore, useTicketsStore, useWishlistStore } from "@eventmind/store";
-import type { StoredTicket, WishlistItem } from "@eventmind/store";
+import { useAuthStore, useTicketsStore, useWishlistStore } from "@newfind/store";
+import type { StoredTicket, WishlistItem } from "@newfind/store";
 import Image from "next/image";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar/Navbar";
@@ -37,6 +37,7 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const userEmail = useAuthStore((s) => s.userEmail);
   const tickets = useTicketsStore((s) => s.tickets);
   const wishlistItems = useWishlistStore((s) => s.items);
@@ -45,9 +46,10 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
   useEffect(() => {
-    if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+    if (hasHydrated && !isAuthenticated) router.replace("/auth");
+  }, [hasHydrated, isAuthenticated, router]);
 
+  if (!hasHydrated) return null;
   if (!isAuthenticated) return null;
 
   const displayName = userEmail ? userEmail.split("@")[0].split(".")[0] : "User";

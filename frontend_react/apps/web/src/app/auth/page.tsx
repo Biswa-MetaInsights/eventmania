@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { authApi } from "@eventmind/api";
-import { useAuthStore } from "@eventmind/store";
-import type { AuthTokens } from "@eventmind/types";
-import { isAxiosError } from "@eventmind/api";
+import { authApi } from "@newfind/api";
+import { useAuthStore } from "@newfind/store";
+import type { AuthTokens } from "@newfind/types";
+import { isAxiosError } from "@newfind/api";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -79,7 +79,7 @@ export default function AuthPage() {
           <p className="text-[#6B7280] mb-10">
             {isLogin
               ? "Sign in to access your dashboard and event tickets."
-              : "Join the EventMind community to start your journey."}
+              : "Join the NewFind community to start your journey."}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">

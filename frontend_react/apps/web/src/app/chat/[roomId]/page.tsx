@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthStore } from "@eventmind/store";
+import { useAuthStore } from "@newfind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
@@ -44,6 +44,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
   const roomName = searchParams.get("name") ?? "Event Chat";
 
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
   const userId = subFromToken(tokens?.access_token ?? null);
 
@@ -56,6 +57,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) { router.replace("/auth"); return; }
 
     const ws = new WebSocket(`${WS_BASE}/${roomId}/${userId}`);
@@ -75,7 +77,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
     };
 
     return () => ws.close();
-  }, [roomId, userId, isAuthenticated, router]);
+  }, [roomId, userId, hasHydrated, isAuthenticated, router]);
 
   function sendMessage() {
     if (!input.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
@@ -83,7 +85,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
     setInput("");
   }
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   return (
     <div className="flex flex-col h-screen bg-[#F2EFEA]">

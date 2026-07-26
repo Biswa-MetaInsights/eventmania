@@ -1,8 +1,11 @@
 import { chromium } from 'playwright';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const BASE = 'http://localhost:3000';
 const API  = 'http://localhost:8000';
-const SS   = 'd:/MetaInsights/Eventmind/eventmind/screenshots';
+// Resolved from this file's location so the repo can be moved/renamed freely.
+const SS   = path.join(path.dirname(fileURLToPath(import.meta.url)), 'screenshots');
 const EMAIL = `tester${Date.now()}@gmail.com`;
 const PASS  = 'TestPass123!';
 

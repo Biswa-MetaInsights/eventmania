@@ -38,7 +38,7 @@ class AuthResponse(BaseModel):
 
 class SocialLogin(BaseModel):
     email: EmailStr
-    full_name: Optional[str] = "EventMind User"
+    full_name: Optional[str] = "NewFind User"
     provider: str
     provider_id: str
     id_token: Optional[str] = None

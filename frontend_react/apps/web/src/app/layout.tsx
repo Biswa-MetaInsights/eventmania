@@ -10,7 +10,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "EventMind — Discover Events & Communities",
+  title: "NewFind — Discover Events & Communities",
   description:
     "AI-powered platform to discover events, communities, and experiences near you.",
 };

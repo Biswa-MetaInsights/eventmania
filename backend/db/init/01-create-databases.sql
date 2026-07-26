@@ -1,4 +1,4 @@
--- Creates one database per stateful EventMind service.
+-- Creates one database per stateful NewFind service.
 -- Runs automatically the first time the Postgres container initialises an empty
 -- data volume (mounted at /docker-entrypoint-initdb.d in docker-compose.yml).
 -- Only services whose config.py declares DATABASE_URL get a database here;

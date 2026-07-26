@@ -3,7 +3,7 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { communityApi, eventsApi } from "@eventmind/api";
+import { communityApi, eventsApi } from "@newfind/api";
 import { Navbar } from "@/components/navbar/Navbar";
 import { EventCardItem } from "@/components/EventsCarousel";
 import { toCarouselEvent } from "@/lib/card-adapters";

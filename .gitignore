@@ -7,14 +7,9 @@ auth_db.sqlite3
 platform_dev.db
 *.db
 
-# Flutter / Dart
+# Build output
 build/
-.dart_tool/
-.packages
-.pub-cache/
-.pub/
-.flutter-plugins
-.flutter-plugins-dependencies
+dist/
 
 # IDE / OS
 .vscode/

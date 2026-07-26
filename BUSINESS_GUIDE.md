@@ -1,6 +1,6 @@
-# 💼 EventMind: Business Operations & Process Guide
+# 💼 NewFind: Business Operations & Process Guide
 
-This document outlines the strategic value and user-centric operations of the EventMind marketplace.
+This document outlines the strategic value and user-centric operations of the NewFind marketplace.
 
 ---
 
@@ -17,9 +17,9 @@ This document outlines the strategic value and user-centric operations of the Ev
 ## 🔄 2. Core Business Workflows
 
 ### 🛡️ A. Registration & Identity (Trust Layer)
-EventMind follows a **High-Trust Onboarding** model:
+NewFind follows a **High-Trust Onboarding** model:
 
-![EventMind Registration Interface](file:///c:/Metainsghts-Projects/Biswa-eventlog/assets/images/eventlog_register.png)
+![NewFind Registration Interface](file:///c:/Metainsghts-Projects/Biswa-eventlog/assets/images/eventlog_register.png)
 
 1.  **Input**: User provides Name, Email, and Password.
 2.  **Verification**: System creates a unique profile in the **User Service**.
@@ -28,14 +28,14 @@ EventMind follows a **High-Trust Onboarding** model:
 
 ### 🔍 B. Discovery & Marketplace Experience
 
-![EventMind Marketplace Discovery](file:///c:/Metainsghts-Projects/Biswa-eventlog/assets/images/eventlog_welcome.png)
+![NewFind Marketplace Discovery](file:///c:/Metainsghts-Projects/Biswa-eventlog/assets/images/eventlog_welcome.png)
 
 1.  **The Homepage**: A high-impact "Glassmorphic" grid featuring "Trending" and "For You" segments.
 2.  **Smart Filtering**: Attendees can filter by **Category** (Workshops, Summits, Meetups) or **Date**.
 3.  **Detail View**: Interactive event pages with price-tiers, speaker bios, and AI-moderated reviews.
 
 ### 🎟️ C. The Ticketing Lifecycle (Revenue Flow)
-*EventMind ensures 100% data integrity for concurrent seat-buying.*
+*NewFind ensures 100% data integrity for concurrent seat-buying.*
 
 ```mermaid
 graph TD

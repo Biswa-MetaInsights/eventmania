@@ -1,9 +1,9 @@
-# NewFind (EventMind) — Project Handover for Claude
+# NewFind — Project Handover for Claude
 
 > You are picking up an active project. Read this file fully before making any changes.
-> When you make a meaningful contribution, update this file and save any new reference documents to `Eventmind_files/`.
+> When you make a meaningful contribution, update this file and save any new reference documents to `Newfind_files/`.
 
-> **⚠️ Folder name has a space:** The parent folder is called `Event mind` (with a space). Always wrap paths in quotes in the terminal, e.g. `cd "c:\...\Event mind\eventmind"`. Forgetting the quotes will break commands silently.
+> **Paths:** the repo lives at `d:\MetaInsights\Newfind\newfind`. No folder in that path contains a space any more (the old `Event mind` parent is gone), so terminal quoting is no longer a trap — but quoting paths remains good practice.
 
 ---
 
@@ -11,10 +11,10 @@
 
 - Before starting any task, identify the exact files needed. Open **only** those files.
 - Do **not** explore the full project structure unless explicitly asked.
-- Do **not** read `node_modules`, `.next`, `.venv`, `.dart_tool`, or any build/cache directories.
+- Do **not** read `node_modules`, `.next`, `.venv`, or any build/cache directories.
 - Do **not** re-read files you have already read in this session.
 - If a task touches only one component, open only that component file.
-- Always run `pnpm --filter @eventmind/web type-check` after any TypeScript changes. Do not report a task done if type-check fails.
+- Always run `pnpm --filter @newfind/web type-check` after any TypeScript changes. Do not report a task done if type-check fails.
 - After completing a task, list only the files you modified.
 - **Before building anything complex, state your interpretation of the task and ask Gautham to confirm before proceeding.** This is especially important when: an image or asset is uploaded (do not hand-draw or reconstruct it — ask how to use it), the request is ambiguous, or the implementation could go several different ways. A brief "Here's what I'm planning — does that sound right?" prevents wasted effort.
 
@@ -22,9 +22,9 @@
 
 ## What Is NewFind?
 
-NewFind (formerly EventMind internally) is an AI-powered event discovery platform — think Eventbrite meets Meetup, with an AI layer for personalised recommendations and community matching. Users can discover events, register, buy tickets, and chat with other attendees. Organisers can create and manage events.
+NewFind is an AI-powered event discovery platform — think Eventbrite meets Meetup, with an AI layer for personalised recommendations and community matching. Users can discover events, register, buy tickets, and chat with other attendees. Organisers can create and manage events.
 
-The project is mid-build. The frontend is a React/Next.js web app (`frontend_react/`). It was originally migrated from a Flutter Web prototype; that Flutter app has since been **deleted** and no longer exists in the repo.
+The project is mid-build. The frontend is a React/Next.js web app (`frontend_react/`). It was originally migrated from a Flutter Web prototype; that prototype and all of its build artefacts have been **removed** — there is no Dart/Flutter code anywhere in the repo.
 
 > **Important:** This is React/Next.js — NOT React Native. React Native is a mobile framework. This project is a Next.js web app. Do not confuse the two.
 
@@ -33,8 +33,8 @@ The project is mid-build. The frontend is a React/Next.js web app (`frontend_rea
 ## Repository Layout
 
 ```
-Event mind/
-└── eventmind/
+Newfind/
+└── newfind/
     ├── frontend_react/        ← React/Next.js (the frontend)
     │   ├── apps/web/          ← Next.js app
     │   └── packages/          ← shared types, store, api
@@ -45,13 +45,13 @@ Event mind/
     ├── start.bat              ← Windows launcher (replaces shadow_runner.py — see below)
     └── CLAUDE.md              ← this file
 
-Eventmind_files/               ← all project documents live here
-    ├── eventmind_prd.md       ← full Product Requirements Document
+Newfind_files/               ← all project documents live here
+    ├── newfind_prd.md       ← full Product Requirements Document
     ├── competitor_analysis.md
     └── REACT_MIGRATION.md     ← React frontend technical handover (read this too)
 ```
 
-**Important:** All project documentation goes into `Eventmind_files/`, not inside `eventmind/`. Keep those folders separate.
+**Important:** All project documentation goes into `Newfind_files/`, not inside `newfind/`. Keep those folders separate.
 
 ---
 
@@ -61,7 +61,7 @@ Run this once to map the project (Windows PowerShell). Update this section whene
 
 ```powershell
 Get-ChildItem -Recurse -File | Where-Object {
-  $_.FullName -notmatch 'node_modules|\.next|\.git|\.venv|__pycache__|\.dart_tool|build'
+  $_.FullName -notmatch 'node_modules|\.next|\.git|\.venv|__pycache__|build'
 } | Resolve-Path -Relative | Sort-Object
 ```
 
@@ -113,7 +113,7 @@ frontend_react/packages/
 ├── store/src/      ← Zustand stores
 │   ├── auth-store.ts
 │   ├── tickets-store.ts
-│   ├── wishlist-store.ts  ← wishlist (fully functional, persisted as "eventmind-wishlist")
+│   ├── wishlist-store.ts  ← wishlist (fully functional, persisted as "newfind-wishlist")
 │   └── location-store.ts  ← city picker state, CITIES list, DEFAULT_CITY=New York. CITIES[0] is the "Online" pseudo-city (country "", lat/lng 0,0); use exported isOnlineCity(city) to detect it and switch queries to category="online" instead of a geo radius.
 └── types/src/      ← shared TypeScript interfaces
 
@@ -168,14 +168,14 @@ Do this once when you first clone the project.
 
 **Step 1 — Create a virtual environment**
 
-A virtual environment keeps the project's Python packages isolated from your system. Run this from inside the `eventmind/` folder:
+A virtual environment keeps the project's Python packages isolated from your system. Run this from inside the `newfind/` folder:
 
 ```powershell
-cd "c:\Users\...\Event mind\eventmind"   # navigate to the eventmind folder
+cd "c:\Users\...\Newfind\newfind"   # navigate to the newfind folder
 python -m venv .venv
 ```
 
-This creates a `.venv` folder inside `eventmind/`. You only do this once.
+This creates a `.venv` folder inside `newfind/`. You only do this once.
 
 **Step 2 — Activate the virtual environment**
 
@@ -208,16 +208,16 @@ This may take a few minutes the first time. You only need to re-run it if new pa
 
 **Option A (recommended on Windows) — double-click `start.bat`**
 
-`start.bat` is in the `eventmind/` root. Double-click it — it opens a separate terminal window for each service with all environment variables pre-set (API keys, database path, mock flags). It uses the `.venv` Python automatically.
+`start.bat` is in the `newfind/` root. Double-click it — it opens a separate terminal window for each service with all environment variables pre-set (API keys, database path, mock flags). It uses the `.venv` Python automatically.
 
-**To stop the backend:** in the main `start.bat` window, press any key — it kills all uvicorn services and closes their windows. If you lost that window (e.g. closed it with X), run `stop.bat` (also in `eventmind/` root) to kill all services. Closing the service windows with the X icon individually leaves no orphaned ports, but is tedious. Note: stopping the backend does **not** stop the frontend dev server (port 3000) — that is a separate Node process; Ctrl+C its own terminal.
+**To stop the backend:** in the main `start.bat` window, press any key — it kills all uvicorn services and closes their windows. If you lost that window (e.g. closed it with X), run `stop.bat` (also in `newfind/` root) to kill all services. Closing the service windows with the X icon individually leaves no orphaned ports, but is tedious. Note: stopping the backend does **not** stop the frontend dev server (port 3000) — that is a separate Node process; Ctrl+C its own terminal.
 
 > ⚠️ `start.bat` contains real API keys — it is in `.gitignore` and must never be committed to git. Each developer keeps their own local copy.
 
 **Option B — shadow_runner.py (cross-platform alternative)**
 
 ```powershell
-cd "eventmind/"
+cd "newfind/"
 .\.venv\Scripts\Activate.ps1
 python backend\scripts\shadow_runner.py
 ```
@@ -243,8 +243,8 @@ Both options start all services on SQLite with mocked Kafka and Redis — no Doc
 
 > **Known manual startup issue (Windows):** If starting a service manually (not via start.bat or shadow_runner.py), set these env vars first:
 > ```powershell
-> $env:PYTHONPATH = "C:\...\Event mind\eventmind"
-> $env:DATABASE_URL = "sqlite:///C:\...\Event mind\eventmind\backend\platform_dev.db"
+> $env:PYTHONPATH = "C:\...\Newfind\newfind"
+> $env:DATABASE_URL = "sqlite:///C:\...\Newfind\newfind\backend\platform_dev.db"
 > $env:JWT_SECRET = "<value from .env>"
 > $env:MOCK_KAFKA = "TRUE"
 > $env:REDIS_HOST = "MOCK"
@@ -255,7 +255,7 @@ Both options start all services on SQLite with mocked Kafka and Redis — no Doc
 The database starts empty. Without seeding, the discovery page will show "No events found." Run this once after the backend is up for the first time:
 
 ```powershell
-# In a new terminal, with venv activated, from the eventmind/ folder:
+# In a new terminal, with venv activated, from the newfind/ folder:
 python backend\scripts\seed_events.py
 ```
 
@@ -284,7 +284,7 @@ python backend\scripts\sync_ticketmaster.py --city London --radius 150
 - Every `events` row now carries `source` (`"native"` for organiser events, `"ticketmaster"` for synced), `external_id` (provider id), and `image_url`.
 - Ingestion is idempotent — the pipeline upserts via `POST /event/ingest` on `(source, external_id)`, so re-running updates rather than duplicates. Cron the launcher (every 30–60 min) for continuous refresh; Celery is not needed at this stage.
 - Aggregated events are **discover-and-redirect**: the frontend should send users to the event's `event_website` ("Buy on Ticketmaster") rather than into the native checkout/chat flow. Treat them as top-of-funnel; native organiser events remain the long-term value. Respect Ticketmaster's API terms on caching/retention before production.
-- The Discovery API caps any single query at 1,000 results, so the pipeline slices by classification segment and paginates within each. Ticketmaster segments are mapped onto EventMind categories (Music→Creative, Sports→Networking, …) so aggregated events sit alongside native ones.
+- The Discovery API caps any single query at 1,000 results, so the pipeline slices by classification segment and paginates within each. Ticketmaster segments are mapped onto NewFind categories (Music→Creative, Sports→Networking, …) so aggregated events sit alongside native ones.
 
 ---
 
@@ -299,7 +299,7 @@ npm install -g pnpm
 Then install all frontend dependencies (once):
 
 ```powershell
-cd "eventmind/frontend_react"
+cd "newfind/frontend_react"
 pnpm install
 ```
 
@@ -312,13 +312,13 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ### React Frontend — Everyday Use
 
 ```powershell
-cd "eventmind/frontend_react"
-pnpm --filter @eventmind/web dev:webpack
+cd "newfind/frontend_react"
+pnpm --filter @newfind/web dev:webpack
 # Opens at http://localhost:3000
 ```
 
 > **⚠️ On low-RAM (8 GB) machines, use `dev:webpack`, NOT plain `dev`.**
-> The default `pnpm --filter @eventmind/web dev` uses **Turbopack**, which spawns a large
+> The default `pnpm --filter @newfind/web dev` uses **Turbopack**, which spawns a large
 > parallel worker pool to compile routes. On an 8 GB machine that exhausts physical RAM, so
 > Windows starts swapping to disk and the **entire laptop hangs** (unresponsive mouse/windows —
 > that's disk thrashing, not a crash). The workers then die with `Zone Allocation failed /
@@ -327,7 +327,7 @@ pnpm --filter @eventmind/web dev:webpack
 >
 > **Always run the webpack dev server instead** — it spawns ~3 workers instead of hundreds:
 > ```powershell
-> pnpm --filter @eventmind/web dev:webpack
+> pnpm --filter @newfind/web dev:webpack
 > ```
 >
 > Note: whether the laptop hangs has **nothing to do with the backend**. The frontend dev server
@@ -355,15 +355,15 @@ frontend_react/
 
 All pages are in `apps/web/src/app/`. Shared logic goes into `packages/` so it can later be reused by the mobile app (planned).
 
-Auth state and tickets are stored in Zustand, persisted to localStorage under the keys `eventmind-auth` and `eventmind-tickets`. If something looks wrong with login or ticket state, clear those keys in DevTools → Application → Local Storage.
+Auth state and tickets are stored in Zustand, persisted to localStorage under the keys `newfind-auth` and `newfind-tickets`. If something looks wrong with login or ticket state, clear those keys in DevTools → Application → Local Storage.
 
 The JWT access token payload contains `sub` (user UUID), `email`, and `role`. The `sub` field is used as the organiser ID when creating events.
 
 **Adding a new npm package** to the web app:
 ```powershell
-pnpm --filter @eventmind/web add <package-name>
+pnpm --filter @newfind/web add <package-name>
 # or to a shared package:
-pnpm --filter @eventmind/api add <package-name>
+pnpm --filter @newfind/api add <package-name>
 ```
 
 Environment variable — create `apps/web/.env.local`:
@@ -381,7 +381,7 @@ Keep this updated as components are created or significantly changed.
 |---|---|---|
 | `components/EventsCarousel.tsx` | Main events grid + online events section | API-driven via `toCarouselEvent()`. Exports `CarouselEvent` type. Accepts `events`, `isLoading`, `onBookNow`, `locationSlot` props. |
 | `components/CommunityCarousel.tsx` | Community cards carousel on the home page | API-driven via `toCommunityItem()`. Exports `CommunityItem` type. |
-| `components/EventCard.tsx` | Single event card used in the API-driven grid on the home page | Uses `@eventmind/types Event` (different from `CarouselEvent`) |
+| `components/EventCard.tsx` | Single event card used in the API-driven grid on the home page | Uses `@newfind/types Event` (different from `CarouselEvent`) |
 | `components/HeroCarousel.tsx` | Auto-rotating hero banner at the top of the home page | 5 image-only slides (no text overlay), diagonal clip-path wipe animation, 16:9 aspect ratio (maxHeight 85vh). Images are local PNGs in `apps/web/public/hero/` (`hero-2,3,4,5,7.png`); update the `IMAGES` array to add/remove. Uses `<img>` (not `next/image`) because the wipe relies on `clip-path`. |
 | `components/CityPicker.tsx` | City selector dropdown | Uses `useLocationStore`. CITIES list includes NYC, London, Berlin, etc. Default city is New York. |
 | `components/EventChatWidget.tsx` | AI chat widget on event detail page | Allows attendees to chat with an AI about the event |
@@ -395,9 +395,9 @@ Keep this updated as components are created or significantly changed.
 
 ## Brand & Design — Read Before Building Any New Page
 
-Before building a new feature, read the PRD at `Eventmind_files/eventmind_prd.md` to understand the product intent. Do not build features that are not in the PRD without confirming with the team first.
+Before building a new feature, read the PRD at `Newfind_files/newfind_prd.md` to understand the product intent. Do not build features that are not in the PRD without confirming with the team first.
 
-EventMind's design is clean, minimal, and premium — inspired by functionhealth.com (aesthetic) and austoentertainment.com (colour palette). **User-friendliness and simplicity are the top priorities.** Do not add unnecessary complexity, decorations, or features.
+NewFind's design is clean, minimal, and premium — inspired by functionhealth.com (aesthetic) and austoentertainment.com (colour palette). **User-friendliness and simplicity are the top priorities.** Do not add unnecessary complexity, decorations, or features.
 
 ### Colour palette — use these exact values everywhere, no substitutes
 
@@ -450,7 +450,7 @@ Conversational but professional. Avoid jargon. Keep labels short. Example: "Clai
 
 ## What Has Been Built (React)
 
-For the full technical breakdown, read `Eventmind_files/REACT_MIGRATION.md`.
+For the full technical breakdown, read `Newfind_files/REACT_MIGRATION.md`.
 
 Summary of working pages:
 
@@ -484,8 +484,8 @@ Additional pages (all now active):
 
 **Home page behaviour (important):**
 - On load, fetches events near the selected city via `eventsApi.search()` and separately fetches online events (lat/lng 0,0 — so they show regardless of city).
-- On first visit to a new city, auto-calls `recommendationsApi.ingestCity()` to pull events from Ticketmaster. This is done **once per city**, tracked in localStorage under `eventmind-ingested-cities`. If ingestion returns 0 events, falls back to `recommendationsApi.generateEventsForCity()` (AI generation) after a 3-second delay.
-- Wishlist is fully functional — persisted to localStorage under `eventmind-wishlist`.
+- On first visit to a new city, auto-calls `recommendationsApi.ingestCity()` to pull events from Ticketmaster. This is done **once per city**, tracked in localStorage under `newfind-ingested-cities`. If ingestion returns 0 events, falls back to `recommendationsApi.generateEventsForCity()` (AI generation) after a 3-second delay.
+- Wishlist is fully functional — persisted to localStorage under `newfind-wishlist`.
 
 **Responsiveness:**
 All pages are responsive. Standard patterns used throughout:
@@ -496,13 +496,13 @@ All pages are responsive. Standard patterns used throughout:
 - HeroCarousel: 16:9 aspect ratio (`aspectRatio: "16 / 9"`, `maxHeight: 85vh`)
 
 **Auth guard pattern:**
-Protected pages (`/dashboard`, `/checkout`, `/chat`, `/organizer/*`) use a `useEffect` that reads `useAuthStore.isAuthenticated` and redirects to `/auth` if false. JWT is decoded with `atob()` + `JSON.parse()` (no external library). Tokens persisted in localStorage under `eventmind-auth`.
+Protected pages (`/dashboard`, `/checkout`, `/chat`, `/organizer/*`) use a `useEffect` that reads `useAuthStore.isAuthenticated` and redirects to `/auth` if false. JWT is decoded with `atob()` + `JSON.parse()` (no external library). Tokens persisted in localStorage under `newfind-auth`.
 
 ---
 
 ## What Is Not Built Yet
 
-Read the full breakdown in `Eventmind_files/REACT_MIGRATION.md` under "What Is Not Built Yet". Key gaps:
+Read the full breakdown in `Newfind_files/REACT_MIGRATION.md` under "What Is Not Built Yet". Key gaps:
 
 - **Chat** — page exists but only reachable via ticket card. No inbox, no room list, not in main nav.
 - **Notification bell** — icon present, no panel or backend integration.
@@ -514,7 +514,7 @@ Read the full breakdown in `Eventmind_files/REACT_MIGRATION.md` under "What Is N
 - **Event image/banner upload** — the schema now has an `image_url` column (populated for synced Ticketmaster events). Native organiser upload (file → storage → `image_url`) is still not wired up; the create form has no image field yet.
 - **Ticket tiers** — backend only supports a single price per event; multi-tier (Free/Standard/VIP) needs schema changes.
 - **Ticketmaster geocoding** — Ticketmaster ingestion runs but many events have no venue coordinates. Currently saved with `lat:0, lng:0`. Needs geocoding API (Google Maps or Nominatim) to resolve real coordinates. See `backend/services/recommendation/app/services/ticketmaster_ingestion.py`.
-- **Hardcoded organizer name on event detail** — `/event/[id]` shows "EventMind" as the organizer name rather than the actual organizer's name. Needs a lookup (or include organizer name in the event schema).
+- **Hardcoded organizer name on event detail** — `/event/[id]` shows "NewFind" as the organizer name rather than the actual organizer's name. Needs a lookup (or include organizer name in the event schema).
 - **Networking Profile tab** — interests section on `/dashboard` profile tab shows hardcoded values (Technology, AI, Venture Capital). Needs real user profile storage.
 - **Chat entry point** — `/chat/[roomId]` is only reachable via ticket card in the dashboard. No chat inbox, no room list, not linked from the main nav.
 
@@ -523,7 +523,7 @@ Read the full breakdown in `Eventmind_files/REACT_MIGRATION.md` under "What Is N
 ### Ticketmaster Event Ingestion
 - Lives in `backend/services/recommendation/app/services/ticketmaster_ingestion.py`
 - Triggered by `POST /recommendation/ingest-city?city=...&lat=...&lng=...&radius=100` via the gateway
-- **The home page now calls this automatically** on first visit to any city (tracked in `eventmind-ingested-cities` in localStorage). If the city is still empty after ingestion, it falls back to `recommendationsApi.generateEventsForCity()` for AI-generated events.
+- **The home page now calls this automatically** on first visit to any city (tracked in `newfind-ingested-cities` in localStorage). If the city is still empty after ingestion, it falls back to `recommendationsApi.generateEventsForCity()` for AI-generated events.
 - Events are fetched from Ticketmaster and saved directly into `platform_dev.db` via the event service — there is no separate file
 - **Current bug:** Many Ticketmaster events have no venue coordinates. Temporary fix saves them with `lat:0, lng:0`. Real fix requires geocoding (not yet implemented).
 - Once geocoding is added and this works end-to-end, `seed_events.py` becomes unnecessary for populating events (though it will still be useful for seeding communities)
@@ -558,10 +558,10 @@ python backend\scripts\sync_ticketmaster.py
 When you complete work in a session:
 
 1. **Update this file (`CLAUDE.md`)** — add anything that would help the next Claude instance pick up without re-asking. Keep it factual and forward-looking, not a session log.
-2. **Save new documents to `Eventmind_files/`** — not inside `eventmind/`. That folder is for code only.
-3. **Keep `Eventmind_files/REACT_MIGRATION.md` current** — update the "Pages Built" table and "What Is Not Built Yet" section as features are completed.
+2. **Save new documents to `Newfind_files/`** — not inside `newfind/`. That folder is for code only.
+3. **Keep `Newfind_files/REACT_MIGRATION.md` current** — update the "Pages Built" table and "What Is Not Built Yet" section as features are completed.
 4. **Update the Component Registry above** — whenever a component is created or its purpose changes significantly.
-5. **Run `pnpm --filter @eventmind/web type-check` before finishing** — all changes must be type-error free. This is non-negotiable.
+5. **Run `pnpm --filter @newfind/web type-check` before finishing** — all changes must be type-error free. This is non-negotiable.
 6. **Match the brand palette exactly** — do not introduce new colours or fonts without approval. Approved fonts: Outfit (global), DM Sans (online event cards only).
 7. **Test in the browser** — for UI changes, run the dev server and visually verify the change before reporting it done. Type-checking does not catch visual bugs.
 8. **Keep Node.js at v20+** — the project `.nvmrc` pins 24.16.0. If you use nvm, run `nvm use` inside `frontend_react/` to switch automatically.

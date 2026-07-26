@@ -3,8 +3,8 @@
 import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsApi, paymentsApi } from "@eventmind/api";
-import { useAuthStore, useTicketsStore } from "@eventmind/store";
+import { eventsApi, paymentsApi } from "@newfind/api";
+import { useAuthStore, useTicketsStore } from "@newfind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
@@ -18,6 +18,7 @@ export default function CheckoutPage({
   const { id } = use(params);
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const userEmail = useAuthStore((s) => s.userEmail);
   const addTicket = useTicketsStore((s) => s.addTicket);
 
@@ -30,10 +31,10 @@ export default function CheckoutPage({
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
 
-  // Auth guard
+  // Auth guard — wait for hydration before redirecting
   useEffect(() => {
-    if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+    if (hasHydrated && !isAuthenticated) router.replace("/auth");
+  }, [hasHydrated, isAuthenticated, router]);
 
   const { data: event, isLoading } = useQuery({
     queryKey: ["event", id],
@@ -41,6 +42,7 @@ export default function CheckoutPage({
     enabled: isAuthenticated,
   });
 
+  if (!hasHydrated) return null;
   if (!isAuthenticated) return null;
 
   if (isLoading || !event) {

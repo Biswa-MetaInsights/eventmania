@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { organizerApi } from "@eventmind/api";
-import { useAuthStore } from "@eventmind/store";
+import { organizerApi } from "@newfind/api";
+import { useAuthStore } from "@newfind/store";
 import { CityPicker } from "@/components/CityPicker";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ export function configureApiBaseUrl(url: string) {
 
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("eventmind-auth");
+    const stored = localStorage.getItem("newfind-auth");
     if (stored) {
       const { state } = JSON.parse(stored);
       if (state?.tokens?.access_token) {

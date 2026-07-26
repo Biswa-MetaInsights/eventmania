@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useLocationStore, CITIES, DEFAULT_CITY } from "@eventmind/store";
-import type { City } from "@eventmind/store";
+import { useLocationStore, CITIES, DEFAULT_CITY } from "@newfind/store";
+import type { City } from "@newfind/store";
 
 const GREEN = "#184E4A";
 

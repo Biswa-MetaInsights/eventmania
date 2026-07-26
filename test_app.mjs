@@ -1,11 +1,15 @@
 import { chromium } from 'playwright';
 import { writeFileSync } from 'fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const BASE = 'http://localhost:3000';
 const API  = 'http://localhost:8000';
+// Resolved from this file's location so the repo can be moved/renamed freely.
+const SS   = path.join(path.dirname(fileURLToPath(import.meta.url)), 'screenshots');
 
 async function shot(page, name) {
-  await page.screenshot({ path: `d:/MetaInsights/Eventmind/eventmind/screenshots/${name}.png`, fullPage: false });
+  await page.screenshot({ path: path.join(SS, `${name}.png`), fullPage: false });
   console.log(`📸  ${name}.png`);
 }
 
@@ -92,7 +96,7 @@ async function main() {
   const passwordInput = page.locator('input[type="password"]').first();
   const nameInput = page.locator('input[placeholder*="name" i], input[placeholder*="Name"]').first();
   if (await nameInput.isVisible()) await nameInput.fill('Test User');
-  await emailInput.fill('testuser@eventmind.test');
+  await emailInput.fill('testuser@newfind.test');
   await passwordInput.fill('TestPass123!');
   const confirmInput = page.locator('input[placeholder*="confirm" i]').first();
   if (await confirmInput.isVisible()) await confirmInput.fill('TestPass123!');

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Event } from "@eventmind/types";
+import type { Event } from "@newfind/types";
 
 const GREEN = "#184E4A";
 // Use event ID as seed so each card gets a unique but consistent placeholder image

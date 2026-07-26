@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsApi } from "@eventmind/api";
-import { useAuthStore } from "@eventmind/store";
+import { eventsApi } from "@newfind/api";
+import { useAuthStore } from "@newfind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
@@ -28,13 +28,14 @@ function formatDate(iso: string) {
 export default function MyOrganisedEventsPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
 
   const organizerId = subFromToken(tokens?.access_token ?? null);
 
   useEffect(() => {
-    if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+    if (hasHydrated && !isAuthenticated) router.replace("/auth");
+  }, [hasHydrated, isAuthenticated, router]);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["my-events", organizerId],
@@ -45,6 +46,7 @@ export default function MyOrganisedEventsPage() {
     enabled: !!organizerId,
   });
 
+  if (!hasHydrated) return null;
   if (!isAuthenticated) return null;
 
   return (
@@ -68,7 +70,7 @@ export default function MyOrganisedEventsPage() {
             <div>
               <h1 className="text-[28px] font-bold" style={{ color: "#111827" }}>My Organised Events</h1>
               <p className="text-sm mt-1" style={{ color: "#6B7280" }}>
-                Events you have published on EventMind
+                Events you have published on NewFind
               </p>
             </div>
           </div>

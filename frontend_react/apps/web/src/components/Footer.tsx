@@ -81,7 +81,7 @@ export function Footer() {
           style={{ borderTop: "1px solid rgba(242,239,234,0.18)" }}
         >
           <p className="text-sm" style={{ color: "rgba(242,239,234,0.7)" }}>
-            © {new Date().getFullYear()} EventMind. All rights reserved.
+            © {new Date().getFullYear()} NewFind. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             {/* Social icons */}

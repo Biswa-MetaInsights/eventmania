@@ -1,3 +1,8 @@
+# Pinned so the Compose project name (and therefore volume names like
+# <name>_pgdata) never depends on the folder name. Without this, renaming the
+# checkout directory orphans the Postgres volume and the DBs look empty.
+name: newfind
+
 services:
   # --- Infrastructure ---
   postgres:

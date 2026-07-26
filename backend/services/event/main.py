@@ -17,7 +17,7 @@ app = FastAPI(
     docs_url="/docs" if settings.DEBUG else None,
 )
 
-# CORS middleware for Flutter Web interaction
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # In production, restrict to specific domains

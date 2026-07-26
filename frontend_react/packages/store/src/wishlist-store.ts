@@ -37,6 +37,6 @@ export const useWishlistStore = create<WishlistState>()(
       removeItem: (id) =>
         set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
     }),
-    { name: "eventmind-wishlist" }
+    { name: "newfind-wishlist" }
   )
 );

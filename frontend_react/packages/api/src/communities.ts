@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Community } from "@eventmind/types";
+import type { Community } from "@newfind/types";
 
 export const communitiesApi = {
   search: (params?: { q?: string; category?: string; city?: string }) =>

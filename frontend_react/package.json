@@ -1,5 +1,5 @@
 {
-  "name": "eventmind",
+  "name": "newfind",
   "private": true,
   "scripts": {
     "dev": "turbo dev",

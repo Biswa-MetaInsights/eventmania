@@ -3,9 +3,9 @@
 import { Suspense, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { eventsApi, communitiesApi, recommendationsApi } from "@eventmind/api";
-import { useLocationStore, DEFAULT_CITY, isOnlineCity } from "@eventmind/store";
-import type { Event } from "@eventmind/types";
+import { eventsApi, communitiesApi, recommendationsApi } from "@newfind/api";
+import { useLocationStore, DEFAULT_CITY, isOnlineCity } from "@newfind/store";
+import type { Event } from "@newfind/types";
 import { Navbar } from "@/components/navbar/Navbar";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { EventsCarousel } from "@/components/EventsCarousel";
@@ -15,7 +15,7 @@ import { Footer } from "@/components/Footer";
 import { toCarouselEvent, toCommunityItem } from "@/lib/card-adapters";
 
 const RADIUS_KM = 100;
-const INGESTED_KEY = "eventmind-ingested-cities"; // localStorage key
+const INGESTED_KEY = "newfind-ingested-cities"; // localStorage key
 
 function getIngestedCities(): Set<string> {
   if (typeof window === "undefined") return new Set();

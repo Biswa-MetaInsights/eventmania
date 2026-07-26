@@ -466,7 +466,7 @@ def seed_section(label, items, endpoint):
     return success
 
 # ── Run ───────────────────────────────────────────────────────────────────────
-print("Seeding EventMind database...")
+print("Seeding NewFind database...")
 
 event_payloads = [{**ev, "organizer_id": ORGANIZER_ID, "status": "published"} for ev in events]
 

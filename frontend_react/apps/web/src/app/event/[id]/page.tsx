@@ -3,9 +3,9 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsApi, reviewsApi } from "@eventmind/api";
-import type { Review, ReviewAggregates } from "@eventmind/api";
-import { useAuthStore } from "@eventmind/store";
+import { eventsApi, reviewsApi } from "@newfind/api";
+import type { Review, ReviewAggregates } from "@newfind/api";
+import { useAuthStore } from "@newfind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 import { EventChatWidget } from "@/components/EventChatWidget";
 
@@ -171,7 +171,7 @@ export default function EventDetailPage({
               <div className="my-6 h-px bg-[#E2DDD5]" />
               <SidebarItem icon={<LocationIcon />} title="Location" value={location} />
               <div className="my-6 h-px bg-[#E2DDD5]" />
-              <SidebarItem icon={<OrganizerIcon />} title="Organizer" value="EventMind" />
+              <SidebarItem icon={<OrganizerIcon />} title="Organizer" value="NewFind" />
             </div>
           </div>
         </div>

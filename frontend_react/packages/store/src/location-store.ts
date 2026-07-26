@@ -56,7 +56,7 @@ export const useLocationStore = create<LocationState>()(
       setHasHydrated: (v) => set({ _hasHydrated: v }),
     }),
     {
-      name: "eventmind-location",
+      name: "newfind-location",
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

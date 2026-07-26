@@ -1,4 +1,4 @@
-"""Ticketmaster ingestion — the single Ticketmaster pipeline for EventMind.
+"""Ticketmaster ingestion — the single Ticketmaster pipeline for NewFind.
 
 This is the one place Ticketmaster events are fetched and normalised. The
 on-demand entrypoint `ingest(city, lat, lng, radius)` is called by the
@@ -16,7 +16,7 @@ Design notes:
   paginate within each segment.
 - Stores provenance + image: source="ticketmaster", external_id=<TM id>, and
   the event banner in image_url (via the new event schema columns).
-- Categories are mapped from Ticketmaster segments onto EventMind's taxonomy so
+- Categories are mapped from Ticketmaster segments onto NewFind's taxonomy so
   aggregated events sit consistently alongside native organiser events.
 """
 import asyncio
@@ -42,7 +42,7 @@ DEFAULT_DURATION_HOURS = 3  # fallback when an event has no end time
 # keeping each query under the ceiling.
 SEGMENTS = ["Music", "Sports", "Arts & Theatre", "Film", "Miscellaneous"]
 
-# Ticketmaster segment -> EventMind category (keeps aggregated events consistent
+# Ticketmaster segment -> NewFind category (keeps aggregated events consistent
 # with the native taxonomy used by organiser-created events).
 SEGMENT_CATEGORY_MAP = {
     "Music": "Creative",
@@ -53,7 +53,7 @@ SEGMENT_CATEGORY_MAP = {
 }
 
 
-# ── Normalisation: Ticketmaster event -> EventMind /events/ingest payload ──────
+# ── Normalisation: Ticketmaster event -> NewFind /events/ingest payload ──────
 def _first(seq: Optional[list]) -> Optional[dict]:
     return seq[0] if seq else None
 

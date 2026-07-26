@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Event } from "@eventmind/types";
+import type { Event } from "@newfind/types";
 
 export interface EventSearchParams {
   q?: string;

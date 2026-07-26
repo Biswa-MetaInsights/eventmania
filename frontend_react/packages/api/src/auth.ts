@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { AuthTokens } from "@eventmind/types";
+import type { AuthTokens } from "@newfind/types";
 
 interface RegisterResponse {
   msg: string;

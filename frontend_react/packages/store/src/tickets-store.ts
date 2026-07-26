@@ -26,6 +26,6 @@ export const useTicketsStore = create<TicketsState>()(
         set((s) => ({ tickets: [ticket, ...s.tickets] })),
       clearTickets: () => set({ tickets: [] }),
     }),
-    { name: "eventmind-tickets" }
+    { name: "newfind-tickets" }
   )
 );

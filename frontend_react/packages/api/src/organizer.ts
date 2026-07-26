@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { OrganizerProfile } from "@eventmind/types";
+import type { OrganizerProfile } from "@newfind/types";
 
 export interface OrganizerProfileCreate {
   full_name: string;

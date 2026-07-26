@@ -1,4 +1,4 @@
-import type { Event, Community } from "@eventmind/types";
+import type { Event, Community } from "@newfind/types";
 import type { CarouselEvent } from "@/components/EventsCarousel";
 import type { CommunityItem } from "@/components/CommunityCarousel";
 

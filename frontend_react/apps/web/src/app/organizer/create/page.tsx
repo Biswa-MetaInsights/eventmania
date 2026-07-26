@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { eventsApi, organizerApi, communityApi } from "@eventmind/api";
-import { useAuthStore, CITIES } from "@eventmind/store";
-import type { City } from "@eventmind/store";
-import type { Community } from "@eventmind/types";
+import { eventsApi, organizerApi, communityApi } from "@newfind/api";
+import { useAuthStore, CITIES } from "@newfind/store";
+import type { City } from "@newfind/store";
+import type { Community } from "@newfind/types";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
@@ -39,6 +39,7 @@ function subFromToken(token: string | null): string {
 export default function CreateEventPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
 
   // Event basics
@@ -77,6 +78,7 @@ export default function CreateEventPage() {
   const [verificationChecked, setVerificationChecked] = useState(false);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) { router.replace("/auth"); return; }
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
@@ -90,9 +92,9 @@ export default function CreateEventPage() {
           .catch(() => {/* no community yet */});
       })
       .catch(() => router.replace("/organizer/onboarding"));
-  }, [isAuthenticated, router, tokens]);
+  }, [hasHydrated, isAuthenticated, router, tokens]);
 
-  if (!isAuthenticated || !verificationChecked) return null;
+  if (!hasHydrated || !isAuthenticated || !verificationChecked) return null;
 
   function toggleAudience(item: string) {
     setTargetAudience((prev) =>
@@ -199,7 +201,7 @@ export default function CreateEventPage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., EventMind AI Summit 2026"
+                placeholder="e.g., NewFind AI Summit 2026"
                 className={inputCls(!!fieldErrors.title)}
               />
             </FormField>

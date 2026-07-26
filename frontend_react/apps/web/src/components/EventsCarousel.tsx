@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Roboto } from 'next/font/google'
-import { useWishlistStore } from '@eventmind/store'
+import { useWishlistStore } from '@newfind/store'
 
 const roboto = Roboto({ subsets: ['latin'], style: ['normal', 'italic'] })
 
@@ -70,7 +70,7 @@ export const SAMPLE_EVENTS: CarouselEvent[] = [
     date: 'Sat, 14 Jun',
     time: '7:00 PM',
     venue: 'Kovalam Beach Amphitheatre',
-    organiser: 'EventMind Presents',
+    organiser: 'NewFind Presents',
     price: '₹499 onwards',
     imageUrl: 'https://picsum.photos/seed/evt001/800/450',
     badge: 'Selling Fast',

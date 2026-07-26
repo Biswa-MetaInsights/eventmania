@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Roboto } from 'next/font/google'
-import { useWishlistStore } from '@eventmind/store'
+import { useWishlistStore } from '@newfind/store'
 
 const roboto = Roboto({ subsets: ['latin'], style: ['normal', 'italic'] })
 

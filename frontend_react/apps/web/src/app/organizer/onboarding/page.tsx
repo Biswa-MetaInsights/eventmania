@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { organizerApi } from "@eventmind/api";
-import { useAuthStore } from "@eventmind/store";
+import { organizerApi } from "@newfind/api";
+import { useAuthStore } from "@newfind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";
@@ -37,6 +37,7 @@ function subFromToken(token: string | null): string {
 export default function OrganizerOnboardingPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
 
   const [fullName, setFullName] = useState("");
@@ -54,15 +55,16 @@ export default function OrganizerOnboardingPage() {
   const selectedCountry = COUNTRIES.find((c) => c.code === country) ?? COUNTRIES[0];
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) { router.replace("/auth"); return; }
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
     organizerApi.get(userId)
       .then(() => router.replace("/organizer/create"))
       .catch(() => { /* not verified yet — stay */ });
-  }, [isAuthenticated, router, tokens]);
+  }, [hasHydrated, isAuthenticated, router, tokens]);
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   function validate(): boolean {
     const errors: Record<string, string> = {};
@@ -117,7 +119,7 @@ export default function OrganizerOnboardingPage() {
             Verify your organisation
           </h1>
           <p className="text-sm leading-relaxed" style={{ color: "#6B7280" }}>
-            To publish events on EventMind, we need your company details for trust and compliance.
+            To publish events on NewFind, we need your company details for trust and compliance.
             This is a one-time step. Your information is kept private.
           </p>
         </div>
@@ -229,7 +231,7 @@ export default function OrganizerOnboardingPage() {
 
           <p className="text-xs mt-4 leading-relaxed" style={{ color: "#9CA3AF" }}>
             By submitting, you confirm that the information provided is accurate and belongs to a legally
-            registered entity. EventMind reserves the right to suspend accounts where false information is provided.
+            registered entity. NewFind reserves the right to suspend accounts where false information is provided.
           </p>
 
           {error && (

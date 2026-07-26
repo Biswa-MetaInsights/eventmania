@@ -3,10 +3,10 @@
 import { Suspense, useState, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsApi, communitiesApi } from "@eventmind/api";
-import { useLocationStore, DEFAULT_CITY, CITIES, isOnlineCity } from "@eventmind/store";
-import type { City } from "@eventmind/store";
-import type { Event, Community } from "@eventmind/types";
+import { eventsApi, communitiesApi } from "@newfind/api";
+import { useLocationStore, DEFAULT_CITY, CITIES, isOnlineCity } from "@newfind/store";
+import type { City } from "@newfind/store";
+import type { Event, Community } from "@newfind/types";
 import { Navbar } from "@/components/navbar/Navbar";
 import { EventCardItem } from "@/components/EventsCarousel";
 import { CommunityCardItem } from "@/components/CommunityCarousel";

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { communityApi, eventsApi } from "@eventmind/api";
-import { useAuthStore } from "@eventmind/store";
+import { communityApi, eventsApi } from "@newfind/api";
+import { useAuthStore } from "@newfind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 
 const GREEN = "#184E4A";

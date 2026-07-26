@@ -1,70 +1,83 @@
-# 🚀 EventMania: The Agentic Event Marketplace
+# NewFind (NewFind)
+
+**AI-powered event discovery platform** — Eventbrite meets Meetup with a personalisation layer.
+
+Users discover events by city, buy tickets, join communities, and chat with other attendees. Organisers create and manage events with a guided onboarding flow. Real events are pulled live from Ticketmaster; AI agents enrich content and match attendees.
 
 ---
 
-## 🏛️ 1. Executive Summary & Philosophy
-**EventMind** is a next-generation marketplace platform that leverages **Autonomous AI Agents** to automate the entire event management lifecycle—from event creation and marketing to attendee networking and ticketing.
+## Stack
 
-By shifting from a passive tool to an **agentic ecosystem**, EventMind provides organizers with a "zero-touch" backend and attendees with a hyper-personalized discovery experience.
-
----
-
-## 🏢 2. Business & Marketplace Architecture
-*Scale Your Events with Autonomous Intelligence*
-
-### 🔄 The Event Lifecycle Loop
-| Phase | Value Proposition |
-| :--- | :--- |
-| **Creation** | Organizers input raw ideas; AI automatically optimizes for SEO and compliance. |
-| **Discovery** | Attendees find events based on their **AI-Generated Interest Mosaics**, not just keywords. |
-| **Monetization** | Instant, secure checkout via **Stripe** with automated organizer split-payments. |
-| **Networking** | **Shadow Bonding Agents** match attendees with similar profiles in the Chat communities. |
-| **Analytics** | Deep-dive insights into demand, sentiment, and attendee engagement. |
+| Layer | Tech |
+|---|---|
+| Frontend | Next.js 16 (App Router), TypeScript, Tailwind v4, Zustand |
+| Backend | Python 3.10+, FastAPI microservices |
+| Database | SQLite (dev) / PostgreSQL (prod via Supabase) |
+| Auth | JWT (HS256) |
+| Payments | Stripe |
+| External data | Ticketmaster Discovery API v2 |
+| AI | Gemini + CrewAI agents |
 
 ---
 
-## ⚙️ 3. Technical System Architecture
-*Microservices | Event-Sourcing | Agentic AI*
+## Quick start
 
-### 🛠️ The Tech Stack
-- **Frontend**: Flutter Web (Indigo/Rose Aesthetics, High-Performance Dart).
-- **Backend API**: 10+ Python Microservices (FastAPI).
-- **Communication**: Kafka (Asynchronous events) + Redis (Real-time caching).
-- **Database Layer**: PostgreSQL (Production) / SQLite (Local Shadow Mode).
-- **AI Brain**: Gemini 1.5 Pro + CrewAI (Agentic Framework).
+**Requirements:** Python 3.10+, Node.js 20+, pnpm
+
+```powershell
+# 1. Backend (first time)
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python backend\scripts\install_all.py
+
+# 2. Start backend (Windows)
+start.bat
+# OR cross-platform:
+python backend\scripts\shadow_runner.py
+
+# 3. Seed database (first time)
+python backend\scripts\seed_events.py
+
+# 4. Frontend
+cd frontend_react
+pnpm install
+pnpm --filter @newfind/web dev:webpack
+# → http://localhost:3000
+```
+
+Create `frontend_react/apps/web/.env.local`:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+---
+
+## Services
+
+| Service | Port | Purpose |
+|---|---|---|
+| API Gateway | 8000 | Unified entry point, request proxy |
+| Auth | 8001 | JWT registration, login |
+| User | 8002 | Profiles, wishlist |
+| Event | 8003 | Event CRUD, search, Ticketmaster ingest |
+| Ticketing | 8004 | Ticket reservation, QR codes |
+| Payment | 8005 | Stripe payment intents |
+| Notification | 8006 | Email/push (mocked in dev) |
+| Chat | 8007 | WebSocket rooms |
+| Recommendation | 8008 | Ticketmaster ingestion, AI generation |
+| Review | 8009 | Star ratings |
+| Agents | 8010 | CrewAI autonomous agents |
+| Community | 8011 | Groups, membership, linked events |
+
+> Community (8011) must start before User (8002). `start.bat` and `shadow_runner.py` handle this automatically.
 
 ---
 
-## 🚀 4. Getting Started (Shadow Mode)
-We've built a custom **One-Click Bootstrap** to bypass Docker/Kafka requirements for immediate testing:
+## Documentation
 
-> **Requirements:** Python 3.11+ (tested on 3.13 64-bit), Flutter SDK installed.
-> **Python version note:** Originally developed on Python 3.11/3.12. Dependency versions have been updated to support Python 3.13. Do NOT use 32-bit Python.
-> **Windows Note:** Run this once to allow activation scripts:
-> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
-
-1.  **Create & activate a virtual environment** (once only):
-    ```powershell
-    py -m venv .venv
-    .venv\Scripts\Activate.ps1
-    ```
-
-2.  **Install dependencies** (once only, with venv active):
-    ```powershell
-    py backend/scripts/install_all.py
-    ```
-
-3.  **Launch Backend** — Terminal 1 (activate venv first):
-    ```powershell
-    .venv\Scripts\Activate.ps1
-    py backend/scripts/shadow_runner.py
-    ```
-
-4.  **Launch Frontend** — Terminal 2:
-    ```powershell
-    cd frontend
-    flutter run -d chrome
-    ```
+- **[DOCUMENTATION.md](DOCUMENTATION.md)** — full end-to-end reference (architecture, APIs, deployment, Ticketmaster sync)
+- **[CLAUDE.md](CLAUDE.md)** — handover guide for Claude AI sessions
 
 ---
-### *A Biswa-MetaInsights Enterprise*
+
+*A MetaInsights product.*

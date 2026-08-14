@@ -1,5 +1,21 @@
 'use client'
 
+// ⚠️⚠️ PARKED 2026-08-14 (MVP) — DO NOT DELETE THIS FILE OR ANY EXPORT IN IT. ⚠️⚠️
+//
+// Communities were cut from the MVP and deferred to Phase 2. This file is the
+// one piece of the feature whose live importers were BOTH commented out
+// (app/page.tsx and app/explore/page.tsx), so tooling will report `CommunityCarousel`
+// and `CommunityCardItem` as unreferenced. They are parked, not dead.
+//
+// The only live import left is `CommunityItem` (a type) in lib/card-adapters.ts,
+// so an "unused export" sweep would happily gut everything else here while the
+// file still appears to be in use. Don't let it.
+//
+// Every other community file is safe by construction — app/community/[slug]/*
+// still imports them and still type-checks; only their ROUTE is redirected.
+//
+// Restore checklist: TODO.md §12. Full state: STATUS.md, top section.
+
 import { useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'

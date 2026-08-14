@@ -108,9 +108,19 @@ function DashboardContent() {
 
 // ── Wishlist tab ──────────────────────────────────────────────────────────────
 
-function WishlistTab({ items }: { items: WishlistItem[] }) {
+function WishlistTab({ items: allItems }: { items: WishlistItem[] }) {
   const router = useRouter();
   const removeItem = useWishlistStore((s) => s.removeItem);
+
+  // PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2. A wishlist
+  // saved before the cut can still hold `kind: "community"` entries in
+  // localStorage, and those would render a "View Community" card. They stay in
+  // the store (nothing is destroyed, so Phase 2 gets them back) but are filtered
+  // out of the view. The filter is applied HERE, above the empty-state check, so
+  // a wishlist of nothing but communities shows "Your wishlist is empty" rather
+  // than a blank panel.
+  // PHASE 2 RESTORE: drop this line and rename the prop back to `items`.
+  const items = allItems.filter((i) => i.kind === "event");
 
   if (items.length === 0) {
     return (

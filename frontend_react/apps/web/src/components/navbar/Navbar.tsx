@@ -379,13 +379,19 @@ export function Navbar() {
     { emoji: "📅", label: "My Events",      onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard" : "/auth"); } },
   ];
 
+  /* PARKED 2026-08-14 (MVP) — the Communities dropdown's items. Communities are
+     deferred to Phase 2 and must not appear anywhere users can see them.
+
   const groupsItems: NavItem[] = [
     { emoji: "🔍", label: "Explore Communities", onTap: () => { closeAll(); router.push("/explore?view=communities"); } },
     { emoji: "➕", label: "Create Community",    onTap: () => { closeAll(); router.push(isAuthenticated ? "/community/create" : "/auth"); } },
     { emoji: "👥", label: "My Community",        onTap: () => { closeAll(); router.push(isAuthenticated ? "/community/create" : "/auth"); } },
   ];
 
-  const searchPlaceholder = "Find events/communities";
+  */
+
+  // PARKED 2026-08-14 (MVP) — was "Find events/communities".
+  const searchPlaceholder = "Find events";
 
   return (
     <>
@@ -409,13 +415,22 @@ export function Navbar() {
 
             {/* ── Search bar ──
                 The desktop cluster switches on at lg (1024px), but at its xl
-                width the whole row measures ~1135px — so between 1024 and 1280
+                width the whole row measured ~1135px — so between 1024 and 1280
                 every page carried a horizontal scrollbar. The search box is the
                 only elastic element in the row, so it takes the difference and
-                grows back to its full width at xl. */}
+                grows back to its full width at xl.
+
+                Narrowed 280→250 / 440→410 on 2026-08-14 (Gautham's call). Both
+                values sit BELOW the pair that fixed the scrollbar bug, so the fit
+                is safe by construction at each breakpoint and no re-measure was
+                needed — and the two-step is kept precisely because it is what
+                holds the 1024px fit.
+                ⚠️ Still the row's only elastic element: WIDENING either number, or
+                adding another desktop nav item, means re-measuring at exactly
+                1024px. Narrowing never can. */}
             <div onMouseEnter={closeAll} className="shrink-0">
               <div
-                className="flex items-center w-[280px] xl:w-[440px] h-10 rounded-lg px-3 gap-2"
+                className="flex items-center w-[250px] xl:w-[410px] h-10 rounded-lg px-3 gap-2"
                 style={{ backgroundColor: LINEN, border: `1.5px solid ${GREEN}` }}
                 onMouseEnter={() => setSearchActive(true)}
                 onMouseLeave={() => setSearchActive(false)}
@@ -455,6 +470,11 @@ export function Navbar() {
               onOpen={() => setActiveMenu("events")}
               onClose={closeAll}
             />
+            {/* PARKED 2026-08-14 (MVP) — the Communities dropdown, together with
+                the w-2 spacer that separated it from Events. Removing it only
+                takes width out of the desktop row, so the 1024px fit that the
+                search box absorbs is unaffected (see the file's header gotcha).
+
             <div className="w-2" />
             <NavDropdown
               label="Communities"
@@ -463,6 +483,8 @@ export function Navbar() {
               onOpen={() => setActiveMenu("groups")}
               onClose={closeAll}
             />
+
+            */}
             <div className="w-2" />
             <HelpButton onMouseEnter={closeAll} />
 
@@ -563,8 +585,12 @@ export function Navbar() {
             {/* Events */}
             <MobileNavSection title="Events" items={eventsItems} onNavigate={() => setMobileOpen(false)} />
 
-            {/* Communities */}
+            {/* PARKED 2026-08-14 (MVP) — the mobile Communities section, twin of
+                the desktop dropdown above.
+
             <MobileNavSection title="Communities" items={groupsItems} onNavigate={() => setMobileOpen(false)} />
+
+            */}
 
             <div className="h-px" style={{ backgroundColor: BORDER }} />
 

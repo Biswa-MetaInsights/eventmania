@@ -5,26 +5,33 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { communitySource, eventsSource } from "@/lib/data-source";
 import { Navbar } from "@/components/navbar/Navbar";
-import { EventCardItem } from "@/components/EventsCarousel";
 import { CategoryBadge, EventBadges } from "@/components/EventBadges";
 import { EventBackButton, EventShareButton, EventWishlistButton } from "@/components/EventActions";
-import { toCarouselEvent, toCommunityItem } from "@/lib/card-adapters";
+import { CommunityEventsRail } from "@/components/CommunityEventsRail";
+import { CommunityJoinCard } from "@/components/CommunityJoinCard";
+import { CommunityReviews } from "@/components/CommunityReviews";
+import { DetailStickyBar } from "@/components/DetailCard";
+import { SimilarCommunities } from "@/components/SimilarCommunities";
+import { toCommunityItem } from "@/lib/card-adapters";
+import { splitCommunityEvents } from "@/lib/community-events";
 import { communityImageUrl } from "@/lib/event-media";
 import { heroTitleSize } from "@/lib/hero-title";
 import { GUTTERS } from "@/lib/layout";
+import { formatPrice } from "@/lib/currency";
 import { BRAND } from "@/lib/theme";
 
 const GREEN = BRAND.green;
 const BG = BRAND.bg;
-const SURFACE = BRAND.surface;
 const TEXT = BRAND.text;
-const BORDER = BRAND.border;
 const HINT = BRAND.hint;
 
 // Same scrim as the /event/[id] hero — keep the two in step.
 const HERO_SCRIM =
   "linear-gradient(to top, rgba(8,17,15,0.94) 0%, rgba(8,17,15,0.75) 32%, rgba(8,17,15,0.42) 62%, rgba(8,17,15,0.22) 100%)";
 
+// PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2. This page is
+// left completely intact; the redirect that hides it lives one level up in
+// layout.tsx, which runs first on the server so this never renders.
 export default function CommunityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const router = useRouter();
@@ -42,8 +49,6 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ slug
         .then((r) => r.data),
     enabled: !!communityRes?.id,
   });
-
-  const isLoading = communityLoading || eventsLoading;
 
   if (communityLoading) {
     return (
@@ -80,8 +85,21 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ slug
   // is byte-identical to one saved from a community card.
   const card = toCommunityItem(community);
 
+  // Split ONCE here rather than in each child: the rail needs both lists, the
+  // reviews block needs the past ones, and the sidebar card needs the next one.
+  const { upcoming, previous } = splitCommunityEvents(events);
+  const eventCount = events?.length ?? 0;
+
+  const price = Number(community.price);
+  const isFree = !Number.isFinite(price) || price === 0;
+
+  // ⚠️ Joining does nothing yet — there is no membership table, no join endpoint
+  // and no notification hook. Gautham asked for the button now and the flow
+  // later; the spec lives in TODO.md under "Join a community".
+  function handleJoin() {}
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: BG }}>
+    <div className="min-h-screen text-left" style={{ backgroundColor: BG }}>
       <Navbar />
 
       {/* ── Hero: full-bleed photo + title overlay ──
@@ -120,84 +138,80 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ slug
         </div>
       </section>
 
-      {/* ── About ──
-          Same container as /event/[id]'s body (px-12 inside a 1400 cap), so
-          "About this community" starts on the same line as "About this event"
-          rather than 124px further in — max-w-6xl used to break that. */}
-      {(community.description || community.website) && (
-        <div className={`pt-10 ${GUTTERS}`} style={{ maxWidth: 1400, margin: "0 auto" }}>
-          <h2 className="text-[22px] font-bold" style={{ color: TEXT }}>About this community</h2>
-          {community.description && (
-            <p className="text-[18px] leading-relaxed mt-4" style={{ color: HINT }}>
-              {community.description}
-            </p>
-          )}
-          {community.website && (
-            <a
-              href={community.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 mt-4 text-[16px] font-semibold"
-              style={{ color: GREEN }}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-              </svg>
-              {community.website.replace(/^https?:\/\//, "")}
-            </a>
-          )}
-        </div>
-      )}
-
-      {/* Events section */}
+      {/* ── Main content ──
+          Same container as /event/[id]'s body (GUTTERS inside a 1400 cap), so
+          "About this community" starts on the same line as "About this event". */}
       <div className={`py-10 ${GUTTERS}`} style={{ maxWidth: 1400, margin: "0 auto" }}>
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="text-[22px] font-bold" style={{ color: TEXT }}>Events</h2>
-            <p className="text-sm mt-0.5" style={{ color: HINT }}>
-              {isLoading ? "Loading…" : `${events?.length ?? 0} event${events?.length !== 1 ? "s" : ""} from this community`}
+
+        {/* Two columns on lg+, stacked below it. The 2.4fr ratio and the order
+            swap are the event page's — stacked, the join card comes FIRST so the
+            next event date and the CTA are visible without scrolling past the
+            description. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[2.4fr_1fr] gap-10 lg:gap-16 items-start">
+
+          {/* ── Left column ── */}
+          <div className="order-2 lg:order-1" style={{ textAlign: "left" }}>
+            <h2 className="text-[22px] font-bold mb-4" style={{ color: TEXT }}>
+              About this community
+            </h2>
+            <p className="text-[18px] leading-relaxed" style={{ color: HINT }}>
+              {community.description ?? "No description provided."}
             </p>
+            {community.website && (
+              <a
+                href={community.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-4 text-[16px] font-semibold"
+                style={{ color: GREEN }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                </svg>
+                {community.website.replace(/^https?:\/\//, "")}
+              </a>
+            )}
+
+            <div className="my-12 h-px" style={{ backgroundColor: BRAND.border }} />
+
+            {/* Reviews. A community has none of its own, so these are aggregated
+                from its past events — see CommunityReviews. */}
+            <CommunityReviews pastEvents={previous} />
           </div>
-          <button
-            onClick={() => router.push(`/explore?community_id=${community.id}`)}
-            className="flex items-center gap-1 text-sm font-semibold"
-            style={{ color: GREEN }}
-          >
-            View all
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
-          </button>
+
+          {/* ── Right sidebar: join card ── */}
+          <div className="order-1 lg:order-2">
+            <CommunityJoinCard
+              community={community}
+              nextEvent={upcoming[0]}
+              eventCount={eventCount}
+              onJoin={handleJoin}
+            />
+          </div>
         </div>
 
-        {eventsLoading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
-              style={{ borderColor: `${GREEN} transparent transparent transparent` }} />
-          </div>
-        ) : !events || events.length === 0 ? (
-          <div className="flex flex-col items-center py-16 gap-3 rounded-2xl"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${BORDER}` }}>
-            <svg className="w-9 h-9" style={{ color: HINT }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-            </svg>
-            <p className="text-[18px] font-semibold" style={{ color: HINT }}>No events yet</p>
-            <p className="text-[16px]" style={{ color: HINT }}>
-              The organiser hasn&apos;t linked any events to this community yet.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {events.map((event) => (
-              <EventCardItem
-                key={event.id}
-                event={toCarouselEvent(event)}
-                onBookNow={(id) => router.push(`/event/${id}`)}
-              />
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* ── Rails ──
+          Both are deliberately OUTSIDE the maxWidth:1400 column above: they are
+          full-bleed, carrying the home page's gutters, so their cards render at
+          exactly the home grid's size and a full row of four fits without
+          scrolling. Each carries its own top divider and renders NOTHING when it
+          has nothing to show, so an empty rail leaves no orphaned rule behind.
+          See components/Rail.tsx for the measurements. */}
+      <CommunityEventsRail upcoming={upcoming} previous={previous} isLoading={eventsLoading} />
+      <SimilarCommunities community={community} />
+
+      {/* ── Sticky join bar ── */}
+      <DetailStickyBar
+        caption="Membership"
+        amount={isFree ? "Free" : formatPrice(price)}
+        cta="Join this community"
+        onClick={handleJoin}
+        gutters={GUTTERS}
+      />
+
+      <div className="h-24" />
     </div>
   );
 }

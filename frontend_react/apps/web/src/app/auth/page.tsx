@@ -95,9 +95,13 @@ export default function AuthPage() {
             {isLogin ? "Welcome Back" : "Create Account"}
           </h2>
           <p className="text-[var(--brand-hint)] mb-10">
+            {/* PARKED 2026-08-14 (MVP) — the sign-up line read "Join the EventMind
+                community to start your journey." One edit drops both the word
+                community (deferred to Phase 2) and the retired internal brand
+                name. */}
             {isLogin
               ? "Sign in to access your dashboard and event tickets."
-              : "Join the EventMind community to start your journey."}
+              : "Sign in to start joining events."}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">

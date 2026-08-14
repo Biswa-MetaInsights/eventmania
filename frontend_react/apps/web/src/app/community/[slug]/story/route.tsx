@@ -28,7 +28,19 @@ function memberLabel(count: number): string {
   return `${n} members`;
 }
 
+// ⚠️ PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2.
+//
+// A route handler is its own route entry: the parent app/community/layout.tsx
+// redirect never wraps it, so without this guard /community/<slug>/story would
+// still serve a 1080×1920 PNG with "JOIN THE COMMUNITY" across it. The guard is
+// an early 404; everything below it is intact and still type-checked.
+//
+// PHASE 2 RESTORE: set PARKED to false, or delete it and the `if` below.
+const PARKED: boolean = true;
+
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  if (PARKED) return new Response(null, { status: 404 }); // see PARKED note above
+
   const { slug } = await params;
   const community = await getCommunityForShare(slug);
 

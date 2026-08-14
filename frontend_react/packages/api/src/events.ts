@@ -61,6 +61,9 @@ export const eventsApi = {
 
   get: (id: string) => apiClient.get<Event>(`/event/${id}`),
 
+  /** Total published events. A bare number — never fetch the catalogue to count it. */
+  count: () => apiClient.get<{ count: number }>("/event/count"),
+
   create: (data: EventCreateData) => apiClient.post<Event>("/event/", data),
 
   chat: (eventId: string, data: ChatRequest) =>

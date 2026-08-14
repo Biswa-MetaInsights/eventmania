@@ -9,7 +9,8 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Discover",
     links: [
       { label: "Explore Events", href: "/explore?view=events" },
-      { label: "Communities", href: "/explore?view=communities" },
+      // PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2.
+      // { label: "Communities", href: "/explore?view=communities" },
     ],
   },
   {
@@ -49,7 +50,8 @@ export function Footer() {
           <div className="max-w-sm">
             <BrandLogo markSize={55} gap={16} style={{ color: LINEN }} />
             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "rgba(242,239,234,0.75)" }}>
-              AI-powered event discovery — find events, communities, and experiences near you.
+              {/* PARKED 2026-08-14 (MVP) — was "…find events, communities, and experiences near you." */}
+              AI-powered event discovery — find events and experiences near you.
             </p>
           </div>
 

@@ -6,9 +6,20 @@ import { ImageResponse } from "next/og";
 import { getCommunityForShare } from "@/lib/community-server";
 import { communityImageUrl, locationLabel } from "@/lib/event-media";
 
+// ⚠️ PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2.
+//
+// A metadata route is its own route entry: the parent app/community/layout.tsx
+// redirect never wraps it, so without this guard /community/<slug>/opengraph-image
+// would still serve a PNG reading "Find your community on NewFind". The guard is
+// an early 404; everything below it is intact and still type-checked.
+//
+// PHASE 2 RESTORE: set PARKED to false (or delete it and its `if` below), and
+// put `alt` back to "Community on NewFind".
+const PARKED: boolean = true;
+
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Community on NewFind";
+export const alt = "NewFind";
 
 // Brand palette (fixed light values — the unfurl is a standalone graphic).
 const GREEN = "#184E4A";
@@ -28,6 +39,8 @@ function memberLabel(count: number): string {
 }
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  if (PARKED) return new Response(null, { status: 404 }); // see PARKED note at top
+
   const { slug } = await params;
   const community = await getCommunityForShare(slug);
 

@@ -20,10 +20,17 @@ const appFont = Roboto({
   variable: "--font-app",
 });
 
+// PARKED 2026-08-14 (MVP) — the title/description pair below (and its two twins
+// in openGraph and twitter) read "NewFind — Discover Events & Communities" /
+// "…discover events, communities, and experiences near you." Communities are
+// deferred to Phase 2 and the word must not reach a browser tab, a link unfurl
+// or the PWA install prompt — keep this in step with public/manifest.webmanifest.
+// The replacement title is Gautham's wording, not a placeholder: online/offline
+// is the FORMAT axis, which is what the MVP is actually about.
 export const metadata: Metadata = {
-  title: "NewFind — Discover Events & Communities",
+  title: "NewFind: find new online and offline events",
   description:
-    "AI-powered platform to discover events, communities, and experiences near you.",
+    "AI-powered platform to discover events and experiences near you.",
   applicationName: "NewFind",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -35,9 +42,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/brand/apple-touch-icon-180.png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "NewFind — Discover Events & Communities",
+    title: "NewFind: find new online and offline events",
     description:
-      "AI-powered platform to discover events, communities, and experiences near you.",
+      "AI-powered platform to discover events and experiences near you.",
     siteName: "NewFind",
     type: "website",
     images: [
@@ -51,9 +58,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NewFind — Discover Events & Communities",
+    title: "NewFind: find new online and offline events",
     description:
-      "AI-powered platform to discover events, communities, and experiences near you.",
+      "AI-powered platform to discover events and experiences near you.",
     images: ["/brand/newfind-og-1200x630.png"],
   },
 };

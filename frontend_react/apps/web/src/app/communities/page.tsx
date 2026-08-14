@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 
-// Communities browsing now lives on the unified Explore page. Keep this route as a
-// permanent redirect so old links / bookmarks still land in the right place.
+// PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2 and must not be
+// visible to users anywhere. This route used to send browsers to the Explore
+// page's communities view; that view no longer exists, so it lands on home.
+//
+// PHASE 2 RESTORE: change the target back to "/explore?view=communities".
 export default function CommunitiesPage() {
-  redirect("/explore?view=communities");
+  redirect("/");
 }

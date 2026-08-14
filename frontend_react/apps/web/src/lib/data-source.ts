@@ -83,6 +83,10 @@ export const eventsSource = {
     isDummyMode
       ? ok((allEvents().find((e) => String(e.id) === String(id)) ?? null) as Event)
       : eventsApi.get(id),
+  // Dummy mode counts the fixtures, so the hero's "About N options" line is
+  // honest in both modes rather than reporting a backend number no one is serving.
+  count: () =>
+    isDummyMode ? ok({ count: allEvents().length }) : eventsApi.count(),
 };
 
 export const communitiesSource = {

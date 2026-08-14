@@ -20,6 +20,7 @@
 //  Glyphs come from EventIcons.tsx; never draw one inline here.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { ReactNode } from 'react'
 import {
   BanIcon,
   BriefcaseIcon,
@@ -264,16 +265,61 @@ function categoryLabel(category: string): string {
     .join(' ')
 }
 
-/** The category chip. */
-export function CategoryBadge({ category, className = '' }: { category: string; className?: string }) {
+/**
+ * The category chip.
+ *
+ * `size` — **'sm' (default) is the chip everywhere it sits among other tags**:
+ * the card overlays, the /event/[id] and /community/[slug] heroes. **'lg' is the
+ * same chip scaled up for `CategoryGrid`'s tiles**, where it is not one chip
+ * among several but the tile's entire label, so it carries title-size type.
+ * A size is a PROP, not a fork — do not hand-roll a second category chip.
+ *
+ * ⚠️ The sizing classes deliberately do NOT come from `TAG`: that constant bakes
+ * in `gap-1.5` + `leading-5`, and appending a conflicting utility does not
+ * reliably win in Tailwind v4 (the generated stylesheet's order decides, not the
+ * order of the class string). So the chrome is built from `TAG_SHAPE` and each
+ * size supplies its own gap/leading — no utility is ever declared twice.
+ */
+export function CategoryBadge({
+  category,
+  className = '',
+  size = 'sm',
+  trailing,
+}: {
+  category: string
+  className?: string
+  size?: 'sm' | 'lg'
+  /** Rendered inside the chip, after the label, on the same gap as the glyph.
+   *  `CategoryGrid` puts its "explore" arrow here so the arrow reads as part of
+   *  the category rather than as a separate control. Keep it DECORATIVE — this
+   *  chip is not interactive, and on a tile it sits inside a link. */
+  trailing?: ReactNode
+}) {
   const { accent, icon: Icon } = categoryStyle(category)
+  const large = size === 'lg'
+  // ⚠️ The 'lg' size is held to a measurement, not chosen by eye. A
+  // `CategoryGrid` tile is 321px at the narrowest 4-across column, leaving a
+  // 285px row; with the explore arrow now INSIDE the chip, the longest name —
+  // "Health & Wellness" — comes to 266px and clears by 19px. Every other
+  // category has 58px+ of slack. (It was briefly 18px, when the arrow was a
+  // separate 44px button sharing the row: that left only 229px, and 20px
+  // clipped by 5px. Clubbing the arrow into the chip bought the size back.)
+  // **Re-measure from Roboto Bold's advance widths before enlarging this.**
+  const sizing = large
+    ? 'gap-2 px-4 py-2.5 text-[20px] leading-6'
+    : 'gap-1.5 px-3.5 py-1.5 text-[15px] leading-5'
+
   return (
     <span
-      className={`${TAG} px-3.5 py-1.5 text-[15px] tracking-[0.02em] ${className}`}
+      className={`${TAG_SHAPE} font-bold ${sizing} tracking-[0.02em] ${className}`}
       style={{ backgroundColor: CHIP_FILL, color: accent }}
     >
-      <Icon color={accent} className={GLYPH} />
-      {categoryLabel(category)}
+      <Icon color={accent} className={large ? 'w-6 h-6 shrink-0' : GLYPH} />
+      {/* Only 'lg' wraps its label: it is the one size that can be width-capped
+          by its container, so it ellipsises rather than pushing out of the tile.
+          'sm' is left byte-identical to what every existing surface renders. */}
+      {large ? <span className="min-w-0 truncate">{categoryLabel(category)}</span> : categoryLabel(category)}
+      {trailing}
     </span>
   )
 }

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { eventsApi, organizerApi, communityApi } from "@eventmind/api";
+// PARKED 2026-08-14 (MVP) — `communityApi` dropped from this import.
+import { eventsApi, organizerApi } from "@eventmind/api";
 import { useAuthStore, CITIES } from "@eventmind/store";
 import type { City } from "@eventmind/store";
-import type { Community, CurrencyCode } from "@eventmind/types";
+// PARKED 2026-08-14 (MVP) — `Community` dropped from this import.
+import type { CurrencyCode } from "@eventmind/types";
 import { CURRENCIES, DEFAULT_CURRENCY } from "@eventmind/types";
 import { Navbar } from "@/components/navbar/Navbar";
 import { currencySymbol } from "@/lib/currency";
@@ -68,9 +70,16 @@ export default function CreateEventPage() {
   const [price, setPrice] = useState("0");
   const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
 
+  /* PARKED 2026-08-14 (MVP) — the whole "add this event to my community" feature.
+     Communities are deferred to Phase 2. These five pieces are interdependent —
+     the state, the lookup, the payload field and the form section — so they park
+     as one set; leaving any one live breaks the others.
+
   // Community
   const [community, setCommunity] = useState<Community | null>(null);
   const [communityId, setCommunityId] = useState<string>("");
+
+  */
 
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,10 +97,16 @@ export default function CreateEventPage() {
     organizerApi.get(userId)
       .then(() => {
         setVerificationChecked(true);
+        /* PARKED 2026-08-14 (MVP) — the organiser's community lookup. See the
+           parked state block above. setVerificationChecked stays: it gates the
+           whole form, not just this section.
+
         // Check if organizer already has a community
         communityApi.getByOrganizer(userId)
           .then((r) => setCommunity(r.data))
-          .catch(() => {/* no community yet */});
+          .catch(() => {});
+
+        */
       })
       .catch(() => router.replace("/organizer/onboarding"));
   }, [isAuthenticated, router, tokens]);
@@ -153,7 +168,8 @@ export default function CreateEventPage() {
         tags: parsedTags,
         language,
         event_website: eventWebsite.trim() || undefined,
-        community_id: communityId || undefined,
+        // PARKED 2026-08-14 (MVP) — community_id: communityId || undefined,
+        // The field stays nullable on the event model, so omitting it is valid.
         start_date: new Date(startDate).toISOString(),
         end_date: new Date(endDate).toISOString(),
         capacity: parseInt(capacity) || 100,
@@ -415,7 +431,11 @@ export default function CreateEventPage() {
             </div>
           </Section>
 
-          {/* ── Community ── */}
+          {/* ── PARKED 2026-08-14 (MVP): the Community section ──
+              An opt-in "Add to {community}" toggle, shown only to organisers who
+              already had a community. Deferred to Phase 2 with the rest of the
+              feature; see the parked state block near the top of this file.
+
           {community && (
             <Section title="Community">
               <p className="text-sm" style={{ color: "var(--brand-hint)" }}>
@@ -441,6 +461,8 @@ export default function CreateEventPage() {
               </div>
             </Section>
           )}
+
+          */}
 
           {/* Error */}
           {error && (

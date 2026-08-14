@@ -3,14 +3,16 @@
 import { Suspense, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsSource, communitiesSource } from "@/lib/data-source";
+// PARKED 2026-08-14 (MVP) — `communitiesSource` dropped from this import.
+import { eventsSource } from "@/lib/data-source";
 import { useLocationStore, DEFAULT_CITY, CITIES, isOnlineCity } from "@eventmind/store";
 import type { City } from "@eventmind/store";
 import { EVENT_FORMATS, type Event, type Community } from "@eventmind/types";
 import { Navbar } from "@/components/navbar/Navbar";
 import { EventCardItem } from "@/components/EventsCarousel";
-import { CommunityCardItem } from "@/components/CommunityCarousel";
-import { toCarouselEvent, toCommunityItem } from "@/lib/card-adapters";
+// PARKED 2026-08-14 (MVP) — import { CommunityCardItem } from "@/components/CommunityCarousel";
+// PARKED 2026-08-14 (MVP) — `toCommunityItem` dropped from this import.
+import { toCarouselEvent } from "@/lib/card-adapters";
 
 const GREEN = "var(--brand-green)";
 
@@ -96,16 +98,35 @@ function matchingPreset(from: string, to: string): DatePreset | null {
   })?.value ?? null;
 }
 
-// Which content to show. "both" is the default — neither toggle forces a single mode.
+// Which content to show. "both" was the default — neither toggle forced a single mode.
+//
+// ⚠️ PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2, so Explore is
+// events-only. The View machinery below is deliberately left FULLY TYPED rather
+// than deleted: every derived value downstream (showEvents, showCommunities,
+// showEventFilters, noun, countLabel, the `items` memo, the result grid's
+// ternary) reads `view` and keeps compiling untouched, so Phase 2 is a pure
+// uncomment with no type surgery. parseView is the single choke point — it now
+// ignores ?view= and always answers "events", which switches everything else off
+// on its own.
 type View = "events" | "communities" | "both";
+
+/* PARKED 2026-08-14 (MVP) — the segmented view switch's options.
+
 const VIEW_SEGMENTS: { value: View; label: string }[] = [
   { value: "events", label: "View Events" },
   { value: "communities", label: "View Communities" },
   { value: "both", label: "View Both" },
 ];
 
+*/
+
 function parseView(raw: string | null): View {
-  return raw === "events" || raw === "communities" ? raw : "both";
+  // PHASE 2 RESTORE: delete the `void` line and the `return "events"`, then
+  // uncomment the original below. The signature is kept intact so the call site
+  // needs no change either way; `void` just marks the arg as deliberately unused.
+  void raw;
+  return "events";
+  // return raw === "events" || raw === "communities" ? raw : "both";
 }
 
 type Sort = "relevance" | "date" | "name" | "price" | "popularity";
@@ -197,7 +218,10 @@ function ExploreContent() {
   const selectedCity = hasHydrated ? _selectedCity : DEFAULT_CITY;
 
   // View + filter state — initialise from URL so links are shareable
-  const [view, setView] = useState<View>(parseView(searchParams.get("view")));
+  // PARKED 2026-08-14 (MVP) — was `const [view, setView] = …`. With the view
+  // switch parked nothing sets it, so the setter is dropped (same pattern as the
+  // pinned `mode` in HeroCarousel.tsx). PHASE 2 RESTORE: put `setView` back.
+  const [view] = useState<View>(parseView(searchParams.get("view")));
   const [sort, setSort] = useState<Sort>(parseSort(searchParams.get("sort")));
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState(searchParams.get("category") ?? "All");
@@ -220,7 +244,8 @@ function ExploreContent() {
 
   const online = isOnlineCity(city);
   const showEvents = view !== "communities";
-  const showCommunities = view !== "events";
+  // PARKED 2026-08-14 (MVP) — its only reader was the community query's `enabled`.
+  // const showCommunities = view !== "events";
 
   // Keep the URL in sync so the page is shareable / bookmarkable.
   const updateUrl = useCallback(
@@ -236,10 +261,15 @@ function ExploreContent() {
     [router, searchParams]
   );
 
+  /* PARKED 2026-08-14 (MVP) — the view switch's handler.
+
   function selectView(next: View) {
     setView(next);
     updateUrl({ view: next === "both" ? null : next });
   }
+
+  */
+
   function selectSort(next: Sort) {
     setSort(next);
     updateUrl({ sort: next === "relevance" ? null : next });
@@ -274,6 +304,10 @@ function ExploreContent() {
     };
   }, [online, q, category, eventType, city, freeOnly, dateFrom, dateTo, radius]);
 
+  /* PARKED 2026-08-14 (MVP) — community query params. Communities have no format
+     filter, so "online" is expressed as a category here (the documented exception
+     to the online-is-a-format rule — see CLAUDE.md).
+
   const buildCommunityParams = useCallback(() => {
     if (online) return { q: q || undefined, category: "online" };
     return {
@@ -283,17 +317,24 @@ function ExploreContent() {
     };
   }, [online, q, category, city]);
 
+  */
+
   const { data: events, isLoading: eventsLoading } = useQuery({
     queryKey: ["explore-events", online, q, category, eventType, city.name, freeOnly, dateFrom, dateTo, radius],
     queryFn: () => eventsSource.search(buildEventParams()).then((r) => r.data),
     enabled: showEvents,
   });
 
+  /* PARKED 2026-08-14 (MVP) — the community fetch. Not merely hidden at the
+     render site: no request is made at all.
+
   const { data: communities, isLoading: communitiesLoading } = useQuery({
     queryKey: ["explore-communities", online, q, category, city.name],
     queryFn: () => communitiesSource.search(buildCommunityParams()).then((r) => r.data),
     enabled: showCommunities,
   });
+
+  */
 
   // Build the (sorted) unified list. In "both" view events + communities are mixed
   // into a single bunch — no separate sections.
@@ -308,7 +349,13 @@ function ExploreContent() {
       ? (events ?? []).filter((ev) => itemSellingFast({ kind: "event", id: String(ev.id), ev }))
       : (events ?? []);
     const eventItems: Item[] = sourceEvents.map((ev) => ({ kind: "event", id: String(ev.id), ev }));
-    const communityItems: Item[] = (communities ?? []).map((co) => ({ kind: "community", id: String(co.id), co }));
+    // PARKED 2026-08-14 (MVP) — no community is ever constructed, so the "both"
+    // and "communities" branches below resolve to an empty list. The Item union
+    // keeps its community arm on purpose: that is what lets the accessors, the
+    // sorts and the grid ternary stay untouched.
+    // PHASE 2 RESTORE: uncomment the original line below.
+    const communityItems: Item[] = [];
+    // const communityItems: Item[] = (communities ?? []).map((co) => ({ kind: "community", id: String(co.id), co }));
 
     // soldOutLast wraps EVERY branch — it outranks the chosen sort, so a sold-out
     // event stays at the bottom even under "Date: soonest".
@@ -317,10 +364,11 @@ function ExploreContent() {
     // both
     if (sort === "relevance") return soldOutLast(interleave(eventItems, communityItems));
     return soldOutLast(sortItems([...eventItems, ...communityItems], sort));
-  }, [events, communities, view, sort, sellingFast]);
+    // PARKED 2026-08-14 (MVP) — `communities` dropped from the dep list.
+  }, [events, view, sort, sellingFast]);
 
-  const isLoading =
-    (showEvents && eventsLoading) || (showCommunities && communitiesLoading);
+  // PARKED 2026-08-14 (MVP) — was `(showEvents && eventsLoading) || (showCommunities && communitiesLoading)`.
+  const isLoading = showEvents && eventsLoading;
 
   // Format/date/price filters only constrain events, so hide them in communities-only view.
   const showEventFilters = view !== "communities";
@@ -401,7 +449,8 @@ function ExploreContent() {
             Explore
           </h1>
           <p className="text-[18px]" style={{ color: "var(--brand-hint)" }}>
-            Discover events and communities near you or across the world
+            {/* PARKED 2026-08-14 (MVP) — was "Discover events and communities near you or across the world" */}
+            Discover events near you or across the world
           </p>
         </div>
 
@@ -416,7 +465,8 @@ function ExploreContent() {
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search events or communities…"
+              // PARKED 2026-08-14 (MVP) — was "Search events or communities…"
+              placeholder="Search events…"
               className="w-full pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
               style={{
                 border: "2px solid var(--brand-control-border)",
@@ -458,13 +508,20 @@ function ExploreContent() {
 
         </div>
 
-        {/* View switch + contextual Create button. The switch sits just below search. */}
-        <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
-          {/* Track radius = item radius + the track's own p-1, so the two curves
-              nest instead of fighting: rounded-2xl (16) = rounded-xl (12) + 4.
-              Below sm the track goes full-width and its three items split it
-              evenly (min-w-0 so "View Communities" wraps rather than forcing the
-              track wider than the phone). */}
+        {/* Create button. It used to share this row with the Events/Communities/Both
+            view switch, and was contextual on it — now Explore is events-only, so
+            the button is unconditional and sits alone, right-aligned. */}
+        <div className="mt-4 flex items-center justify-end gap-3 flex-wrap">
+          {/* PARKED 2026-08-14 (MVP) — the segmented view switch (View Events /
+              View Communities / View Both) and the Create Community button.
+              Communities are deferred to Phase 2; a one-option switch reads as
+              broken, so the whole track goes rather than losing a segment.
+
+              To restore: uncomment both blocks below, restore `justify-end` above
+              to `justify-between`, put the `view === "events" &&` guard back on
+              Create Event, and un-park VIEW_SEGMENTS, selectView, setView and
+              parseView further up.
+
           <div className="flex w-full sm:w-auto sm:inline-flex rounded-2xl p-1 gap-1" style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-surface)" }}>
             {VIEW_SEGMENTS.map((seg) => {
               const active = view === seg.value;
@@ -485,13 +542,13 @@ function ExploreContent() {
             })}
           </div>
 
-          {/* Create button — only in a single-content view (none in "View Both"). */}
-          {view === "events" && (
-            <CreateButton label="Create Event" onClick={() => router.push("/organizer/create")} />
-          )}
           {view === "communities" && (
             <CreateButton label="Create Community" onClick={() => router.push("/community/create")} />
           )}
+
+          */}
+
+          <CreateButton label="Create Event" onClick={() => router.push("/organizer/create")} />
         </div>
 
       </div>
@@ -743,10 +800,18 @@ function ExploreContent() {
                   onBookNow={(id) => router.push(`/event/${id}`)}
                 />
               ) : (
+                /* PARKED 2026-08-14 (MVP) — the community card. `items` never
+                   contains a community now (see communityItems above), so this
+                   branch is unreachable; it renders null rather than being
+                   deleted, which keeps the Item union and every accessor intact.
+
                 <CommunityCardItem
                   key={`c-${item.id}`}
                   community={toCommunityItem(item.co)}
                 />
+
+                */
+                null
               )
             )}
           </div>

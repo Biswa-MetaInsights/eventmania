@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.event import Event, EventStatus
@@ -190,6 +191,27 @@ def search_events(
     result = query.limit(limit).all()
     _cache_set(ck, result)
     return result
+
+@router.get("/count")
+def count_events(
+    status: Optional[EventStatus] = Query(EventStatus.PUBLISHED),
+    db: Session = Depends(get_db)
+):
+    """Total number of events, for the home hero's "About N options" line.
+
+    ⚠️ MUST stay declared ABOVE /{event_id}. FastAPI matches routes in definition
+    order, so below it "count" is captured as an event_id and 422s on the UUID parse.
+
+    Returns a bare count, never the rows — the caller only needs the number, and
+    the alternative (fetching every event to take .length) would ship the whole
+    catalogue to the browser.
+    """
+    # func.count(Event.id) selects ONE column. db.query(Event).count() wraps a SELECT
+    # of every mapped column in a subquery, so it breaks whenever the table is behind
+    # the model — which platform_dev.db currently is (no `source` column until
+    # migrate_add_source_columns.py is run; /events/search 500s on exactly this).
+    # Counting a single column is both cheaper and immune to that skew.
+    return {"count": db.query(func.count(Event.id)).filter(Event.status == status).scalar() or 0}
 
 @router.get("/{event_id}", response_model=EventOut)
 def get_event(event_id: UUID, db: Session = Depends(get_db)):

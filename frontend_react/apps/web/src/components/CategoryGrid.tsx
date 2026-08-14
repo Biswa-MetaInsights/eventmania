@@ -4,30 +4,100 @@
 //  "Browse by category" — the two-row rail that sits directly above the footer
 //  on home.
 //
-//  A category tile is deliberately an EVENT CARD with its content swapped out:
-//  same rounded-2xl chassis, same linen body, same borderless-at-rest →
-//  2px-green-border + 6px-lift hover, same aspect-video image, and a body row
-//  built like the event card's price + "View details" row. Its columns are sized
-//  to the home grid's cells so a tile is exactly as wide as an event card above
-//  it. If the event card's hover or radius changes, change it here too.
+//  A category tile borrows the EVENT CARD's chassis — same rounded-2xl, same
+//  borderless-at-rest → 2px-border + 6px-lift hover, same aspect-video photo —
+//  but it has NO BODY. The tile IS the photo, with the category's name riding on
+//  a scrim at its bottom edge (Gautham's call: "no white space below the
+//  photo"). The Explore button that used to sit in that body is GONE — the whole
+//  tile was already a link to the same destination, so the button was a second
+//  affordance for one action. Do not put a body or a CTA back.
+//  Its columns are still sized to the home grid's cells, so a tile is exactly as
+//  wide as an event card above it. If the event card's hover or radius changes,
+//  change it here too.
 //
-//  The tile's colour is NOT a new decision: it is the category's own accent from
-//  `categoryStyle()` in EventBadges.tsx, the exact colour its chip already uses,
-//  washed over the photo. Never hardcode a tile colour here.
+//  The tile carries NO colour at rest — the photo is unwashed, exactly as on an
+//  event card (Gautham's call; an earlier version washed the photo in the
+//  category's accent at 62% and it read as a coloured block, not a photo).
+//
+//  The label is the SHARED `CategoryBadge` at `size="lg"` — the same linen chip
+//  an event card overlays on its photo, scaled up. Because the chip brings its
+//  own linen background there is no scrim: a version that put bare text on a
+//  black gradient was built and replaced, and the photo is now wholly untouched.
+//  Glyph and label take the RAW accent, which is correct on linen — that is the
+//  surface those colours were contrast-checked against.
+//
+//  Opposite the chip sits a linen chip holding a green arrow, marking "explore
+//  this category". ⚠️ It is DECORATION — `aria-hidden`, not focusable, no
+//  handler — for the same reason the old Explore button was removed: the tile is
+//  already a link to that destination, and a nested control would be a second
+//  tab stop doing one job. Green-on-linen, never linen-on-green: a solid green
+//  square read as a dark blob over most of the category photos.
+//
+//  ⚠️ The HOVER BORDER is the one place the raw accent will not do, because it
+//  draws against the PAGE rather than against linen. It runs through
+//  `liftAccent()` in dark mode; see the note on that function.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { BRAND } from '@/lib/theme'
+import { useTheme } from '@/providers/theme-provider'
 import { GUTTERS } from '@/lib/layout'
 import { CategoryBadge, categoryStyle } from './EventBadges'
 import { EventArrowButton } from './EventActions'
 
-const GREEN = BRAND.green
-const LINEN = BRAND.surface
-const ON_GREEN = BRAND.onGreen
+const GREEN = BRAND.green // the section header's "View all" link
+const SURFACE = BRAND.surface // the tile's own background, behind the photo
 const TEXT = BRAND.text
+
+// ─── The category accent, lifted for dark ────────────────────────────────────
+//
+// The accents in `categoryStyle()` are tuned as text ON LINEN, so every one of
+// them is DARK — Business is #334155, Networking #065F46. Inside the chip that
+// is exactly right. The HOVER BORDER is the exception: it draws between the
+// photo inside it and the PAGE outside it, and in dark mode that page is
+// #0F1A18 — so a raw accent had dark on both sides and read as no border at all,
+// which is precisely the bug that was reported.
+//
+// So for dark mode each accent is lifted to a fixed lightness + a saturation
+// floor. **Only the L and S move — the HUE is untouched**, so this is still the
+// category's own colour rather than a new one, and it is derived from
+// `categoryStyle()` rather than hand-picked (never hardcode a category colour
+// here). Measured against the dark page it runs 4.0–12.6:1.
+//
+// If another dark surface ever needs this, move it next to the accents in
+// EventBadges.tsx rather than copying it here.
+const LIFT_L = 62
+const LIFT_MIN_S = 60
+
+function liftAccent(hex: string): string {
+  const n = parseInt(hex.slice(1), 16)
+  const r = ((n >> 16) & 255) / 255
+  const g = ((n >> 8) & 255) / 255
+  const b = (n & 255) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+
+  let h = 0
+  let s = 0
+  if (max !== min) {
+    const d = max - min
+    s = d / (1 - Math.abs(2 * l - 1))
+    if (max === r) h = ((g - b) / d) % 6
+    else if (max === g) h = (b - r) / d + 2
+    else h = (r - g) / d + 4
+    h = h * 60
+    if (h < 0) h += 360
+  }
+
+  // A near-grey accent has no hue worth boosting — forcing saturation onto it
+  // would invent a colour (h=0 would come out red). Leave those desaturated.
+  const pct = s * 100
+  const lifted = pct < 8 ? pct : Math.max(pct, LIFT_MIN_S)
+  return `hsl(${Math.round(h)} ${Math.round(lifted)}% ${LIFT_L}%)`
+}
 
 // The photo behind each tile. Unsplash is already whitelisted in next.config.ts;
 // every id below was opened and eyeballed before it was committed — several
@@ -76,86 +146,141 @@ const COLUMNS =
 const IMAGE_SIZES =
   '(max-width: 768px) calc(100vw - 96px), (max-width: 1024px) calc(50vw - 72px), (max-width: 1280px) calc(33vw - 60px), calc(25vw - 60px)'
 
-// The accent wash. It lightens on hover so the photo underneath reads — the
-// tile's one moving part besides the lift, and the reason the wash is an opacity
-// on a solid fill rather than baked into a gradient.
-const WASH_REST = 0.62
-const WASH_HOVER = 0.4
-
-// Where a scroll arrow sits. The offsets are GUTTERS + 8px at each step
-// (16→24, 24→32, 48→56) because an absolutely positioned child resolves against
-// its ancestor's PADDING BOX — i.e. the page edge, not the rail edge — so the
-// gutter has to be added back by hand or the button lands out in the margin.
-// The result overlaps the outermost tile by ~40px, which is safe here: a
-// category tile carries no hover controls of its own for an arrow to cover.
+// Where a scroll arrow sits: hard against the page edge (Gautham's call — "as
+// close to the edges of the browser as possible", so they stop covering tiles).
+//
+// ⚠️ `left-0` here means the BROWSER edge, not the rail edge. An absolutely
+// positioned child resolves against its ancestor's PADDING box, and the rail's
+// ancestor carries GUTTERS — so 0 lands in the margin outside the tiles, which
+// is exactly what is wanted. An earlier version added the gutter back by hand
+// (GUTTERS + 8px: 24 / 32 / 56) and that is what pushed the buttons ~40px ON TOP
+// of the outermost tile.
+//
+// The fit is exact at `lg` and up: the gutter is 48px (px-12) and the `lg`
+// button is 48px, so the arrow fills the gutter precisely — its outer edge on
+// the browser edge, its inner edge on the tile's edge, zero overlap. Below `lg`
+// the gutter is only 16/24px, so a 48px button cannot clear the tiles however
+// far out it goes; it is simply as far out as it can be. **If the button size or
+// GUTTERS changes, that exact fit is what to re-check.**
 //
 // `top` backs out the asymmetric clip room (24 above, 40 below) so the button
 // centres on the tiles rather than on the padded box — it lands on the seam
 // between the two rows.
 const ARROW_POS = 'absolute top-[calc(50%-8px)] -translate-y-1/2 z-10 transition-opacity duration-200'
-const ARROW_LEFT = 'left-6 sm:left-8 lg:left-14'
-const ARROW_RIGHT = 'right-6 sm:right-8 lg:right-14'
+const ARROW_LEFT = 'left-0'
+const ARROW_RIGHT = 'right-0'
+
+// The right-pointing arrow, drawn in TWO places in this file — the section's
+// "View all" link and each tile's affordance — so the path lives in one const
+// and the two cannot drift into different arrows. It is the same glyph
+// `EventArrowButton` draws and the same one every "View all" link in the app
+// uses; if an `ArrowIcon` is ever added to EventIcons.tsx, both should take it.
+const ARROW_PATH = 'M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3'
 
 // ─── Tile ──────────────────────────────────────────────────────────────────────
 
 function CategoryTile({ name, image, alt }: { name: string; image: string; alt: string }) {
   const [hovered, setHovered] = useState(false)
+  const { theme } = useTheme()
+  // Only the accent is needed here — the glyph is the chip's own business now.
   const { accent } = categoryStyle(name)
+  const lifted = liftAccent(accent)
+
+  // The border is the ONE accent use whose backdrop is themed — it draws against
+  // the page, not against linen. So it flips: the raw (dark) accent reads on
+  // linen, the lifted one reads on the dark page. Measured against each page
+  // background: raw-on-linen clears 4.5:1 (they are the AA-checked text colours),
+  // lifted-on-dark runs 4.0–12.6:1. Using ONE of them for both themes is what
+  // made the border invisible — lifted-on-linen bottoms out at 1.23:1
+  // (Networking), and raw-on-dark was the bug reported here.
+  const borderColor = theme === 'dark' ? lifted : accent
 
   return (
+    // The tile IS the photo — there is no body below it (Gautham's call: "no
+    // white space below the photo"), so `aspect-video` sits on the link itself
+    // and the label rides on the picture. All tiles share the aspect, so both
+    // grid rows still compute to the same height without an `h-full`.
     <Link
       href={categoryHref(name)}
       aria-label={`Explore ${name} events`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col h-full"
+      className="relative block aspect-video rounded-2xl overflow-hidden"
       style={{
-        backgroundColor: LINEN,
+        backgroundColor: SURFACE,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
-        border: hovered ? `2px solid ${GREEN}` : '2px solid transparent',
+        // Where an event card goes green, a category tile goes to its OWN accent
+        // (theme-picked — see borderColor above). The transparent 2px at rest
+        // holds the space so the tile never resizes.
+        border: hovered ? `2px solid ${borderColor}` : '2px solid transparent',
         transform: hovered ? 'translateY(-6px)' : 'translateY(0)',
         transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
       }}
     >
-      {/* Photo + accent wash */}
-      <div className="relative w-full aspect-video overflow-hidden">
-        <Image src={image} alt={alt} fill className="object-cover" sizes={IMAGE_SIZES} />
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            backgroundColor: accent,
-            opacity: hovered ? WASH_HOVER : WASH_REST,
-            transition: 'opacity 0.3s ease',
-          }}
+      {/* Photo, at its own colours — no accent wash. Same treatment as an event
+          card's image; the category's colour lives in the glyph and the border. */}
+      <Image src={image} alt={alt} fill className="object-cover" sizes={IMAGE_SIZES} />
+
+      {/* Label — the SHARED `CategoryBadge` at `size="lg"`, i.e. the exact chip
+          an event card overlays on its photo, scaled up (Gautham's call). It
+          brings its own linen fill, so there is no scrim: an earlier version put
+          bare text on a black gradient to keep it legible, and the chip's own
+          background makes that unnecessary. The photo is now completely
+          untouched, which is the point.
+
+          The glyph and the label colour are the category's own accent, straight
+          from `categoryStyle()` — on linen the RAW accent is correct (that is
+          the surface those colours were contrast-checked against), so no lift
+          here. `liftAccent` is only for the border, which draws on the page.
+
+          `min-w-0` lets the chip give way rather than push the arrow off the
+          tile: the longest name ("Health & Wellness") ellipsises instead. */}
+      {/* `justify-end` puts the chip at the tile's BOTTOM-RIGHT (Gautham's
+          call); it used to sit bottom-left.
+
+          The arrow rides INSIDE the chip, straight after the name, rather than
+          sitting apart at the tile's right edge — so it reads as part of the
+          category rather than as a separate control. It goes in via
+          `CategoryBadge`'s `trailing` prop; the chip is shared, so it is a
+          PROP, not a fork.
+
+          ⚠️ Decoration — the chip is not interactive and this sits inside the
+          tile's Link. Same reason the Explore button was removed: a nested
+          control would be a second tab stop performing one action. **Do not
+          make it focusable or give it an onClick.** It carries no tooltip
+          either: one was built and removed as redundant, since the arrow, the
+          category name and the whole-tile link all already say the same thing.
+
+          ⚠️ `stroke="currentColor"`, NOT a colour of its own. The chip sets
+          `color` to the category's accent, so the arrow inherits exactly what
+          the name is painted in and the two can never drift apart. (Green was
+          tried here and dropped — inside a chip whose label is already the
+          category's colour, a green arrow read as a third colour.) Heavier than
+          the "View all" links' arrow — 3.25 vs 2 — because it stands alone
+          rather than beside text. It nudges right on tile hover: the tile's
+          only moving part besides the lift. */}
+      <div className="absolute inset-x-0 bottom-0 flex justify-end px-4 pb-4">
+        <CategoryBadge
+          category={name}
+          size="lg"
+          className="min-w-0"
+          trailing={
+            <svg
+              aria-hidden
+              className="w-5 h-5 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3.25}
+              style={{
+                transform: hovered ? 'translateX(3px)' : 'translateX(0)',
+                transition: 'transform 0.3s ease',
+              }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d={ARROW_PATH} />
+            </svg>
+          }
         />
-      </div>
-
-      {/* Body — the category chip where an event card puts its price, and an
-          Explore button where it puts "View details".
-
-          The chip is the shared `CategoryBadge`, so the icon and the accent
-          colour are the same ones the chip carries on every card and hero. Its
-          linen fill disappears into the linen card body in light mode (which is
-          exactly the "icon + name in the category's colour" this is meant to
-          read as) and shows as a chip against the dark body in dark mode, where
-          the accents — picked to sit ON linen — would otherwise be unreadable.
-
-          `min-w-0` lets the chip give way rather than push the button out of the
-          card: the longest chip ("Health & Wellness") and the button together
-          run within a few px of the 4-across cell width. */}
-      <div className="px-4 pt-3.5 pb-4 flex items-center justify-between gap-2">
-        <CategoryBadge category={name} className="min-w-0 overflow-hidden" />
-        {/* A span, not a button: the whole tile is already a link to this exact
-            destination, so a nested control would be a second tab stop that does
-            the same thing. Styling is the event card's "View details" button. */}
-        <span
-          aria-hidden
-          className="shrink-0 px-4 py-1.5 rounded-xl text-[20px] font-bold transition-all duration-150"
-          style={{ backgroundColor: GREEN, color: ON_GREEN }}
-        >
-          Explore
-        </span>
       </div>
     </Link>
   )
@@ -229,7 +354,7 @@ export function CategoryGrid() {
         >
           View all
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d={ARROW_PATH} />
           </svg>
         </Link>
       </div>

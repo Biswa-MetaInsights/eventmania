@@ -54,9 +54,30 @@ async def ingest_ticketmaster_events(
     """
     Fetch real events from Ticketmaster for a city and save them to the event service.
     Returns immediately — ingestion runs in background.
+
+    A full city ingest slices Ticketmaster by classification segment and paginates
+    within each, so it runs for minutes. It must not be awaited here: the gateway
+    proxies this route with a 30s timeout, and a synchronous ingest blew through it
+    every time — surfacing as a 502 "service unreachable" even though the ingest
+    itself was succeeding underneath.
     """
-    result = await ticketmaster_ingestion.ingest(city, lat, lng, radius)
-    return {"msg": f"Fetched {result.get('created', 0)} real events for {city}.", **result}
+    task = asyncio.create_task(_run_ingest(city, lat, lng, radius))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+    return {"msg": f"Ingesting events for {city}. This runs in the background.", "city": city}
+
+
+async def _run_ingest(city: str, lat: float, lng: float, radius: int) -> None:
+    """Run the ingest and log its outcome — nothing awaits the task, so an
+    exception here would otherwise vanish silently."""
+    try:
+        result = await ticketmaster_ingestion.ingest(city, lat, lng, radius)
+        logger.info(
+            "Ticketmaster ingest for %s complete: created=%s upserted=%s failed=%s",
+            city, result.get("created", 0), result.get("upserted", 0), result.get("failed", 0),
+        )
+    except Exception:
+        logger.exception("Ticketmaster ingest for %s failed", city)
 
 
 @router.post("/generate-events", status_code=status.HTTP_202_ACCEPTED)

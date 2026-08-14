@@ -90,6 +90,16 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
             headers=dict(response.headers)
         )
 
+    # Must precede the RequestError handler below — TimeoutException is a subclass
+    # of RequestError, so catching only the base class reports a slow-but-healthy
+    # service as an unreachable one, which is what happened with /ingest-city.
+    except httpx.TimeoutException as e:
+        logger.error(f"Timeout proxying to {target_url}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail=f"Internal service {service_name} timed out after 30s."
+        )
+
     except httpx.RequestError as e:
         logger.error(f"Error proxying to {target_url}: {e}")
         raise HTTPException(

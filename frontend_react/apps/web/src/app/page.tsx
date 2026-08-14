@@ -19,6 +19,12 @@ import { Footer } from "@/components/Footer";
 import { toCarouselEvent } from "@/lib/card-adapters";
 
 const RADIUS_KM = 100;
+
+// A city ingest runs on the server for minutes (Ticketmaster is paginated per
+// classification segment), so the endpoint returns 202 straight away and we poll
+// for the events as they land rather than checking once.
+const INGEST_POLL_MS = 10_000;
+const INGEST_WINDOW_MS = 240_000;
 const INGESTED_KEY = "eventmind-ingested-cities"; // localStorage key
 
 function getIngestedCities(): Set<string> {
@@ -127,24 +133,38 @@ function DiscoveryPage() {
 
     inProgressRef.current.add(selectedCity.name);
 
-    recommendationsApi
-      .ingestCity(selectedCity.name, selectedCity.lat, selectedCity.lng, RADIUS_KM)
-      .then(() => {
-        markCityIngested(selectedCity.name); // persist so we never re-ingest this city
-        queryClient.invalidateQueries({ queryKey: ["events", q, selectedCity.name] });
+    const { name: city, lat, lng } = selectedCity;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let elapsed = 0;
 
-        // Fall back to AI only if city is still empty after ingestion
-        setTimeout(async () => {
-          const fresh = queryClient.getQueryData<Event[]>(["events", q, selectedCity.name]);
-          if (!fresh || fresh.length === 0) {
-            await recommendationsApi
-              .generateEventsForCity(selectedCity.name, selectedCity.lat, selectedCity.lng)
-              .catch(() => {});
-            queryClient.invalidateQueries({ queryKey: ["events", q, selectedCity.name] });
+    recommendationsApi
+      .ingestCity(city, lat, lng, RADIUS_KM)
+      .then(() => {
+        markCityIngested(city); // persist so we never re-ingest this city
+
+        // The call above only queues the ingest, so there is nothing to show yet.
+        // Re-check on an interval and let the grid fill as events are written.
+        timer = setInterval(async () => {
+          elapsed += INGEST_POLL_MS;
+          await queryClient.invalidateQueries({ queryKey: ["events", q, city] });
+
+          const fresh = queryClient.getQueryData<Event[]>(["events", q, city]);
+          if (fresh && fresh.length > 0) {
+            clearInterval(timer);
+            return;
           }
-        }, 3000);
+
+          // Nothing landed in the whole ingest window — fall back to AI generation.
+          if (elapsed >= INGEST_WINDOW_MS) {
+            clearInterval(timer);
+            await recommendationsApi.generateEventsForCity(city, lat, lng).catch(() => {});
+            queryClient.invalidateQueries({ queryKey: ["events", q, city] });
+          }
+        }, INGEST_POLL_MS);
       })
-      .catch(() => inProgressRef.current.delete(selectedCity.name));
+      .catch(() => inProgressRef.current.delete(city));
+
+    return () => clearInterval(timer);
   }, [hasHydrated, selectedCity.name, q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const carouselEvents = [

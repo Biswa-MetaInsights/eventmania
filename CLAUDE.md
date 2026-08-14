@@ -218,6 +218,10 @@ python backend\scripts\sync_ticketmaster.py             # full backend must be r
 - Ingestion is **idempotent** — upserts via `POST /event/ingest` on `(source, external_id)`. Cron the launcher every 30–60 min for continuous refresh; Celery is not needed yet.
 - Aggregated events are **discover-and-redirect** — send users to `event_website` ("Buy on Ticketmaster"), not into native checkout or chat. Native organiser events remain the long-term value.
 - The Discovery API caps a query at 1,000 results, so the pipeline slices by classification segment and paginates within each. Ticketmaster segments map onto NewFind categories (Music→Creative, Sports→Networking, …).
+- **The ingest is fire-and-forget — never `await` it in the endpoint.** A full city ingest runs ~186s (segment slicing × pagination, above), but the gateway proxies every route on a **30s** timeout, so awaiting it fails *every* call with a misleading `502 … unreachable` while the ingest succeeds underneath. `reco_endpoints` dispatches via `asyncio.create_task` in `_run_ingest()` and returns 202. **Consequence: the 202 carries no `created`/`upserted`/`failed` counts** — poll `/event/search` or read the recommendation service log.
+- **`recommendation/main.py` must keep its `logging.basicConfig(level=logging.INFO)`** — without it the root logger has no handler and `_run_ingest`'s completion line (the only report an un-awaited task gives) is silently dropped. Most services still don't configure logging; that's why an app-level `logger.info` can print nothing.
+- **The gateway returns `504` on a proxy timeout, not `502`.** `httpx.TimeoutException` subclasses `httpx.RequestError`, so its handler must stay **above** the `RequestError` handler or it is unreachable and a slow-but-healthy service is reported as down again.
+- **The home page polls; it does not wait.** `app/page.tsx` re-checks every `INGEST_POLL_MS` (10s) for up to `INGEST_WINDOW_MS` (240s), invalidating the events query so the grid fills as rows land, and only falls back to AI generation if the city is still empty when the window closes. Interval cleared on unmount/city change.
 - Respect Ticketmaster's API terms on caching/retention before production.
 
 ### Frontend
@@ -532,3 +536,5 @@ This file is only worth its tokens if every line is still correct. Three rules, 
 > folder one level too deep. **Every one of those pointers resolved to nothing**, and had for a long
 > time. It also told sessions to *"add anything that would help the next Claude instance"*, which is
 > how the file reached 103 KB and ~26k tokens per session. Both corrected 2026-08-10.
+
+"Codex will review your output/code once finish"

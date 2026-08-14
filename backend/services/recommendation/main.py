@@ -1,8 +1,15 @@
+import logging
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.reco_endpoints import router as reco_router
 from app.core.config import settings
+
+# Without this the root logger has no handler, so logging.lastResort drops
+# everything below WARNING — including the ingest completion line, which is the
+# only way to observe a background city ingest now that it is fire-and-forget.
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title=settings.SERVICE_NAME,

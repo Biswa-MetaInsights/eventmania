@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+/** Mirrors `BadgeType` in apps/web's EventBadges.tsx. Inlined rather than
+ *  imported: this package must not depend on the web app. Keep the two in step. */
+export type WishlistBadgeType =
+  | "free" | "selling-fast" | "today" | "sold-out" | "this-week" | "recommended";
+
 export interface WishlistItem {
   kind: "event" | "community";
   id: string;
@@ -11,7 +16,21 @@ export interface WishlistItem {
   price: string;
   imageUrl: string;
   badge?: string;
-  badgeType?: "free" | "selling-fast" | "today" | "sold-out" | "this-week" | "recommended";
+  /**
+   * ⚠️ `badgeType` is the COMMUNITY field (one tag) and `badgeTypes` the EVENT
+   * one (all of them) — the same split `ActionItem` carries in EventActions.tsx.
+   *
+   * The array was added on 2026-09-11 so a saved event shows the SAME tags the
+   * home-page card showed (Gautham: "show all tags thats shown in the home
+   * page"); before that only the first was kept and the wishlist row could
+   * claim "Free" for an event the grid also called "Selling Fast".
+   *
+   * Both stay, and readers must fall back from the array to the single value:
+   * this store is PERSISTED to localStorage, so a wishlist saved before that
+   * date holds rows with only `badgeType`. Dropping it would blank their tags.
+   */
+  badgeType?: WishlistBadgeType;
+  badgeTypes?: WishlistBadgeType[];
   isSoldOut?: boolean;
   category: string;
   memberCount?: string;

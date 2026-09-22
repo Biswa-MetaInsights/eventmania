@@ -16,6 +16,12 @@ export const BRAND = {
   terracotta: "var(--brand-terracotta)",
   terracottaHover: "var(--brand-terracotta-hover)",
   onTerracotta: "var(--brand-on-terracotta)",
+  // The organiser-console panel — also fixed in both themes. `ink` is the deep
+  // green console panel (--brand-green goes mint in dark and cannot fill one).
+  // The accent ON that panel is `terracotta` above; there is no gold token any
+  // more (Gautham, 2026-08-21 — one accent for the whole console).
+  ink: "var(--brand-ink)",
+  onInk: "var(--brand-on-ink)",
   bg: "var(--brand-bg)",
   surface: "var(--brand-surface)",
   text: "var(--brand-text)",

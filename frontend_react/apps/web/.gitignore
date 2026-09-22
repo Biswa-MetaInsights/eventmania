@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# responsive sweep output (scripts/responsive-sweep.mjs --shots)
+scripts/sweep-shots/

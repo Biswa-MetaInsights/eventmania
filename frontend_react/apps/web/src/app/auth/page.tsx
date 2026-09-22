@@ -73,23 +73,24 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: "var(--brand-bg)" }}>
-      {/* Left panel — hidden on small screens */}
+      {/* Left panel — hidden on small screens. A fixed green fill in BOTH themes
+          (like the footer), so everything on it takes --brand-on-green rather
+          than the themed text tokens. */}
       <div className="hidden lg:flex lg:flex-1 items-center justify-center p-16"
-        style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--brand-green) 8%, var(--brand-surface)) 0%, color-mix(in srgb, var(--brand-green) 16%, var(--brand-surface)) 100%)" }}>
+        style={{ backgroundColor: "var(--brand-green)", color: "var(--brand-on-green)" }}>
         <div className="max-w-md">
-          <BrandLogo markSize={70} gap={14} className="mb-10" style={{ color: "var(--brand-on-green)" }} />
-          <h1 className="text-[42px] font-extrabold text-[var(--brand-text)] leading-tight mb-6">
+          <BrandLogo markSize={70} gap={14} className="mb-10" />
+          <h1 className="text-[42px] font-extrabold leading-tight mb-6">
             Unlock Your Next<br />Great Experience.
           </h1>
-          <p className="text-xl text-[var(--brand-hint)] leading-relaxed">
-            Join thousands of attendees discovering AI summits, tech workshops,
-            and networking events daily.
+          <p className="text-xl leading-relaxed">
+            Discover AI summits, tech workshops, and networking events near you.
           </p>
         </div>
       </div>
 
       {/* Right panel — auth form */}
-      <div className="flex flex-1 items-center justify-center px-6 py-12 lg:px-20" style={{ backgroundColor: "var(--brand-bg)" }}>
+      <div className="flex flex-1 items-center justify-center px-4 sm:px-6 py-12 lg:px-20" style={{ backgroundColor: "var(--brand-bg)" }}>
         <div className="w-full max-w-md">
           <h2 className="text-3xl font-bold text-[var(--brand-text)] mb-3">
             {isLogin ? "Welcome Back" : "Create Account"}
@@ -149,7 +150,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 rounded-2xl bg-[var(--brand-green)] text-[var(--brand-on-green)] text-lg font-bold
+              className="w-full py-4 rounded-lg bg-[var(--brand-green)] text-[var(--brand-on-green)] text-lg font-bold
                          hover:bg-[var(--brand-green-hover)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? "Please wait…" : isLogin ? "Sign In" : "Sign Up"}
@@ -184,7 +185,7 @@ export default function AuthPage() {
 }
 
 const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-[var(--brand-border)] bg-[var(--brand-bg)] text-[var(--brand-text)] " +
+  "w-full px-4 py-3 rounded-lg border border-[var(--brand-border)] bg-[var(--brand-bg)] text-[var(--brand-text)] " +
   "placeholder:text-[var(--brand-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]/30 " +
   "focus:border-[var(--brand-green)] transition-colors";
 
@@ -203,7 +204,7 @@ function SocialButton({ label, color, initial }: { label: string; color: string;
       type="button"
       disabled
       title="Coming soon"
-      className="w-full flex items-center justify-center gap-3 py-4 rounded-xl border-2 border-[var(--brand-control-border)]
+      className="w-full flex items-center justify-center gap-3 py-4 rounded-lg border-2 border-[var(--brand-control-border)]
                  bg-[var(--brand-bg)] text-[var(--brand-text)] font-semibold hover:bg-[var(--brand-surface)] transition-colors
                  disabled:opacity-50 disabled:cursor-not-allowed"
     >

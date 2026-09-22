@@ -23,6 +23,10 @@ class OrganizerProfile(Base):
     company_website = Column(String(500), nullable=True)
     country = Column(String(100), nullable=False)
     registration_number = Column(String(100), nullable=False)
+    # Payout details. 34 is the IBAN maximum; 64 leaves room for a longer
+    # domestic format without another migration.
+    bank_name = Column(String(200), nullable=False, default="")
+    bank_account_number = Column(String(64), nullable=False, default="")
     verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.VERIFIED, nullable=False)
 
     def __repr__(self):

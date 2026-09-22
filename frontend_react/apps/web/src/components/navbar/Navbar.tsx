@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { organizerApi } from "@eventmind/api";
-import { useAuthStore, useChatUnreadStore } from "@eventmind/store";
+import { avatarFor, useAuthStore, useChatUnreadStore, useProfileStore } from "@eventmind/store";
 import { CityPicker } from "@/components/CityPicker";
+import { isDummyMode } from "@/lib/data-source";
 import { BrandLogo } from "@/components/brand";
+import { ChatIcon } from "@/components/organizer/ConsoleIcons";
 import { BRAND } from "@/lib/theme";
+import { hoverCapable } from "@/lib/pointer";
 import { useTheme } from "@/providers/theme-provider";
 
 // ── Brand tokens (theme-aware — resolve via CSS vars, see globals.css) ─────────
@@ -20,7 +23,7 @@ const BORDER = BRAND.border;
 const NAV_BORDER = BRAND.navBorder;
 const HINT = BRAND.hint;
 
-type MenuKey = "events" | "groups" | "avatar" | null;
+type MenuKey = "participants" | "organisers" | "groups" | "avatar" | null;
 
 // ── displayName: "biswajith.gopinathan@gmail.com" → "Biswajith" ──────────────
 function displayName(email: string | null): string {
@@ -85,12 +88,22 @@ function NavDropdown({ label, items, isOpen, onOpen, onClose }: NavDropdownProps
   return (
     <div
       className="relative"
-      onMouseEnter={() => { hover.onMouseEnter(); onOpen(); }}
-      onMouseLeave={() => { hover.onMouseLeave(); onClose(); }}
+      /* Hover opens/closes ONLY on a device that hovers. A tap synthesises
+         mouseenter before click, so without the guard the menu opened on the
+         mouseenter and the click below closed it again — one tap, no menu.
+         On touch the tap toggle is the whole story; outside-tap close lives on
+         the <header> (see the pointerdown effect in Navbar). */
+      onMouseEnter={() => { hover.onMouseEnter(); if (hoverCapable()) onOpen(); }}
+      onMouseLeave={() => { hover.onMouseLeave(); if (hoverCapable()) onClose(); }}
     >
+      {/* Tap toggles as well: the desktop row shows from 1024px, which is an
+          iPad, and a hover-only menu cannot be opened there at all. */}
       <button
-        className="flex items-center gap-0.5 px-3 py-1.5 rounded-md text-[16px] font-medium"
+        className="flex items-center gap-0.5 px-3 py-1.5 rounded-lg text-[16px] font-medium"
         style={hover.style}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={() => (isOpen ? onClose() : onOpen())}
       >
         {label}
         <svg
@@ -108,7 +121,7 @@ function NavDropdown({ label, items, isOpen, onOpen, onClose }: NavDropdownProps
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-1 py-1.5 rounded-xl shadow-xl min-w-[180px] z-50"
+          className="absolute top-full left-0 mt-1 py-1.5 rounded-lg shadow-xl min-w-[180px] z-50"
           style={{ backgroundColor: LINEN, border: `1px solid ${BORDER}` }}
         >
           {/* invisible bridge fills the mt-1 gap so onMouseLeave doesn't fire mid-travel */}
@@ -125,6 +138,9 @@ function NavDropdown({ label, items, isOpen, onOpen, onClose }: NavDropdownProps
 // ── Avatar menu ───────────────────────────────────────────────────────────────
 interface AvatarMenuProps {
   name: string;
+  /** The profile picture, or `""` for the green initial disc. Set on the
+   *  dashboard's Profile tab; see `useProfileStore` for where it lives. */
+  photo: string;
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -132,25 +148,30 @@ interface AvatarMenuProps {
   isOrganizer: boolean;
 }
 
-function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout, isOrganizer }: AvatarMenuProps) {
+function AvatarMenu({ name, photo, isOpen, onOpen, onClose, onLogout, isOrganizer }: AvatarMenuProps) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
 
-  // First initial of the display name (already capitalised) on a brand-green disc.
+  // First initial of the display name (already capitalised) on a brand-green disc
+  // — the fallback whenever there is no picture, which is most accounts.
   const initial = name ? name.charAt(0).toUpperCase() : "";
 
   return (
     <div
       className="relative"
-      onMouseEnter={() => { setHovered(true); onOpen(); }}
-      onMouseLeave={() => { setHovered(false); onClose(); }}
+      /* Same guard as NavDropdown: hover drives the menu only where hover exists. */
+      onMouseEnter={() => { setHovered(true); if (hoverCapable()) onOpen(); }}
+      onMouseLeave={() => { setHovered(false); if (hoverCapable()) onClose(); }}
     >
       <button
         className="flex items-center rounded-full"
         aria-label={name ? `${name} — account menu` : "Account menu"}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={() => (isOpen ? onClose() : onOpen())}
       >
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-[16px] font-semibold leading-none select-none"
+          className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-[16px] font-semibold leading-none select-none"
           style={{
             backgroundColor: GREEN,
             color: ON_GREEN,
@@ -158,22 +179,33 @@ function AvatarMenu({ name, isOpen, onOpen, onClose, onLogout, isOrganizer }: Av
             transition: "box-shadow 150ms",
           }}
         >
-          {initial}
+          {/* ⚠️ A PLAIN <img>, like every other user-supplied picture in this
+              app: the src is a `data:` URL or a link to a host `next/image`
+              would refuse. The green stays underneath, so a broken link leaves
+              the disc rather than a hole. */}
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt="" className="w-full h-full object-cover" />
+          ) : (
+            initial
+          )}
         </div>
       </button>
 
       {isOpen && (
         <div
-          className="absolute top-full right-0 mt-1 py-1.5 rounded-xl shadow-xl min-w-[200px] z-50"
+          className="absolute top-full right-0 mt-1 py-1.5 rounded-lg shadow-xl min-w-[200px] z-50"
           style={{ backgroundColor: LINEN, border: `1px solid ${BORDER}` }}
         >
           <div className="absolute -top-1 inset-x-0 h-1" />
+          {/* ⚠️ My Wishlist and Organiser Dashboard are NOT missing — they moved
+              into the Participants and Organisers dropdowns (Gautham,
+              2026-08-21). Do not add either back here: a second door to the same
+              page is exactly the drift the audience split was meant to remove. */}
           <DropdownItem emoji="🎟️" label="My Dashboard" onTap={() => { onClose(); router.push("/dashboard"); }} />
-          <DropdownItem emoji="❤️" label="My Wishlist" onTap={() => { onClose(); router.push("/dashboard?tab=wishlist"); }} />
           {isOrganizer && (
-            <DropdownItem emoji="📋" label="My Organised Events" onTap={() => { onClose(); router.push("/organizer/my-events"); }} />
+            <DropdownItem emoji="📋" label="My Organised Events" onTap={() => { onClose(); router.push("/organizer/events"); }} />
           )}
-          <DropdownItem emoji="🎛️" label="Organizer Console" onTap={() => { onClose(); router.push("/organizer"); }} />
           <div className="my-1 mx-3 h-px" style={{ backgroundColor: BORDER }} />
           <DropdownItem emoji="⚙️" label="Settings" onTap={() => {}} />
           <LogoutItem onLogout={onLogout} />
@@ -207,7 +239,7 @@ function BellButton() {
   const hover = useHoverStyle();
   return (
     <button
-      className="p-2 rounded-md"
+      className="p-2 rounded-lg"
       style={hover.style}
       onMouseEnter={hover.onMouseEnter}
       onMouseLeave={hover.onMouseLeave}
@@ -240,26 +272,16 @@ function ChatButton({ hasUnread }: { hasUnread: boolean }) {
   return (
     <button
       onClick={() => router.push("/chat")}
-      className="relative p-2 rounded-md"
+      className="relative p-2 rounded-lg"
       style={hover.style}
       onMouseEnter={hover.onMouseEnter}
       onMouseLeave={hover.onMouseLeave}
       title={hasUnread ? "Messages — new activity" : "Messages"}
       aria-label={hasUnread ? "Messages — new activity" : "Messages"}
     >
-      <svg
-        className="w-[21px] h-[21px]"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={1.8}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"
-        />
-      </svg>
+      {/* One drawing, two callers — the organiser console's "Unread chats"
+          group uses the same glyph. See ConsoleIcons' note on ChatIcon. */}
+      <ChatIcon className="w-[21px] h-[21px]" />
       {hasUnread && (
         <span
           className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
@@ -281,7 +303,7 @@ function ThemeToggle() {
   const isDark = theme === "dark";
   return (
     <button
-      className="p-2 rounded-md"
+      className="p-2 rounded-lg"
       style={hover.style}
       onMouseEnter={hover.onMouseEnter}
       onMouseLeave={hover.onMouseLeave}
@@ -306,7 +328,7 @@ function ThemeToggle() {
 function Toast({ message }: { message: string }) {
   return (
     <div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-base font-medium shadow-lg z-[100]"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg text-base font-medium shadow-lg z-[100]"
       style={{ backgroundColor: GREEN, color: ON_GREEN }}
     >
       {message}
@@ -327,18 +349,32 @@ export function Navbar() {
   const userEmail = useAuthStore((s) => s.userEmail);
   const tokens = useAuthStore((s) => s.tokens);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const avatars = useProfileStore((s) => s.avatars);
 
   const userId = subFromToken(tokens?.access_token ?? null);
 
   const { data: organizerProfile } = useQuery({
     queryKey: ["organizer-profile", userId],
     queryFn: () => organizerApi.get(userId).then((r) => r.data),
-    enabled: isAuthenticated && !!userId,
+    // ⚠️ NOT FIRED IN DUMMY MODE — it is a live backend call, and dummy mode is
+    // the mode you run with no backend at all, so it could only ever reject.
+    // Same `enabled` clause `useOrganiser()` carries; the two share this key.
+    enabled: isAuthenticated && !!userId && !isDummyMode,
     retry: false,
     staleTime: 5 * 60 * 1000, // cache for 5 min — no re-fetch on every nav
   });
 
-  const isOrganizer = !!organizerProfile;
+  // ⚠️ THE `isDummyMode` ARM IS LOAD-BEARING (Gautham, 2026-09-11: "wait where
+  // is 'My organised events'? i dont see that"). Without it this read `!!profile`
+  // alone, so the query above failing — which is ALL it can do with no backend
+  // running — silently answered "not an organiser", and every organiser-only
+  // item in the menus was hidden on the one setup built for frontend work.
+  //
+  // Deliberately the SAME rule `useOrganiser().isOrganiser` uses: in dummy mode
+  // whoever is signed in IS the organiser of `dummyMyEvents`. Keep the two in
+  // step — a navbar that disagrees with the console hides the door to a page
+  // that would have let you in.
+  const isOrganizer = isDummyMode || !!organizerProfile;
 
   const unreadRooms = useChatUnreadStore((s) => s.unreadRooms);
   const hasUnread = Object.keys(unreadRooms).length > 0;
@@ -351,6 +387,26 @@ export function Navbar() {
   const [searchActive, setSearchActive] = useState(false);
 
   function closeAll() { setActiveMenu(null); }
+  // The row's other controls close an open menu when the pointer ARRIVES on
+  // them — hover semantics, so guarded like the menus' own handlers: on touch
+  // a tap on the logo or the search box must not fire it (it would be the
+  // synthesised mouseenter), and the outside-tap effect below does that job.
+  function closeOnHover() { if (hoverCapable()) closeAll(); }
+
+  // Touch has no mouseleave to close a tapped-open menu, so a tap anywhere
+  // outside the header closes it. `pointerdown`, not `click`, so it fires
+  // before whatever was tapped handles its own event — the same recipe as the
+  // console's FilterSelect. A no-op under a mouse, where mouseleave got there
+  // first.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!activeMenu) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!headerRef.current?.contains(e.target as Node)) closeAll();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [activeMenu]);
 
   // Only navigate after the user has actually typed — avoids redirecting on mount.
   // Searching takes the user to the Explore page with the query pre-filled.
@@ -373,10 +429,27 @@ export function Navbar() {
     router.push("/auth");
   }
 
-  const eventsItems: NavItem[] = [
+  // ── The row's two audiences (Gautham, 2026-08-21) ──
+  // The nav is split by WHO you are, not by what the object is: everything a
+  // ticket-holder does sits under Participants, everything an event-runner does
+  // under Organisers. Both dropdowns are always visible — the split IS the
+  // navigation, so hiding the organiser half from a signed-out visitor would
+  // hide half the product's story. Items behind a login route to /auth rather
+  // than to a page that bounces.
+  const participantItems: NavItem[] = [
     { emoji: "🔍", label: "Explore Events", onTap: () => { closeAll(); router.push("/explore?view=events"); } },
-    { emoji: "➕", label: "Create Event",   onTap: () => { closeAll(); router.push("/organizer/create"); } },
-    { emoji: "📅", label: "My Events",      onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard" : "/auth"); } },
+    { emoji: "🎟️", label: "My Tickets",     onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard?tab=tickets" : "/auth"); } },
+    { emoji: "❤️", label: "My Wishlist",    onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard?tab=wishlist" : "/auth"); } },
+  ];
+
+  const organiserItems: NavItem[] = [
+    { emoji: "➕", label: "Create Event", onTap: () => { closeAll(); router.push(isAuthenticated ? "/organizer/create" : "/auth"); } },
+    // ⚠️ The /organizer section this once pointed at no longer exists — it was
+    // folded into Events on 2026-09-07 — so the item goes straight to the
+    // console's landing section, skipping the redirect. The label was "Organiser
+    // Console" for a day; it is "Dashboard" again (Gautham, 2026-09-08), and the
+    // Organisers dropdown around it is what says whose dashboard it is.
+    { emoji: "📊", label: "Dashboard", onTap: () => { closeAll(); router.push(isAuthenticated ? "/organizer/events" : "/auth"); } },
   ];
 
   /* PARKED 2026-08-14 (MVP) — the Communities dropdown's items. Communities are
@@ -396,12 +469,13 @@ export function Navbar() {
   return (
     <>
       <header
+        ref={headerRef}
         className="sticky top-0 z-40"
         style={{ backgroundColor: LINEN, borderBottom: `1px solid ${NAV_BORDER}` }}
       >
         <nav className="flex items-center h-[72px] px-4 sm:px-6 lg:px-12">
           {/* ── Logo + wordmark (always visible; tints via --brand-logo per theme) ── */}
-          <div className="flex items-center shrink-0" onMouseEnter={closeAll}>
+          <div className="flex items-center shrink-0" onMouseEnter={closeOnHover}>
             <Link href="/" className="no-underline" aria-label="NewFind — home">
               {/* markSize 55 → wordmark ~32px (55 × 0.58); visible mark circle
                   ~45px, so it sits comfortably in the 72px navbar. */}
@@ -410,7 +484,10 @@ export function Navbar() {
           </div>
 
           {/* ══════════ Desktop nav (lg and up) ══════════ */}
-          <div className="hidden lg:flex items-center flex-1">
+          {/* min-w-0: without it the row's min-content (the search box's
+              intrinsic width, now that the box is elastic) wins over `flex-1`
+              and the whole row ran ~60px past the nav at 1024. */}
+          <div className="hidden lg:flex items-center flex-1 min-w-0">
             <div className="w-6 shrink-0" />
 
             {/* ── Search bar ──
@@ -425,12 +502,31 @@ export function Navbar() {
                 is safe by construction at each breakpoint and no re-measure was
                 needed — and the two-step is kept precisely because it is what
                 holds the 1024px fit.
+
+                ⚠️ lg narrowed 250→170 on 2026-08-21, to pay for a second
+                top-level nav item beside the first. That was the
+                "Organiser dashboard" link (~180px, authed-only); later the same
+                day the row became Participants + Organisers, two dropdowns
+                totalling ~265px against the old pair's ~280px — NARROWER, and
+                narrowing is safe by construction, so 170 is kept as headroom
+                rather than given back. The signed-out row grew instead (both
+                dropdowns are always shown), but it carries no chat/bell/avatar,
+                so the authed row is still the fullest one. **xl is untouched:**
+                at 1280+ there is room for everything, so the box keeps its 410.
                 ⚠️ Still the row's only elastic element: WIDENING either number, or
                 adding another desktop nav item, means re-measuring at exactly
-                1024px. Narrowing never can. */}
-            <div onMouseEnter={closeAll} className="shrink-0">
+                1024px. Narrowing never can.
+
+                2026-09-05: the two numbers are now the box's FLOOR (170) and
+                CEILING (410) rather than two fixed widths. It grows with a huge
+                flex ratio, so it takes the row's slack before the `flex-1`
+                spacer after it sees any, and stops at 410 — identical at xl,
+                where 410 already fit. Between 1024 and 1279 a fixed 170px box
+                left the input ~20px wide once "New York" was in it, and a
+                longer city name spilled out of the border. */}
+            <div onMouseEnter={closeOnHover} className="flex-[1000_1_0%] min-w-[170px] max-w-[410px]">
               <div
-                className="flex items-center w-[250px] xl:w-[410px] h-10 rounded-lg px-3 gap-2"
+                className="flex items-center w-full h-10 rounded-lg px-3 gap-2"
                 style={{ backgroundColor: LINEN, border: `1.5px solid ${GREEN}` }}
                 onMouseEnter={() => setSearchActive(true)}
                 onMouseLeave={() => setSearchActive(false)}
@@ -464,10 +560,18 @@ export function Navbar() {
             <div className="flex-1" />
 
             <NavDropdown
-              label="Events"
-              items={eventsItems}
-              isOpen={activeMenu === "events"}
-              onOpen={() => setActiveMenu("events")}
+              label="Participants"
+              items={participantItems}
+              isOpen={activeMenu === "participants"}
+              onOpen={() => setActiveMenu("participants")}
+              onClose={closeAll}
+            />
+            <div className="w-2" />
+            <NavDropdown
+              label="Organisers"
+              items={organiserItems}
+              isOpen={activeMenu === "organisers"}
+              onOpen={() => setActiveMenu("organisers")}
               onClose={closeAll}
             />
             {/* PARKED 2026-08-14 (MVP) — the Communities dropdown, together with
@@ -486,21 +590,21 @@ export function Navbar() {
 
             */}
             <div className="w-2" />
-            <HelpButton onMouseEnter={closeAll} />
+            <HelpButton onMouseEnter={closeOnHover} />
 
             <div className="w-2" />
-            <div onMouseEnter={closeAll}>
+            <div onMouseEnter={closeOnHover}>
               <ThemeToggle />
             </div>
 
             {isAuthenticated && (
               <>
                 <div className="w-2" />
-                <div onMouseEnter={closeAll}>
+                <div onMouseEnter={closeOnHover}>
                   <ChatButton hasUnread={hasUnread} />
                 </div>
                 <div className="w-2" />
-                <div onMouseEnter={closeAll}>
+                <div onMouseEnter={closeOnHover}>
                   <BellButton />
                 </div>
               </>
@@ -509,12 +613,13 @@ export function Navbar() {
             <div className="w-3" />
 
             {!isAuthenticated ? (
-              <div onMouseEnter={closeAll}>
+              <div onMouseEnter={closeOnHover}>
                 <SignInButton />
               </div>
             ) : (
               <AvatarMenu
                 name={displayName(userEmail)}
+                photo={avatarFor(avatars, userEmail)}
                 isOpen={activeMenu === "avatar"}
                 onOpen={() => setActiveMenu("avatar")}
                 onClose={closeAll}
@@ -525,8 +630,9 @@ export function Navbar() {
           </div>
 
           {/* ══════════ Mobile hamburger (below lg) ══════════ */}
+          {/* p-2.5 + the 24px glyph = a 44px tap target. */}
           <button
-            className="lg:hidden ml-auto p-2 rounded-md"
+            className="lg:hidden ml-auto p-2.5 -mr-0.5 rounded-lg"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileOpen((v) => !v)}
             style={{ color: TEXT }}
@@ -544,7 +650,7 @@ export function Navbar() {
         {/* ══════════ Mobile dropdown panel ══════════ */}
         {mobileOpen && (
           <div
-            className="lg:hidden px-4 sm:px-6 pb-5 pt-1 flex flex-col gap-4 max-h-[calc(100vh-72px)] overflow-y-auto"
+            className="lg:hidden px-4 sm:px-6 pb-5 pt-1 flex flex-col gap-4 max-h-[calc(100dvh-72px)] overflow-y-auto"
             style={{ backgroundColor: LINEN, borderTop: `1px solid ${BORDER}` }}
           >
             {/* Search + inline city picker — one row, mirrors the desktop bar */}
@@ -582,8 +688,9 @@ export function Navbar() {
             {/* Theme toggle */}
             <MobileThemeRow />
 
-            {/* Events */}
-            <MobileNavSection title="Events" items={eventsItems} onNavigate={() => setMobileOpen(false)} />
+            {/* The same two audiences as the desktop row — one section each. */}
+            <MobileNavSection title="Participants" items={participantItems} onNavigate={() => setMobileOpen(false)} />
+            <MobileNavSection title="Organisers" items={organiserItems} onNavigate={() => setMobileOpen(false)} />
 
             {/* PARKED 2026-08-14 (MVP) — the mobile Communities section, twin of
                 the desktop dropdown above.
@@ -607,12 +714,12 @@ export function Navbar() {
             ) : (
               <div className="flex flex-col">
                 <MobileNavButton emoji="💬" label="Messages" showDot={hasUnread} onTap={() => { setMobileOpen(false); router.push("/chat"); }} />
+                {/* Mirrors AvatarMenu — wishlist and the organiser dashboard
+                    live in the two sections above, not here. */}
                 <MobileNavButton emoji="🎟️" label="My Dashboard" onTap={() => { setMobileOpen(false); router.push("/dashboard"); }} />
-                <MobileNavButton emoji="❤️" label="My Wishlist" onTap={() => { setMobileOpen(false); router.push("/dashboard?tab=wishlist"); }} />
                 {isOrganizer && (
-                  <MobileNavButton emoji="📋" label="My Organised Events" onTap={() => { setMobileOpen(false); router.push("/organizer/my-events"); }} />
+                  <MobileNavButton emoji="📋" label="My Organised Events" onTap={() => { setMobileOpen(false); router.push("/organizer/events"); }} />
                 )}
-                <MobileNavButton emoji="🎛️" label="Organizer Console" onTap={() => { setMobileOpen(false); router.push("/organizer"); }} />
                 <MobileNavButton emoji="🚪" label="Log Out" onTap={() => { setMobileOpen(false); handleLogout(); }} />
               </div>
             )}
@@ -648,7 +755,7 @@ function MobileThemeRow() {
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center gap-3 px-2 py-3 text-base font-medium text-left rounded-md"
+      className="flex items-center gap-3 px-2 py-3 text-base font-medium text-left rounded-lg"
       style={{ color: TEXT }}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
     >
@@ -662,7 +769,7 @@ function MobileNavButton({ emoji, label, onTap, showDot }: { emoji: string; labe
   return (
     <button
       onClick={onTap}
-      className="flex items-center gap-3 px-2 py-3 text-base font-medium text-left rounded-md"
+      className="flex items-center gap-3 px-2 py-3 text-base font-medium text-left rounded-lg"
       style={{ color: TEXT }}
     >
       <span className="text-lg leading-none">{emoji}</span>
@@ -678,11 +785,13 @@ function MobileNavButton({ emoji, label, onTap, showDot }: { emoji: string; labe
 }
 
 // ── Help button ───────────────────────────────────────────────────────────────
+// (The standalone "Organiser dashboard" link that lived here was replaced by the
+// Organisers dropdown on 2026-08-21 — the console is now reached from there.)
 function HelpButton({ onMouseEnter }: { onMouseEnter: () => void }) {
   const hover = useHoverStyle();
   return (
     <button
-      className="px-4 py-1.5 rounded-md text-[16px] font-medium"
+      className="px-4 py-1.5 rounded-lg text-[16px] font-medium"
       style={hover.style}
       onMouseEnter={() => { hover.onMouseEnter(); onMouseEnter(); }}
       onMouseLeave={hover.onMouseLeave}

@@ -297,7 +297,7 @@ export const SAMPLE_COMMUNITIES: CommunityItem[] = [
 function SkeletonCard() {
   return (
     <div
-      className="rounded-2xl overflow-hidden animate-pulse"
+      className="rounded-lg overflow-hidden animate-pulse"
       style={{ border: `1px solid ${NAV_BORDER}`, backgroundColor: LINEN }}
     >
       <div className="w-full aspect-video bg-gray-200" />
@@ -345,7 +345,7 @@ function EditLocationButton() {
       </button>
       {hovered && (
         <span
-          className="absolute left-full ml-2 whitespace-nowrap text-[16px] font-semibold px-3 py-1 rounded-full z-10"
+          className="absolute left-full ml-2 whitespace-nowrap text-[16px] font-semibold px-3 py-1 rounded-lg z-10"
           style={{ backgroundColor: LINEN, color: GREEN, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
         >
           Click here to edit location
@@ -371,7 +371,7 @@ export function CommunityCardItem({
       href={`/community/${community.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className="relative rounded-lg overflow-hidden flex flex-col"
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -407,7 +407,7 @@ export function CommunityCardItem({
         {/* Logo (top-left) + title & venue (right) */}
         <div className="flex items-start gap-3">
           <div
-            className="relative w-12 h-12 rounded-xl shrink-0 flex items-center justify-center overflow-hidden"
+            className="relative w-12 h-12 rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
             style={{ backgroundColor: GREEN, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
           >
             {community.logoUrl ? (
@@ -450,7 +450,7 @@ export function CommunityCardItem({
             onClick={(e) => { if (onJoin) { e.preventDefault(); e.stopPropagation(); onJoin(community.id) } }}
             aria-label={`View details for ${community.title}`}
             disabled={community.isSoldOut}
-            className="shrink-0 px-4 py-1.5 rounded-xl text-[20px] font-bold transition-all duration-150 active:scale-[0.98]"
+            className="shrink-0 px-4 py-1.5 rounded-lg text-[20px] font-bold transition-all duration-150 active:scale-[0.98]"
             style={{
               backgroundColor: community.isSoldOut ? MUTED_FILL : GREEN,
               color: ON_GREEN,
@@ -481,7 +481,7 @@ function OnlineCommunityCard({
       href={`/community/${community.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className="relative rounded-lg overflow-hidden flex flex-col"
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -518,7 +518,7 @@ function OnlineCommunityCard({
         {/* Logo (top-left) + title & venue (right) */}
         <div className="flex items-start gap-3">
           <div
-            className="relative w-12 h-12 rounded-xl shrink-0 flex items-center justify-center overflow-hidden"
+            className="relative w-12 h-12 rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
             style={{ backgroundColor: GREEN, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
           >
             {community.logoUrl ? (
@@ -561,7 +561,7 @@ function OnlineCommunityCard({
             onClick={(e) => { if (onJoin) { e.preventDefault(); e.stopPropagation(); onJoin(community.id) } }}
             aria-label={`View details for ${community.title}`}
             disabled={community.isSoldOut}
-            className="shrink-0 px-4 py-1.5 rounded-xl text-[20px] font-bold transition-all duration-150 active:scale-[0.98]"
+            className="shrink-0 px-4 py-1.5 rounded-lg text-[20px] font-bold transition-all duration-150 active:scale-[0.98]"
             style={{
               backgroundColor: community.isSoldOut ? MUTED_FILL : GREEN,
               color: ON_GREEN,
@@ -638,7 +638,7 @@ function OnlineCommunitiesRow({
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 aria-pressed={active}
-                className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
+                className="flex-none px-4 py-1.5 rounded-lg text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
                 style={
                   active
                     ? { backgroundColor: GREEN, color: ON_GREEN, border: `2px solid ${GREEN}` }
@@ -696,7 +696,7 @@ function SeeAllTile({ communities, href }: { communities: CommunityItem[]; href:
       aria-label="View all communities"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="rounded-2xl flex flex-col items-center justify-center gap-5"
+      className="rounded-lg flex flex-col items-center justify-center gap-5"
       style={{
         backgroundColor: tileBg,
         // Borderless at rest, exactly like CommunityCardItem — see the matching
@@ -815,7 +815,7 @@ export function CommunityCarousel({
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 aria-pressed={active}
-                className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
+                className="flex-none px-4 py-1.5 rounded-lg text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
                 style={
                   active
                     ? { backgroundColor: GREEN, color: ON_GREEN, border: `2px solid ${GREEN}` }

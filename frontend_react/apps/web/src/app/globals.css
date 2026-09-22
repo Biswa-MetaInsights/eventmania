@@ -1,4 +1,11 @@
-@import "tailwindcss";
+/* `source(none)` turns OFF Tailwind's automatic source detection, which otherwise
+   walks up to the nearest git root — that's `eventmind/`, so it was scanning and
+   WATCHING the Python backend, logo_and_wordmark/ and 10 MB of screenshots/ for
+   class names. Every Tailwind class in this app lives under apps/web/src (the
+   three workspace packages hold zero .tsx), so the scan is pinned there instead.
+   ⚠️ If the app ever renders completely unstyled, this glob is the first suspect. */
+@import "tailwindcss" source(none);
+@source "../**/*.{ts,tsx}";
 
 /* ── Brand tokens (theme-aware) ───────────────────────────────────────────────
    The whole app references these CSS variables (via the `--brand-*` names, or
@@ -47,6 +54,44 @@
   --brand-terracotta: #C1603F;
   --brand-terracotta-hover: #A94F31;
   --brand-on-terracotta: #FFFFFF;
+  /* ── Organiser-console panel ─────────────────────────────────────────────────
+     A FIXED accent (same hex in both themes, exactly like --brand-terracotta
+     above) introduced for the organiser dashboard. It is an accent, not a themed
+     surface, which is why it is not restated in the dark block.
+
+     --brand-ink   the deep-green console panel: the "next event" hero and the
+                   earnings hero. It cannot be --brand-green, because that token
+                   resolves to a light mint (#2F8A80) in dark mode and a large
+                   panel painted mint is unreadable. It is the same species as
+                   Footer.tsx's deliberately-unthemed green block — that file
+                   still carries its own raw #184E4A and should be moved onto
+                   this token the next time it is touched.
+     Approved by Gautham 2026-08-20 alongside the dashboard v2 import.
+
+     ⚠️ THERE IS NO --brand-gold ANY MORE (Gautham, 2026-08-21). The console
+     shipped with a gold accent carrying hierarchy on the ink panel; the whole
+     console is now on --brand-terracotta instead, so the console has ONE accent
+     rather than gold-on-ink plus terracotta-on-linen. Do not reintroduce a gold
+     token — the accent on the ink panel is --brand-terracotta, and the known
+     cost of that (small terracotta text on ink is ~3.3:1, where gold was 7.5:1)
+     was weighed and accepted. See the ACCENT note in ConsoleUI.tsx. */
+  --brand-ink: #13312A;
+  --brand-on-ink: #F1EEE8;
+  /* --brand-console-green  the SOLID green blocks inside the events console's
+                   "upcoming event" overview panel — its three stat tiles and its
+                   "needs you" cards, which carry linen type (Gautham,
+                   2026-09-09). The panel AROUND them is brand white on a
+                   --brand-green border; only the blocks are filled.
+                   It is the LIGHT-MODE value of --brand-green written out as a
+                   fixed hex, and it is fixed for exactly the reason spelled out
+                   above: var(--brand-green) resolves to a light mint (#2F8A80)
+                   in dark mode, and linen type on a mint block does not read.
+                   A BORDER may take var(--brand-green) — a line wants to stay
+                   visible against its ground and should follow the theme. A
+                   FILL under light type must not.
+                   The EARNINGS hero is a different object and stays --brand-ink
+                   — it is about money across every event, not about one event. */
+  --brand-console-green: #184E4A;
   --brand-bg: #F2EFEA;       /* linen */
   --brand-surface: #F2EFEA;
   --brand-text: #111827;
@@ -59,9 +104,31 @@
      pale tokens do not do that job. Measured against linen #F2EFEA:
      --brand-border 1.24:1, --brand-nav-border 1.55:1, this 3.34:1.
      Gautham picked this value off a side-by-side against brand black (15.8:1),
-     which read too heavy at 2px. NOT for cards, dividers or text inputs —
-     those keep --brand-border. */
+     which read too heavy at 2px.
+
+     ⚠️ THIS NOW COVERS FORM INPUTS AND THE CARDS AROUND THEM (Gautham,
+     2026-09-09). It used to read "NOT for cards, dividers or text inputs" —
+     that stopped being true. /explore's own price and filter inputs already
+     wore this edge, and /organizer/create's inputs at 1px --brand-border were
+     invisible against the page for exactly the reason given above. `inputCls`
+     and that page's section cards are 2px of this token; keep them together.
+
+     Still --brand-border, and still 1px: DIVIDERS, and the cards that carry
+     content rather than controls — event cards, the panels on /event/[id]. A
+     grid of event cards outlined at 3.34:1 is a page of boxes, not a page of
+     events. The rule is what the border is AROUND, not how big it is. */
   --brand-control-border: #8B8172;
+  /* The 5px frame around HeroCarousel's photo panel. DARK-MODE ONLY, by
+     Gautham's call (2026-08-20) — transparent here, green in the dark block.
+     It is a token rather than a `dark:` class because the theme is driven by
+     `data-theme` on <html>, not by prefers-color-scheme, so Tailwind's stock
+     `dark:` variant would follow the OS instead of the toggle.
+     ⚠️ The border stays 5px in BOTH themes so the panel's geometry — and the
+     photo crop inside it, since `aspect-[16/9]` sizes the border box — never
+     shifts when the theme flips. The panel pairs this with
+     `background-clip: padding-box`, without which its dark letterbox fill would
+     paint through the transparent frame and put a black border back. */
+  --brand-hero-frame: transparent;
   --brand-hint: #111827;   /* == --brand-text; see the token note above */
   --brand-muted: #9CA3AF;  /* placeholders + muted fills ONLY */
   /* Logo/wordmark tint — follows the brand green in BOTH themes (green in light,
@@ -94,6 +161,9 @@
      (#0F1A18), so controls read as controls without a heavy outline. Left at
      the nav-border value on purpose — the blending problem is light-only. */
   --brand-control-border: #33433F;
+  /* The hero photo frame — visible ONLY here. On the dark ground the panel
+     needs an edge; on linen it read as an unnecessary outline. See :root. */
+  --brand-hero-frame: var(--brand-green);
   --brand-hint: #F2EFEA;   /* brand white (linen) — deliberately the linen, not
                               --brand-text's #ECEAE4; Gautham asked for the brand
                               white shade specifically. */
@@ -121,6 +191,34 @@
   /* Default sans font for the whole app. Defined once in layout.tsx as --font-app.
      Any element using Tailwind's `font-sans` (or none) gets this. */
   --font-sans: var(--font-app);
+
+  /* The `band:` breakpoint is declared in the plain @theme block below — see the
+     note there. It cannot live in this `inline` block. */
+}
+
+/* ── Extra breakpoint: `band:` = 1400px ───────────────────────────────────────
+   Sits between xl (1280) and 2xl (1536), for `FeatureBand`'s seven-across row:
+   seven tiles need ~1400px to clear 180px each, xl is too early, and 2xl (1536)
+   would leave a 1440px laptop stacked.
+
+   ⚠️ MEASURED, NOT ASSUMED — a wider breakpoint does NOT automatically beat a
+   narrower one on the same element in this Tailwind v4 build. Both
+   `min-[1400px]:` (arbitrary) and `band:` (registered) are emitted BEFORE the
+   built-in screens, so `band:grid-cols-7 lg:grid-cols-4` renders FOUR columns at
+   1600px: both rules match and `lg` is later in the stylesheet, so it wins. This
+   shipped once and looked like a layout bug rather than a CSS-order one.
+
+   ⚠️ So pair it with `max-band:` rather than relying on order: bound every
+   narrower step to `max-band:` (`max-band:lg:grid-cols-4 band:grid-cols-7`) and
+   the two ranges are DISJOINT, which makes source order irrelevant. That is what
+   `FeatureBand` does. Registering the breakpoint — instead of writing
+   `min-[1400px]:` / `max-[1399px]:` — is what makes both halves of that pair
+   come from one number.
+
+   Check the emitted order in the compiled CSS before trusting any variant to
+   beat another; do not assume this build sorts by width. */
+@theme {
+  --breakpoint-band: 1400px;
 }
 
 body {
@@ -189,6 +287,32 @@ optgroup {
   font-size: 15px !important;
 }
 
+/* ── Form-control floor on TOUCH: 16px ────────────────────────────────────────
+   iOS Safari zooms the whole page when a focused <input>/<select>/<textarea>
+   is under 16px, and the 15px floor above is one pixel short of that. Every
+   form in the app goes through `text-sm` (FormControls' inputCls, /explore's
+   search + selects, the chat composers, checkout), so rather than touch 30
+   call sites this lifts the same class list one more pixel — on a coarse
+   pointer only, so a desktop form renders exactly as before.
+
+   Specificity note: the floor rule above is (0,2,0) with !important; this one
+   repeats its `:not()` so it lands at (0,2,1) and wins the tie. Keep the
+   `:not()` — without it the floor's 15px beats this and the zoom comes back. */
+@media (pointer: coarse) {
+  :is(input, select, textarea):is(
+    .text-xs,
+    .text-sm,
+    .text-\[9px\],
+    .text-\[10px\],
+    .text-\[11px\],
+    .text-\[12px\],
+    .text-\[13px\],
+    .text-\[14px\]
+  ):not([data-keep-type], [data-keep-type] *) {
+    font-size: 16px !important;
+  }
+}
+
 /* ── Full-bleed hero title (/event/[id], /community/[slug]) ───────────────────
    On lg+ the title is one line and heroTitleSize() shrinks the font to fit it —
    see lib/hero-title.ts. That trade stops working on a phone: a long title hits
@@ -214,6 +338,24 @@ optgroup {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Touch ────────────────────────────────────────────────────────────────────
+   Two site-wide rules for fingers, both invisible under a mouse.
+
+   `touch-action: manipulation` on every control removes the double-tap-to-zoom
+   gesture from it, which is what lets mobile browsers fire `click` straight
+   away instead of waiting ~300ms to see whether a second tap is coming. Pinch
+   zoom and scrolling are untouched — only the double-tap is claimed.
+
+   The tap highlight is the grey/blue flash mobile WebKit and Chrome paint over
+   a tapped element. Every control here draws its own pressed state (the
+   green fill, `active:scale`, `.nf-chip:active`), so the OS flash on top of it
+   reads as a glitch. Cleared on controls only — plain text keeps it, since a
+   long-press selection still wants its feedback. */
+a, button, [role="button"], input, select, textarea, label, summary {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ── NewFind "breathing aura" loader ──────────────────────────────────────────
@@ -244,6 +386,22 @@ optgroup {
   .nf-aura { opacity: 0.15; }
 }
 
+/* ── Console table row ────────────────────────────────────────────────────────
+   A row in the organiser console washes green under the pointer — the app-wide
+   "green ground" hover, dialled down to the 8% tint the rooms list already uses
+   for its picked room. A row carries status pills and a progress bar, so a SOLID
+   green fill (what a card or a menu item takes) would swallow them.
+
+   It lives here rather than as a Tailwind `hover:bg-[…]` arbitrary value because
+   the fill is a `color-mix()`, which would need escaping inside a class name.
+   See TableRow in components/organizer/ConsoleUI.tsx. */
+.nf-console-row {
+  transition: background-color 150ms ease-out;
+}
+.nf-console-row:hover {
+  background-color: color-mix(in srgb, var(--brand-green) 8%, transparent);
+}
+
 /* ── Selectable chip (filter chips, format toggles) ───────────────────────────
    A chip eases its colours on every state change, squishes slightly while held,
    and gives one small pop at the moment it BECOMES selected. The pop is a
@@ -264,4 +422,52 @@ optgroup {
 @media (prefers-reduced-motion: reduce) {
   .nf-chip-selected { animation: none !important; }
   .nf-chip:active   { transform: none; }
+}
+
+/* ── Segmented control (Format on /explore, Event Type in the forms) ──────────
+   The green pill SLIDES to the choice you clicked. See
+   components/SegmentedControl.tsx for why it is one travelling element rather
+   than a background painted on whichever button is selected.
+
+   ⚠️ THE CURVE IS THE FEATURE, NOT THE DURATION (Gautham, 2026-09-11). It has
+   to read as somebody DRAGGING the pill across, so it leaves slowly (0.5/0 is a
+   flat ease-in — a pill that departs at full speed reads as a snap, however
+   long it then takes), runs quickly through the middle, coasts ~7% PAST its
+   stop at around three-quarters of the way through, and drifts back over the
+   rest. That last part is the weight, and it is what "dragged" means here:
+   without it the pill arrives and simply stops, like a slow cross-fade in
+   motion. 420ms is the slowest it can go before a filter click starts to feel
+   unanswered — do not lengthen it to make the travel more visible, deepen the
+   ease-in instead.
+
+   ⚠️ MEASURE AN OVERSHOOT, DO NOT READ IT OFF THE HANDLE. This curve was
+   `cubic-bezier(0.45, 0.05, 0.15, 1.12)` first, on the assumption that the
+   1.12 meant 12% past the stop; sampled frame by frame it actually peaked at
+   ~1%, because an x2 that near the start reaches full travel long before the
+   handle's y can lift it. The y overshoot is only worth what the x mapping
+   lets it be.
+
+   `left`/`top`/`width`/`height` rather than a transform because the segments
+   are different widths and the track can wrap: the pill has to change SHAPE as
+   it travels, and the overshoot then stretches its leading edge, which is
+   exactly what a dragged thing does. One element, so the layout cost is a
+   non-issue. */
+.nf-seg-thumb {
+  transition:
+    left   420ms cubic-bezier(0.5, 0, 0.3, 1.4),
+    top    420ms cubic-bezier(0.5, 0, 0.3, 1.4),
+    width  420ms cubic-bezier(0.5, 0, 0.3, 1.4),
+    height 420ms cubic-bezier(0.5, 0, 0.3, 1.4);
+}
+/* The label under the pill flips to linen. It eases FASTER than the pill and
+   starts with it, so the word is already light by the time the green covers it
+   — colour that lagged the travel would flash dark text on green mid-slide. */
+.nf-seg-label {
+  transition: color 200ms ease-out;
+}
+/* No `:active` squish here, unlike `.nf-chip`. A chip is the thing you press;
+   a segment is a place the pill goes, and a label that shrank under a pill that
+   does not would read as two controls moving against each other. */
+@media (prefers-reduced-motion: reduce) {
+  .nf-seg-thumb { transition: none; }
 }

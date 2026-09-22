@@ -5,6 +5,7 @@ import { useLocationStore, CITIES, DEFAULT_CITY } from "@eventmind/store";
 import type { City } from "@eventmind/store";
 import { BRAND } from "@/lib/theme";
 import { LocationPinIcon } from "./EventIcons";
+import { EditPencil } from "./EditPencil";
 
 // Theme-aware tokens (resolve via CSS vars, see globals.css)
 const GREEN = BRAND.green;
@@ -82,31 +83,19 @@ export function CityPicker({ variant = "pill" }: { variant?: "pill" | "icon" | "
         // Pencil "edit location" trigger — relative wrapper is kept here for the tooltip only;
         // the dropdown uses the nearest positioned ancestor (EventsCarousel heading wrapper)
         // so it opens left-aligned to the city name text.
-        <span className="relative inline-flex items-center">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Edit location"
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-colors cursor-pointer"
-            style={{ color: open ? GREEN : HINT }}
-            onMouseEnter={(e) => { if (!open) e.currentTarget.style.color = GREEN; }}
-            onMouseLeave={(e) => { if (!open) e.currentTarget.style.color = HINT; }}
-          >
-            <svg className="w-4 h-4" viewBox="0 -0.5 21 21" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd"
-                d="M0,20 L20.616532,20 L20.616532,18.042095 L0,18.042095 L0,20 Z M7.215786,13.147332 L7.215786,10.51395 L13.094591,5.344102 L15.146966,7.493882 L9.903151,13.147332 L7.215786,13.147332 Z M16.244797,2.64513 L18.059052,4.363191 L16.645788,5.787567 L14.756283,3.993147 L16.244797,2.64513 Z M21,4.64513 L16.132437,0 L5.154133,9.687714 L5.154133,15.105237 L10.78657,15.105237 L21,4.64513 Z"
-              />
-            </svg>
-          </button>
-          {/* Hover tooltip — relative to the button wrapper above */}
-          {hovered && !open && (
-            <span
-              className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded-full shadow-lg z-50 pointer-events-none"
-              style={{ backgroundColor: SURFACE, color: GREEN, border: `1px solid ${BORDER}` }}
-            >
-              Click here to change your location
-            </span>
-          )}
-        </span>
+        // ⚠️ `EditPencil` IS this trigger, lifted out verbatim on 2026-09-02 so
+        // /event/[id]'s "edit the event details" pencil is the same object
+        // rather than a second copy of the same path and tooltip. The rendered
+        // markup is unchanged — the glyph moved to `EventIcons.PencilLineIcon`
+        // and the hover state now lives on the button instead of this
+        // component's root, which is equivalent here because the root holds
+        // nothing else while the dropdown is closed.
+        <EditPencil
+          tooltip="Click here to change your location"
+          label="Edit location"
+          onClick={() => setOpen((v) => !v)}
+          active={open}
+        />
       ) : variant === "inline" ? (
         // Inline trigger for the navbar "Add Location" slot — pin + selected city
         <button
@@ -116,14 +105,14 @@ export function CityPicker({ variant = "pill" }: { variant?: "pill" | "icon" | "
           style={{ color: hovered || open ? GREEN : TEXT }}
         >
           <LocationPinIcon />
-          <span className="text-base whitespace-nowrap">
+          <span className="text-base whitespace-nowrap truncate max-w-[160px]">
             {selectedCity.name}
           </span>
         </button>
       ) : (
         <button
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
           style={{
             backgroundColor: open ? GREEN : SURFACE,
             color: open ? ON_GREEN : TEXT,
@@ -145,7 +134,11 @@ export function CityPicker({ variant = "pill" }: { variant?: "pill" | "icon" | "
       {/* Hover tooltip (non-icon variants only — icon variant has its own nested tooltip above) */}
       {variant !== "icon" && hovered && !open && (
         <span
-          className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded-full shadow-lg z-50 pointer-events-none"
+          /* lg+ only: it opens rightward from a trigger that sits near the right
+             edge of the mobile panel, so below lg it ran off the viewport. Also
+             off on any no-hover device (an iPad is lg): a tap fires mouseenter
+             with no mouseleave to follow, so it would stick open. */
+          className="hidden lg:block [@media(hover:none)]:hidden absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-sm font-medium px-3 py-1.5 rounded-lg shadow-lg z-50 pointer-events-none"
           style={{ backgroundColor: SURFACE, color: GREEN, border: `1px solid ${BORDER}` }}
         >
           Click here to change your location
@@ -155,12 +148,15 @@ export function CityPicker({ variant = "pill" }: { variant?: "pill" | "icon" | "
       {/* Dropdown */}
       {open && (
         <div
-          className={`absolute top-full mt-2 w-64 max-w-[calc(100vw-32px)] rounded-2xl shadow-xl z-50 overflow-hidden ${variant === "icon" ? "left-[-8px]" : "left-0"}`}
+          /* Below lg the inline trigger sits at the RIGHT end of the navbar's
+             mobile search row, so the 256px menu anchors right there; on the
+             desktop row it is left-anchored as before. */
+          className={`absolute top-full mt-2 w-64 max-w-[calc(100vw-32px)] rounded-lg shadow-xl z-50 overflow-hidden ${variant === "icon" ? "left-[-8px]" : "right-0 lg:right-auto lg:left-0"}`}
           style={{ backgroundColor: SURFACE, border: `1px solid ${BORDER}` }}
         >
           {/* Search */}
           <div className="p-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ backgroundColor: SURFACE }}>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: SURFACE }}>
               <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: HINT }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
               </svg>

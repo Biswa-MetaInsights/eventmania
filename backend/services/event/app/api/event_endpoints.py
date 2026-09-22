@@ -23,8 +23,16 @@ import time as _time
 _search_cache: dict = {}
 _CACHE_TTL = 300  # seconds
 
-def _cache_key(lat, lng, radius, status, q, organizer_id, limit) -> str:
-    return f"{lat}_{lng}_{radius}_{status}_{q}_{organizer_id}_{limit}"
+def _cache_key(*parts) -> str:
+    """Key on EVERY parameter that narrows the query.
+
+    ⚠️ It used to key on only lat/lng/radius/status/q/organizer_id/limit, which
+    meant category, event_type, the date bounds and the price bounds all shared
+    one cache entry: filter by category and, for the next five minutes, you got
+    whatever the previous unfiltered search had returned. Anything added to
+    `search_events` that narrows the result set MUST be added here too.
+    """
+    return "_".join(str(p) for p in parts)
 
 def _cache_get(key: str):
     entry = _search_cache.get(key)
@@ -130,7 +138,8 @@ def search_events(
     event_type: Optional[str] = Query(None, description="In-Person | Online | Hybrid"),
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
-    price_max: Optional[float] = Query(None, description="Maximum ticket price (0 = free only)"),
+    price_min: Optional[float] = Query(None, description="Minimum ticket price (inclusive)"),
+    price_max: Optional[float] = Query(None, description="Maximum ticket price (inclusive; 0 = free only)"),
     community_id: Optional[UUID] = Query(None, description="Filter by community"),
     status: Optional[EventStatus] = Query(EventStatus.PUBLISHED),
     lat: Optional[float] = Query(None, description="User latitude"),
@@ -140,7 +149,10 @@ def search_events(
     limit: Optional[int] = Query(50, description="Max results to return"),
     db: Session = Depends(get_db)
 ):
-    ck = _cache_key(lat, lng, radius, status, q, organizer_id, limit)
+    ck = _cache_key(
+        lat, lng, radius, status, q, organizer_id, limit,
+        category, event_type, date_from, date_to, price_min, price_max, community_id,
+    )
     cached = _cache_get(ck)
     if cached is not None:
         return cached
@@ -167,6 +179,11 @@ def search_events(
         query = query.filter(Event.start_date >= date_from)
     if date_to:
         query = query.filter(Event.start_date <= date_to)
+    # ⚠️ Both bounds are compared against the RAW price column, with no regard
+    # for the event's currency — a $45 event matches price_max=500 as readily as
+    # a ₹45 one. That is a known limitation, not an oversight; see TODO.md §25.
+    if price_min is not None:
+        query = query.filter(Event.price >= price_min)
     if price_max is not None:
         query = query.filter(Event.price <= price_max)
 

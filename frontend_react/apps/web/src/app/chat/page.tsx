@@ -3,9 +3,9 @@
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { eventsApi } from "@eventmind/api";
 import { useAuthStore, useTicketsStore, useChatUnreadStore } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
+import { isDummyMode, organizerSource } from "@/lib/data-source";
 import { GUTTERS } from "@/lib/layout";
 import { subFromToken } from "@/lib/chat";
 
@@ -36,8 +36,17 @@ export default function ChatInboxPage() {
 
   const { data: organised, isLoading: loadingOrganised } = useQuery({
     queryKey: ["chat-rooms-organised", userId],
-    queryFn: () => eventsApi.search({ organizer_id: userId }).then((r) => r.data),
-    enabled: hasHydrated && isAuthenticated && !!userId,
+    // ⚠️ `organizerSource.events`, not a bare `eventsApi.search` — a live API
+    // call here left the ORGANISER half of this inbox empty in dummy mode, so a
+    // room for an event you run never appeared and only the events you hold a
+    // ticket for did. `eventsSource.search({ organizer_id })` would not fix it
+    // either: dummy mode matches that filter literally, and the fixtures belong
+    // to `DUMMY_ORGANISER_ID`, never to the signed-in person's JWT subject.
+    // `organizerSource.events` is the one that knows to ignore the id there.
+    queryFn: () => organizerSource.events(userId).then((r) => r.data),
+    // The id is the real gate in real mode only; dummy mode ignores it, so
+    // waiting on it there would leave the inbox permanently loading.
+    enabled: hasHydrated && isAuthenticated && (isDummyMode || !!userId),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -105,7 +114,7 @@ export default function ChatInboxPage() {
               style={{ borderColor: `${GREEN} transparent transparent transparent` }} />
           </div>
         ) : sorted.length === 0 ? (
-          <div className="flex flex-col items-center py-24 gap-5 rounded-2xl"
+          <div className="flex flex-col items-center py-24 gap-5 rounded-lg"
             style={{ backgroundColor: "var(--brand-bg)", border: "1px solid var(--brand-border)" }}>
             <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
               style={{ backgroundColor: "var(--brand-surface)" }}>
@@ -119,14 +128,14 @@ export default function ChatInboxPage() {
             </div>
             <button
               onClick={() => router.push("/explore")}
-              className="px-6 py-3 rounded-xl text-sm font-bold text-[var(--brand-on-green)]"
+              className="px-6 py-3 rounded-lg text-sm font-bold text-[var(--brand-on-green)]"
               style={{ backgroundColor: GREEN }}
             >
               Explore events
             </button>
           </div>
         ) : (
-          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--brand-border)" }}>
+          <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--brand-border)" }}>
             {sorted.map((room, i) => {
               const unread = !!unreadRooms[room.id];
               return (

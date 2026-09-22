@@ -42,7 +42,7 @@ export function EventCard({ event, onTap }: Props) {
       // data-keep-type: opts this card out of the global 15px font-size floor so
       // its intentional 11/12/14px type is preserved exactly. Do not remove.
       data-keep-type
-      className="group bg-[var(--brand-surface)] rounded-2xl overflow-hidden cursor-pointer flex flex-col"
+      className="group bg-[var(--brand-surface)] rounded-lg overflow-hidden cursor-pointer flex flex-col"
       style={{ border: "1px solid var(--brand-border)" }}
     >
       {/* Image */}

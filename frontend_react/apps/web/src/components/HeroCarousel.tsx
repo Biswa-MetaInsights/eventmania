@@ -259,9 +259,11 @@ export function HeroCarousel() {
       {/* 50/50: copy left, photo right. Was 1fr_1.35fr inside the capped column. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
         {/* ── Right: rotating image panel ──────────────────────────────── */}
-        {/* order-2 everywhere: on mobile the copy leads and the image sits below;
-            at lg the image takes the wider right column. Fully rounded — it is
-            contained now, no off-screen edge.
+        {/* `order-1 lg:order-2`: when the hero STACKS (below lg) the photo leads
+            and the spoken exchange sits under it — Biswajith's call (2026-09-07);
+            on a phone the copy-first stack read as a wall of quotes with the
+            picture out of sight. At lg the image takes the right column as
+            before. Fully rounded — it is contained now, no off-screen edge.
 
             ⚠️ The panel is 16/9 at EVERY width because that is the native aspect of
             every photo in /public/hero (1376–1408 × 768). object-cover only crops
@@ -269,15 +271,31 @@ export function HeroCarousel() {
             cut. The old `lg:h-[min(82vh,820px)]` made the panel near-square (~777×738)
             and threw away ~40% of each photo's width — Gautham's "cut off in the
             middle". Do not pin a height here again; re-crop the source images first. */}
-        {/* The 5px green frame is Gautham's explicit call (2026-08-11), not the
-            app's border system — it is decoration on a photo, not a control, so
+        {/* The 5px frame is Gautham's explicit call (2026-08-11), not the app's
+            border system — it is decoration on a photo, not a control, so
             neither the 2px `--brand-control-border` rule nor `--brand-border`
             applies. Note `aspect-[16/9]` sizes the BORDER box (Tailwind sets
             box-sizing: border-box), so the frame eats 10px of the photo rather
-            than growing the panel. */}
+            than growing the panel.
+
+            ⚠️ IT IS VISIBLE IN DARK MODE ONLY (Gautham, 2026-08-20). The colour
+            comes from `--brand-hero-frame`, which is green in dark and
+            TRANSPARENT in light — a token, not a `dark:` class, because the
+            theme rides on `data-theme` rather than prefers-color-scheme. The
+            border keeps its 5px in both, so the panel's geometry and the photo
+            crop never shift when the theme flips.
+
+            ⚠️ `backgroundClip: padding-box` is what makes "transparent" actually
+            transparent. Backgrounds paint under the border by default, so
+            without it the #111827 letterbox fill below shows through the frame
+            and light mode gets a black border instead of no border. */}
         <div
-          className="relative w-full overflow-hidden rounded-2xl aspect-[16/9] order-2"
-          style={{ backgroundColor: "#111827", border: "5px solid var(--brand-green)" }}
+          className="relative w-full overflow-hidden rounded-lg aspect-[16/9] order-1 lg:order-2"
+          style={{
+            backgroundColor: "#111827",
+            backgroundClip: "padding-box",
+            border: "5px solid var(--brand-hero-frame)",
+          }}
         >
           {/* Outgoing image — static, no animation */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -315,7 +333,7 @@ export function HeroCarousel() {
 
           <Link
             href={activeSlide.href}
-            className="absolute bottom-5 left-5 inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors"
+            className="absolute bottom-5 left-5 inline-flex items-center gap-2 px-5 py-3 rounded-lg font-bold transition-colors"
             style={{ backgroundColor: "var(--brand-terracotta)", color: "var(--brand-on-terracotta)" }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--brand-terracotta-hover)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--brand-terracotta)"; }}
@@ -334,18 +352,28 @@ export function HeroCarousel() {
               CTA ever comes back. */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
             {m.slides.map((slide, i) => (
+              // The bar is 4px tall; the button around it carries invisible
+              // padding (cancelled by the negative margin) so the tap target is
+              // ~28px without the dots moving or the row getting taller. On a
+              // COARSE pointer (finger) the padding grows to a 44px-tall,
+              // 12px-wider hit area — still cancelled by the margin, so the
+              // dots sit exactly where they do under a mouse.
               <button
                 key={slide.src}
                 onClick={() => goTo(i)}
                 aria-label={slide.label}
-                className="h-1 rounded-full transition-all duration-300"
-                // White, not terracotta — the CTA is terracotta now, and two
-                // terracotta elements on one photo read as the same control.
-                style={{
-                  width: activeIdx === i ? 28 : 8,
-                  backgroundColor: activeIdx === i ? "#FFFFFF" : "rgba(255,255,255,0.45)",
-                }}
-              />
+                className="flex items-center py-3 -my-3 px-1 -mx-1 [@media(pointer:coarse)]:py-5 [@media(pointer:coarse)]:-my-5 [@media(pointer:coarse)]:px-2 [@media(pointer:coarse)]:-mx-2"
+              >
+                <span
+                  className="block h-1 rounded-full transition-all duration-300"
+                  // White, not terracotta — the CTA is terracotta now, and two
+                  // terracotta elements on one photo read as the same control.
+                  style={{
+                    width: activeIdx === i ? 28 : 8,
+                    backgroundColor: activeIdx === i ? "#FFFFFF" : "rgba(255,255,255,0.45)",
+                  }}
+                />
+              </button>
             ))}
           </div>
         </div>
@@ -356,7 +384,7 @@ export function HeroCarousel() {
             site reads on). `max-w-[560px]` is what makes centring mean anything: a
             full-width block has nothing to centre. 560 is measured, not chosen — it
             is the LONGEST spoken turn's width at the 46px cap, plus a little air. */}
-        <div className="order-1 w-full max-w-[600px] mx-auto">
+        <div className="order-2 lg:order-1 w-full max-w-[600px] mx-auto">
           {/* PARKED 2026-08-11 at Gautham's request — the Events / Communities
               segmented toggle. Not deleted: the whole `communities` mode is still
               wired and this is the only thing that reaches it. To restore, uncomment
@@ -369,7 +397,7 @@ export function HeroCarousel() {
               toggle means un-parking the whole feature: grep `PARKED 2026-08-14`.
 
           <div
-            className="inline-flex p-1 rounded-xl mb-6"
+            className="inline-flex p-1 rounded-lg mb-6"
             style={{ backgroundColor: "var(--brand-bg)", border: "2px solid var(--brand-control-border)" }}
           >
             {(Object.keys(MODES) as ModeKey[]).map((key) => {
@@ -379,7 +407,7 @@ export function HeroCarousel() {
                   key={key}
                   onClick={() => setMode(key)}
                   aria-pressed={active}
-                  className="px-5 py-2 rounded-lg font-semibold transition-colors"
+                  className="px-5 py-2 rounded-md font-semibold transition-colors"
                   style={{
                     backgroundColor: active ? "var(--brand-green)" : "transparent",
                     color: active ? "var(--brand-on-green)" : "var(--brand-text)",
@@ -466,14 +494,14 @@ export function HeroCarousel() {
           <div className="flex flex-wrap gap-3">
             <Link
               href={m.primary.href}
-              className="px-7 py-3.5 rounded-xl font-bold transition-opacity hover:opacity-90"
+              className="px-7 py-3.5 rounded-lg font-bold transition-opacity hover:opacity-90"
               style={{ backgroundColor: "var(--brand-green)", color: "var(--brand-on-green)" }}
             >
               {m.primary.label}
             </Link>
             <Link
               href={m.secondary.href}
-              className="px-7 py-3.5 rounded-xl font-bold transition-colors"
+              className="px-7 py-3.5 rounded-lg font-bold transition-colors"
               style={{
                 backgroundColor: "var(--brand-surface)",
                 color: "var(--brand-text)",

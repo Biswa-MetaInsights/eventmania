@@ -116,10 +116,10 @@ export default function CheckoutPage({
           <div>
             <h2 className="text-[22px] font-bold text-[var(--brand-text)] mb-6">Your Order</h2>
 
-            <div className="bg-[var(--brand-bg)] rounded-3xl p-5 sm:p-8" style={{ border: "1px solid var(--brand-border)" }}>
+            <div className="bg-[var(--brand-bg)] rounded-lg p-5 sm:p-8" style={{ border: "1px solid var(--brand-border)" }}>
               {/* Event row */}
               <div className="flex items-center gap-4 sm:gap-6 pb-6" style={{ borderBottom: "1px solid var(--brand-border)" }}>
-                <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center shrink-0"
+                <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg flex items-center justify-center shrink-0"
                   style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)` }}>
                   <svg className="w-7 h-7 sm:w-10 sm:h-10" fill="none" viewBox="0 0 24 24" stroke={GREEN} strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round"
@@ -141,13 +141,13 @@ export default function CheckoutPage({
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setTicketCount((c) => Math.max(1, c - 1))}
-                    className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-colors"
+                    className="w-8 h-8 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 rounded-full flex items-center justify-center font-bold text-lg transition-colors"
                     style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)`, color: GREEN }}
                   >−</button>
                   <span className="text-[18px] font-bold w-6 text-center text-[var(--brand-text)]">{ticketCount}</span>
                   <button
                     onClick={() => setTicketCount((c) => c + 1)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-colors"
+                    className="w-8 h-8 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 rounded-full flex items-center justify-center font-bold text-lg transition-colors"
                     style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)`, color: GREEN }}
                   >+</button>
                 </div>
@@ -175,13 +175,13 @@ export default function CheckoutPage({
               {isFree ? "Confirm Registration" : "Payment Method"}
             </h2>
 
-            <div className="bg-[var(--brand-bg)] rounded-3xl p-5 sm:p-8"
+            <div className="bg-[var(--brand-bg)] rounded-lg p-5 sm:p-8"
               style={{ border: "1px solid var(--brand-border)", boxShadow: "0 10px 40px rgba(0,0,0,0.05)" }}>
 
               {isFree ? (
                 /* Free event — just show who's registering, no card needed */
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 rounded-xl" style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 4%, transparent)` }}>
+                  <div className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 4%, transparent)` }}>
                     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke={GREEN} strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                     </svg>
@@ -217,7 +217,7 @@ export default function CheckoutPage({
               <button
                 onClick={handlePay}
                 disabled={isProcessing}
-                className="mt-6 w-full py-4 rounded-2xl text-[var(--brand-on-green)] text-[18px] font-bold transition-colors disabled:opacity-60"
+                className="mt-6 w-full py-4 rounded-lg text-[var(--brand-on-green)] text-[18px] font-bold transition-colors disabled:opacity-60"
                 style={{ backgroundColor: GREEN }}
                 onMouseEnter={(e) => !isProcessing && (e.currentTarget.style.backgroundColor = "var(--brand-green-hover)")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = GREEN)}
@@ -244,9 +244,11 @@ export default function CheckoutPage({
 
       {/* ── Success dialog ── */}
       {showSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center"
+        // p-4 on the backdrop keeps the card off the edges of a 320px phone,
+        // and overflow-y-auto lets a short landscape viewport scroll to it.
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
           style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="bg-[var(--brand-bg)] rounded-3xl p-10 max-w-md w-full mx-6 text-center shadow-2xl">
+          <div className="bg-[var(--brand-bg)] rounded-lg p-6 sm:p-10 max-w-md w-full my-auto text-center shadow-2xl">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
               style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)` }}>
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke={GREEN} strokeWidth={2.5}>
@@ -263,7 +265,7 @@ export default function CheckoutPage({
             </p>
             <button
               onClick={() => router.push("/dashboard")}
-              className="w-full py-4 rounded-2xl text-[var(--brand-on-green)] text-[16px] font-bold"
+              className="w-full py-4 rounded-lg text-[var(--brand-on-green)] text-[16px] font-bold"
               style={{ backgroundColor: GREEN }}
             >
               Go to My Tickets
@@ -293,7 +295,7 @@ function PayInput({ label, type, icon, value, onChange, placeholder }: {
   value: string; onChange: (v: string) => void; placeholder?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+    <div className="flex items-center gap-3 px-4 py-3 rounded-lg"
       style={{ backgroundColor: "var(--brand-surface)", border: "1px solid var(--brand-border)" }}>
       <span className="text-[var(--brand-hint)] shrink-0">{icon}</span>
       <input
@@ -301,7 +303,9 @@ function PayInput({ label, type, icon, value, onChange, placeholder }: {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? label}
-        className="flex-1 bg-transparent text-sm outline-none text-[var(--brand-text)] placeholder:text-[var(--brand-muted)]"
+        // min-w-0: an <input> has an intrinsic ~160px width and does not
+        // shrink below it, so Expiry + CVV overflowed the 1024px sidebar.
+        className="flex-1 min-w-0 bg-transparent text-sm outline-none text-[var(--brand-text)] placeholder:text-[var(--brand-muted)]"
       />
     </div>
   );

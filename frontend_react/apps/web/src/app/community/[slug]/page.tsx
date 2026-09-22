@@ -14,7 +14,7 @@ import { DetailStickyBar } from "@/components/DetailCard";
 import { SimilarCommunities } from "@/components/SimilarCommunities";
 import { toCommunityItem } from "@/lib/card-adapters";
 import { splitCommunityEvents } from "@/lib/community-events";
-import { communityImageUrl } from "@/lib/event-media";
+import { communityImageUrl, HERO_SCRIM } from "@/lib/event-media";
 import { heroTitleSize } from "@/lib/hero-title";
 import { GUTTERS } from "@/lib/layout";
 import { formatPrice } from "@/lib/currency";
@@ -25,9 +25,6 @@ const BG = BRAND.bg;
 const TEXT = BRAND.text;
 const HINT = BRAND.hint;
 
-// Same scrim as the /event/[id] hero — keep the two in step.
-const HERO_SCRIM =
-  "linear-gradient(to top, rgba(8,17,15,0.94) 0%, rgba(8,17,15,0.75) 32%, rgba(8,17,15,0.42) 62%, rgba(8,17,15,0.22) 100%)";
 
 // PARKED 2026-08-14 (MVP) — communities are deferred to Phase 2. This page is
 // left completely intact; the redirect that hides it lives one level up in
@@ -70,7 +67,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ slug
           <p className="text-[18px] font-semibold" style={{ color: HINT }}>Community not found</p>
           <button
             onClick={() => router.push("/communities")}
-            className="text-sm font-semibold px-4 py-2 rounded-xl text-[var(--brand-on-green)]"
+            className="text-sm font-semibold px-4 py-2 rounded-lg text-[var(--brand-on-green)]"
             style={{ backgroundColor: GREEN }}
           >
             Explore Communities

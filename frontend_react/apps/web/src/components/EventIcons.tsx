@@ -22,9 +22,16 @@
 //  Sizing is the caller's job via `className`; the default matches the compact
 //  card rows these mostly appear in.
 //
+//  THE FORMS ARE IN THE SET TOO, as of 2026-09-11: `FormControls.DateTimeInput`
+//  hides Chrome's own picker indicator and draws the calendar or the clock below
+//  instead, so `/organizer/create` and the organiser's edit dialog say "date"
+//  with the same glyph the cards do. **Never hand-draw a form's date icon.**
+//
 //  Not in this set (deliberately): the big decorative empty-state calendars,
 //  the /checkout "Expiry Date" field icon (that belongs to the payment form's
-//  own outline family), and the organiser console's stat glyphs.
+//  own outline family, and is a CARD's expiry rather than an event's date), and
+//  the organiser console's stat glyphs — including `ConsoleIcons.PendingIcon`,
+//  which is drawn as a clock but means "waiting on you", not a time.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ReactElement } from 'react'
@@ -187,6 +194,38 @@ export function BriefcaseIcon({ color = 'currentColor', className = DEFAULT_CLAS
   return (
     <svg className={className} viewBox="0 0 24 24" fill={color} fillRule="evenodd" clipRule="evenodd" aria-hidden="true">
       <path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 4h4V4h-4v2z" />
+    </svg>
+  )
+}
+
+/**
+ * A pencil resting on a ruled line — the app's **"edit this text" affordance**.
+ *
+ * ⚠️ THIS IS NOT `PencilIcon` BELOW, and the two must not be merged. That one is
+ * the **Creative category** tag glyph: it labels a kind of event, it appears
+ * inside a `CategoryBadge`, and it is never a control. This one is only ever a
+ * button — the home page's "edit location" trigger beside the city name, and
+ * `/event/[id]`'s "edit the event details" trigger beside the About heading.
+ * Same object, same drawing, one definition; a category chip and a control that
+ * happened to share a picture would be the coincidence, not the rule.
+ *
+ * ⚠️ IT IS ALSO NOT `ConsoleIcons.EditIcon`, which is the OUTLINE pencil worn by
+ * labelled "Edit" buttons — the hero's round control and the console's rows.
+ * The split is the one that file's header already draws: filled for content
+ * surfaces, outline for chrome. **Two edit pencils is one more than ideal** —
+ * if they are ever unified, unify them deliberately rather than by picking
+ * whichever import was nearest.
+ *
+ * Its own viewBox (`0 -0.5 21 21`) is the source artwork's and is kept as-is so
+ * the drawing is unchanged from the one already shipped on the home page.
+ */
+export function PencilLineIcon({ color = 'currentColor', className = DEFAULT_CLASS }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 -0.5 21 21" fill={color} aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M0,20 L20.616532,20 L20.616532,18.042095 L0,18.042095 L0,20 Z M7.215786,13.147332 L7.215786,10.51395 L13.094591,5.344102 L15.146966,7.493882 L9.903151,13.147332 L7.215786,13.147332 Z M16.244797,2.64513 L18.059052,4.363191 L16.645788,5.787567 L14.756283,3.993147 L16.244797,2.64513 Z M21,4.64513 L16.132437,0 L5.154133,9.687714 L5.154133,15.105237 L10.78657,15.105237 L21,4.64513 Z"
+      />
     </svg>
   )
 }

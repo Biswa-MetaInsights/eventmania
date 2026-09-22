@@ -99,11 +99,19 @@ const TAG = `${TAG_SHAPE} gap-1.5 font-bold leading-5`
 // the dark tints they replace (those measured ~1.2:1 at the near-black end and
 // lost their outline against a dark photo).
 //
+// ASSIGNED ELSEWHERE — taken from the reserve on 2026-09-02 for the organiser
+// console's row pills (`PILL_FILL` in components/organizer/ConsoleUI.tsx), so an
+// "On sale" chip in the console reads as the same object as a "This Week" tag on
+// a card. Those four are no longer free to take:
+//   Olive #7E8B3A → On sale, Denim #3E6FA0 → Scheduled,
+//   Slate #5F7080 → Completed, Rust #A8543A → a paid price.
+// (Draft reuses 'sold-out' grey and Free reuses Plum, both below — a console
+//  pill never invents a colour, it takes one from here.)
+//
 // RESERVE — in the palette, not yet on a tag. Take from here before inventing a
 // new colour, and record the assignment when you do:
-//   Olive #7E8B3A, Berry #BC5675,
-//   Rust #A8543A, Saffron #CFA02E, Lime #8FA83C, Aqua #2FA0A8, Denim #3E6FA0,
-//   Grape #6A5AB8, Orchid #B85FB0, Rose #C85888, Slate #5F7080
+//   Berry #BC5675, Saffron #CFA02E, Lime #8FA83C, Aqua #2FA0A8,
+//   Grape #6A5AB8, Orchid #B85FB0, Rose #C85888
 //
 // 'sold-out' deliberately keeps its neutral grey (Gautham's call): grey reads as
 // unavailable, and a palette hue would make it compete with the live tags.
@@ -111,7 +119,11 @@ const TAG = `${TAG_SHAPE} gap-1.5 font-bold leading-5`
 // 'today' and 'this-week' reuse the clock and calendar the cards already use
 // rather than getting a second drawing of the same concept (HANDOVER.md: one icon
 // per concept).
-const TAG_LABEL = '#F2EFEA'
+/** The label linen. Exported so the console's row pills carry the SAME off-white
+ *  as a status tag rather than a second near-white of their own — hardcoded, not
+ *  `var(--brand-surface)`, for the reason stated above: these fills are fixed in
+ *  both themes. */
+export const TAG_LABEL = '#F2EFEA'
 
 export const BADGE_CONFIG: Record<BadgeType, { bg: string; text: string; label: string; icon: EventIcon }> = {
   'free': { bg: '#A05FA0', text: TAG_LABEL, label: 'Free', icon: TagIcon },              // Plum    linen 3.95:1
@@ -290,23 +302,37 @@ export function CategoryBadge({
   className?: string
   size?: 'sm' | 'lg'
   /** Rendered inside the chip, after the label, on the same gap as the glyph.
-   *  `CategoryGrid` puts its "explore" arrow here so the arrow reads as part of
-   *  the category rather than as a separate control. Keep it DECORATIVE — this
-   *  chip is not interactive, and on a tile it sits inside a link. */
+   *  ⚠️ **Currently uncalled.** It existed for `CategoryGrid`'s "explore" arrow,
+   *  removed on 2026-08-21; the prop stayed because it is generic and the chip
+   *  is shared — a future trailing node belongs here rather than in a fork.
+   *  Keep whatever goes in DECORATIVE: this chip is not interactive, and on a
+   *  tile it sits inside a link, where a nested control would be a second tab
+   *  stop for one action. */
   trailing?: ReactNode
 }) {
   const { accent, icon: Icon } = categoryStyle(category)
   const large = size === 'lg'
-  // ⚠️ The 'lg' size is held to a measurement, not chosen by eye. A
-  // `CategoryGrid` tile is 321px at the narrowest 4-across column, leaving a
-  // 285px row; with the explore arrow now INSIDE the chip, the longest name —
-  // "Health & Wellness" — comes to 266px and clears by 19px. Every other
-  // category has 58px+ of slack. (It was briefly 18px, when the arrow was a
-  // separate 44px button sharing the row: that left only 229px, and 20px
-  // clipped by 5px. Clubbing the arrow into the chip bought the size back.)
+  // ⚠️ The 'lg' size is held to a measurement, not chosen by eye, and every
+  // number below is ONE 0.9 SCALE off the 20px original (Gautham, 2026-08-21:
+  // "reduce the font size by 2px, and reduce the button size accordingly
+  // maintaining the same proportions"). 20→18 type, and with it 24→22 leading,
+  // 24→22 glyph, 16→14 inline padding, 10→9 block padding, 8→7 gap — each
+  // within ~2% of ×0.9, rounded to a whole pixel. **Change one and you have
+  // broken the set: re-scale all six, do not nudge a single value.**
+  //
+  // The width it has to clear: a `CategoryGrid` tile is 321px at the narrowest
+  // 4-across column, leaving a 285px row. At 20px WITH the explore arrow the
+  // longest name — "Health & Wellness" — came to 266px, clearing by only 19px.
+  // Two things bought that back, and both are why 18px is safe now: the arrow
+  // was removed (~28px of glyph + gap) and the chip scaled to 0.9, which puts
+  // the same name near 214px — roughly 71px of slack, where every other
+  // category had 58px+ even at the old size. (18px was tried and rejected ONCE
+  // before, when the arrow was still a separate 44px button sharing the row:
+  // that left 229px and clipped 20px by 5px. Different layout, same number —
+  // do not read that history as a verdict on 18px itself.)
   // **Re-measure from Roboto Bold's advance widths before enlarging this.**
   const sizing = large
-    ? 'gap-2 px-4 py-2.5 text-[20px] leading-6'
+    ? 'gap-[7px] px-3.5 py-[9px] text-[18px] leading-[22px]'
     : 'gap-1.5 px-3.5 py-1.5 text-[15px] leading-5'
 
   return (
@@ -314,7 +340,9 @@ export function CategoryBadge({
       className={`${TAG_SHAPE} font-bold ${sizing} tracking-[0.02em] ${className}`}
       style={{ backgroundColor: CHIP_FILL, color: accent }}
     >
-      <Icon color={accent} className={large ? 'w-6 h-6 shrink-0' : GLYPH} />
+      {/* 22px, not `w-6` — part of the 0.9 scale above, and the one piece of it
+          that lives outside `sizing` because it is the glyph's own class. */}
+      <Icon color={accent} className={large ? 'w-[22px] h-[22px] shrink-0' : GLYPH} />
       {/* Only 'lg' wraps its label: it is the one size that can be width-capped
           by its container, so it ellipsises rather than pushing out of the tile.
           'sm' is left byte-identical to what every existing surface renders. */}

@@ -10,6 +10,22 @@ import type { Event } from "@eventmind/types";
 import { formatPrice } from "@/lib/currency";
 
 /**
+ * THE darkening wash that goes over a hero photo so light copy reads on it.
+ *
+ * One definition, three surfaces: the /event/[id] hero, the /community/[slug]
+ * hero, and the organiser dashboard's "next up" panel. It lived as a private
+ * const in the first two — byte-identical, with a comment in one asking the next
+ * person to keep them in step by hand — which is the drift this file exists to
+ * prevent. The console needing a third copy is what made it worth lifting.
+ *
+ * Bottom-heavy on purpose: the title block sits at the foot of a hero, so the
+ * gradient is near-opaque there (0.94) and barely present at the top (0.22),
+ * which keeps the photograph readable as a photograph.
+ */
+export const HERO_SCRIM =
+  "linear-gradient(to top, rgba(8,17,15,0.94) 0%, rgba(8,17,15,0.75) 32%, rgba(8,17,15,0.42) 62%, rgba(8,17,15,0.22) 100%)";
+
+/**
  * The event's own picture. Prefers a real uploaded/synced image (`image_url`,
  * e.g. Ticketmaster events) and otherwise falls back to the same deterministic
  * picsum placeholder the EventCard uses, so the shared image matches the card.

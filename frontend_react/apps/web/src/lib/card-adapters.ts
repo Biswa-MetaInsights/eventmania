@@ -1,7 +1,23 @@
 import type { Event, Community } from "@eventmind/types";
 import { formatPrice } from "@/lib/currency";
+import { eventImageUrl } from "@/lib/event-media";
 import type { CarouselEvent } from "@/components/EventsCarousel";
 import type { CommunityItem } from "@/components/CommunityCarousel";
+
+/**
+ * THE card picture for a community. Communities have no `image_url` column
+ * yet (see the `Community` type), so this is always the seeded placeholder —
+ * there is nothing real to prefer. An event's card uses `eventImageUrl()`
+ * instead (see `toCarouselEvent` below), which DOES prefer a real cover
+ * image and falls back to this same seed when there is none.
+ *
+ * Exported because the ORGANISER CONSOLE draws a community row's thumbnail
+ * with it too. Keep every community-card surface on this one function; a
+ * second hand-written picsum URL is how they drift.
+ */
+export function cardImageUrl(id: string | number, w: number, h: number): string {
+  return `https://picsum.photos/seed/${id}/${w}/${h}`;
+}
 
 // Returns true when the event starts within today (inclusive) through today+6 days (inclusive).
 function isThisWeek(startDate: Date): boolean {
@@ -13,11 +29,24 @@ function isThisWeek(startDate: Date): boolean {
   return startDate >= todayStart && startDate <= weekEnd;
 }
 
+/**
+ * THE card's date and time strings — "Fri, 11 Sep" and "07:00 pm". Exported
+ * because /dashboard's ticket card draws a `StoredTicket` (an ISO start, no
+ * card fields) on the same card, and its date row must read like every other
+ * card's. Never format a card date by hand elsewhere.
+ */
+export function cardDateTime(iso: string): { date: string; time: string } {
+  const start = new Date(iso);
+  return {
+    date: start.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
+    time: start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+  };
+}
+
 // Adapts an API Event into the home-page CarouselEvent card shape.
 export function toCarouselEvent(event: Event): CarouselEvent {
   const start = new Date(event.start_date);
-  const date = start.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
-  const time = start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const { date, time } = cardDateTime(event.start_date);
   const venue = (event.location as Record<string, string>)?.name ?? "Venue TBC";
   const price = Number(event.price);
   const isFree = price === 0;
@@ -43,7 +72,7 @@ export function toCarouselEvent(event: Event): CarouselEvent {
     time,
     venue,
     price: isFree ? "Free" : `${formatPrice(price, event.currency)} onwards`,
-    imageUrl: `https://picsum.photos/seed/${event.id}/800/450`,
+    imageUrl: eventImageUrl(event, 800, 450),
     badge: badgeTypes[0] ? LABELS[badgeTypes[0]] : undefined,
     badgeTypes: badgeTypes.length ? badgeTypes : undefined,
     isSoldOut,
@@ -85,7 +114,7 @@ export function toCommunityItem(community: Community): CommunityItem {
     // native, so they take the platform default rather than a per-row code.
     price: isFree ? "Free" : `${formatPrice(price)}/month onwards`,
     memberCount,
-    imageUrl: `https://picsum.photos/seed/${community.id}/800/450`,
+    imageUrl: cardImageUrl(community.id, 800, 450),
     badge: isFree ? "Free" : undefined,
     badgeType: isFree ? "free" : undefined,
     category: community.category.toLowerCase(),

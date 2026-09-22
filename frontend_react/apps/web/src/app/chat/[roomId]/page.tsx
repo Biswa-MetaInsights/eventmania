@@ -104,7 +104,8 @@ function ChatPageInner({ roomId }: { roomId: string }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--brand-bg)]">
+    // dvh, not vh: with 100vh the composer sits under a phone's URL bar.
+    <div className="flex flex-col h-[100dvh] bg-[var(--brand-bg)]">
       <Navbar />
 
       {/* ── Chat header ── */}
@@ -156,7 +157,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
                 </p>
               )}
               <div
-                className="px-5 py-3 rounded-2xl max-w-[85%] sm:max-w-[60%] text-[16px] leading-relaxed break-words"
+                className="px-5 py-3 rounded-lg max-w-[85%] sm:max-w-[60%] text-[16px] leading-relaxed break-words"
                 style={{
                   backgroundColor: isMe ? GREEN : "color-mix(in srgb, var(--brand-text) 7%, transparent)",
                   color: isMe ? ON_GREEN : TEXT,
@@ -185,7 +186,7 @@ function ChatPageInner({ roomId }: { roomId: string }) {
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             placeholder="Send a message to attendees…"
             disabled={!isConnected}
-            className="flex-1 px-5 py-3.5 rounded-2xl text-sm outline-none disabled:opacity-50"
+            className="flex-1 px-5 py-3.5 rounded-lg text-sm outline-none disabled:opacity-50"
             style={{ backgroundColor: SURFACE, border: `1px solid ${BORDER}`, color: TEXT }}
           />
           <button

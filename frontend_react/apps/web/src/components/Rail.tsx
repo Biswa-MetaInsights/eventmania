@@ -204,7 +204,7 @@ function ArrowButton({
 /**
  * The two-button switch a rail can carry in its header (Previous / Upcoming).
  *
- * Shape + border rules from HANDOVER.md: the track is `rounded-lg` and its items
+ * Shape + border rules from apps/web/CLAUDE.md: the track is `rounded-lg` and its items
  * `rounded-md` so the inner radius nests, and BOTH states carry a 2px border so
  * the control does not resize when you click it.
  */

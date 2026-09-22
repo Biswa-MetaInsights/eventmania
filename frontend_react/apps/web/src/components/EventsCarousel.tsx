@@ -18,6 +18,10 @@ export interface CarouselEvent {
   time: string
   venue: string
   price: string
+  /** An organiser's real cover photo (upload or pasted link) when they set
+   *  one, else the deterministic picsum placeholder — see `eventImageUrl()`
+   *  in `lib/event-media.ts`. Never assume this host is in `next.config.ts`'s
+   *  `remotePatterns`; every `<Image>` reading it below is `unoptimized`. */
   imageUrl: string
   badge?: string
   badgeTypes?: BadgeType[]
@@ -85,8 +89,119 @@ const CONTROL_BORDER = BRAND.controlBorder
 // Badge colours/labels + the pill itself now live in ./EventBadges so the cards
 // and the /event/[id] hero render an identical tag. Import; do not re-create.
 
+// The card's share / wishlist / tag overlay is hover-revealed. A touch screen
+// has no hover, so on a coarse pointer it is simply shown — the desktop
+// (fine-pointer) render is untouched. Rendered in place of `opacity-0`.
+const TOUCH_REVEAL = 'opacity-0 [@media(pointer:coarse)]:opacity-100'
+
+// THE card grid — 1-up below sm, 2-up to xl, 4-up from xl. Exported so every
+// surface that lays out EventCardItems (/dashboard's three list tabs) sits on
+// the same columns as home; a card is "the same size" only if its grid is too.
+export const CARD_GRID = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5'
+
+// Keyed to CARD_GRID's breakpoints: 1-up below sm (px-4 gutters), 2-up to
+// xl, 4-up from xl. Identical string in CategoryGrid — change both together.
+const IMAGE_SIZES =
+  '(max-width: 639px) calc(100vw - 32px), (max-width: 1279px) calc(50vw - 34px), calc(25vw - 39px)'
+
 const FILTER_TABS = ['All', 'Recommended', 'This Week', 'Free', 'Music', 'Food']
 const ONLINE_FILTER_TABS = ['All', 'Recommended', 'Free', 'This Week', 'Selling Fast']
+
+// ─── Filter tabs ───────────────────────────────────────────────────────────────
+
+// ONE control for both rows (offline + online). They were two copy-pasted
+// blocks on one silhouette with a "change both together" note; this is the
+// "one control = one component" rule applied, so they cannot drift.
+//
+// Two renders. The tab ROW is for a wide screen driven by a mouse; everything
+// else gets the DROPDOWN (Biswajith, 2026-09-07: "only when the screen is too
+// small, and touch is needed — starting from tablet"). Concretely:
+//   · `lg` (1024px) and up WITH a fine pointer — the tab row exactly as it
+//     was: `rounded-lg`, 20px semibold, 2px border on BOTH states, green fill
+//     when picked. Same silhouette as the card's "View details" CTA and the
+//     console's `Tabs` — move the three together (CLAUDE.md, Shape).
+//   · below lg, OR any device whose primary pointer is a finger — a NATIVE
+//     <select> wearing the picked tab's silhouette. Six tabs at this size are
+//     ~670px wide, so on a phone the row only fit by scrolling sideways, and a
+//     hidden-scrollbar row does not advertise that it scrolls — "Music" and
+//     "Food" were simply unreachable to anyone who didn't guess. A native
+//     select opens the OS picker sheet on touch, which is the most reliable
+//     dropdown a phone or tablet has; /explore's city and sort controls set the
+//     precedent for a native select on a public page, and globals.css already
+//     themes its <option> rows. `appearance-none` drops the browser's own
+//     arrow so the caret matches the console's `FilterSelect`; the caret is
+//     `pointer-events-none` so a tap on it still opens the select underneath.
+//
+// ⚠️ Both renders gate on the SAME stacked variant, `lg:[@media(pointer:fine)]`,
+// so they are complementary by construction. Do not rewrite it as `lg:flex`
+// plus a separate `[@media(pointer:coarse)]:hidden`: this build emits
+// arbitrary media variants BEFORE the built-in screens (CLAUDE.md,
+// Responsiveness), so the `lg:` rule would win on an iPad in landscape and
+// both controls would render. The `pointer` query, not a width, is what
+// catches that iPad — it is exactly 1024px wide.
+function FilterTabs({
+  tabs,
+  active,
+  onChange,
+  label,
+}: {
+  tabs: readonly string[]
+  active: string
+  onChange: (tab: string) => void
+  /** What the row filters — announced to screen readers, never drawn. */
+  label: string
+}) {
+  return (
+    <div className="px-4 sm:px-6 lg:px-12 mb-5">
+      {/* lg+ with a mouse: the tab row */}
+      <div className="hidden lg:[@media(pointer:fine)]:flex gap-2 overflow-x-auto scrollbar-hide pb-0.5" role="group" aria-label={label}>
+        {tabs.map((tab) => {
+          const on = tab === active
+          return (
+            <button
+              key={tab}
+              onClick={() => onChange(tab)}
+              aria-pressed={on}
+              className="flex-none px-4 py-1.5 rounded-lg text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
+              style={
+                on
+                  ? { backgroundColor: GREEN, color: ON_GREEN, border: `2px solid ${GREEN}` }
+                  : { backgroundColor: 'transparent', color: TEXT, border: `2px solid ${CONTROL_BORDER}` }
+              }
+            >
+              {tab}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* below lg, or on touch: the dropdown. `leading-normal` pins the select's
+          line box to the buttons' 1.5, so the control is the same 46px tall as
+          a tab. */}
+      <div className="relative inline-flex lg:[@media(pointer:fine)]:hidden">
+        <select
+          aria-label={label}
+          value={active}
+          onChange={(e) => onChange(e.target.value)}
+          className="appearance-none pl-4 pr-11 py-1.5 rounded-lg text-[20px] leading-normal font-semibold cursor-pointer focus:outline-none"
+          style={{ backgroundColor: GREEN, color: ON_GREEN, border: `2px solid ${GREEN}` }}
+        >
+          {tabs.map((tab) => (
+            <option key={tab} value={tab}>{tab}</option>
+          ))}
+        </select>
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4"
+          style={{ color: ON_GREEN }}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+        </svg>
+      </div>
+    </div>
+  )
+}
 
 // ─── Skeleton card ─────────────────────────────────────────────────────────────
 
@@ -95,7 +210,7 @@ const ONLINE_FILTER_TABS = ['All', 'Recommended', 'Free', 'This Week', 'Selling 
 export function SkeletonCard() {
   return (
     <div
-      className="rounded-2xl overflow-hidden animate-pulse"
+      className="rounded-lg overflow-hidden animate-pulse"
       style={{ border: `1px solid ${NAV_BORDER}`, backgroundColor: LINEN }}
     >
       <div className="w-full aspect-video bg-gray-200" />
@@ -139,7 +254,7 @@ function EditLocationButton() {
       </button>
       {hovered && (
         <span
-          className="absolute left-full ml-2 whitespace-nowrap text-[16px] font-semibold px-3 py-1 rounded-full z-10"
+          className="absolute left-full ml-2 whitespace-nowrap text-[16px] font-semibold px-3 py-1 rounded-lg z-10"
           style={{ backgroundColor: LINEN, color: GREEN, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
         >
           Click here to edit location
@@ -151,12 +266,44 @@ function EditLocationButton() {
 
 // ─── Individual event card ─────────────────────────────────────────────────────
 
+/** The CTA every card carries by default — exported so a caller filling the
+ *  `action` slot can put a differently-labelled button in the SAME silhouette
+ *  (the dashboard's Remove / Manage / Join Chat). Colours are the caller's. */
+export const CARD_CTA = 'shrink-0 px-4 py-1.5 rounded-lg text-[20px] font-bold transition-all duration-150 active:scale-[0.98]'
+
+/**
+ * THE event card — home, /explore, the /event/[id] rail AND /dashboard's three
+ * list tabs (Gautham, 2026-09-11: "just like how the event card is shown …
+ * except the contents and the images"). The three optional slots are how a
+ * dashboard tab changes the contents without forking the card; leave them all
+ * out and it renders byte-identically to what home shows.
+ *
+ *   media  — what fills the picture. Default: the photo with the share /
+ *            wishlist / tag overlays. A ticket puts its QR code here.
+ *   lines  — extra rows between the date row and the price row: a ticket
+ *            number and seat, an organiser's "Draft" status.
+ *   action — the control beside the price. Default: "View details". Build a
+ *            replacement on `CARD_CTA` so it is the same size.
+ *   href   — where the whole card goes. Default: /event/{id}.
+ *
+ * ⚠️ A replacement `action` sits INSIDE the <Link>, so it must
+ * `preventDefault()` + `stopPropagation()` like the default one does, or its
+ * click also opens the event.
+ */
 export function EventCardItem({
   event,
   onBookNow,
+  media,
+  lines,
+  action,
+  href,
 }: {
   event: CarouselEvent
   onBookNow?: (id: string) => void
+  media?: ReactNode
+  lines?: ReactNode
+  action?: ReactNode
+  href?: string
 }) {
   const [hovered, setHovered] = useState(false)
   // Sold-out is signalled by the greyed image + "Sold Out" button, not a pill.
@@ -165,10 +312,10 @@ export function EventCardItem({
 
   return (
     <Link
-      href={`/event/${event.id}`}
+      href={href ?? `/event/${event.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className="relative rounded-lg overflow-hidden flex flex-col"
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -177,26 +324,32 @@ export function EventCardItem({
         transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
       }}
     >
-      {/* Image */}
+      {/* Image — or whatever the caller put in the picture slot, at the same
+          aspect so the card keeps its height. */}
       <div className={['relative w-full aspect-video overflow-hidden', event.isSoldOut ? 'grayscale opacity-60' : ''].join(' ')}>
-        <Image
-          src={event.imageUrl}
-          alt={event.title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) calc(100vw - 96px), (max-width: 1024px) calc(50vw - 72px), (max-width: 1280px) calc(33vw - 60px), calc(25vw - 60px)"
-        />
-        <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><EventShareButton item={event} /></div>
-        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><EventWishlistButton item={event} /></div>
-        {/* Category left, status tags right — the same pairing /event/[id] uses,
-            so a card and the page it opens read as the same event. A sold-out
-            card keeps its category but drops the status pills (sold-out is
-            signalled by the greyed image + the "Sold Out" button instead). */}
-        <CardTagRow
-          category={event.category}
-          types={event.isSoldOut ? undefined : activeBadges}
-          className={`absolute bottom-2 left-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}
-        />
+        {media ?? (
+          <>
+            <Image
+              src={event.imageUrl}
+              alt={event.title}
+              fill
+              unoptimized
+              className="object-cover"
+              sizes={IMAGE_SIZES}
+            />
+            <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : TOUCH_REVEAL}`}><EventShareButton item={event} /></div>
+            <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : TOUCH_REVEAL}`}><EventWishlistButton item={event} /></div>
+            {/* Category left, status tags right — the same pairing /event/[id] uses,
+                so a card and the page it opens read as the same event. A sold-out
+                card keeps its category but drops the status pills (sold-out is
+                signalled by the greyed image + the "Sold Out" button instead). */}
+            <CardTagRow
+              category={event.category}
+              types={event.isSoldOut ? undefined : activeBadges}
+              className={`absolute bottom-2 left-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : TOUCH_REVEAL}`}
+            />
+          </>
+        )}
       </div>
 
       {/* Card body */}
@@ -210,7 +363,7 @@ export function EventCardItem({
         {/* Date + venue. Each glyph is bound tight to its own label (gap-[3px]) and the
             pairs are spaced apart (gap-3.5), so the row reads as three fields
             rather than six evenly-spaced things. */}
-        <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex items-center gap-3.5 min-w-0 max-sm:flex-wrap">
           <span className="flex items-center gap-[3px] shrink-0">
             <CalendarIcon color={TEXT} />
             <span className="text-[18px]" style={{ color: TEXT }}>
@@ -233,8 +386,10 @@ export function EventCardItem({
           )}
         </div>
 
+        {lines}
+
         {/* Price (left) + View details button (right) */}
-        <div className="flex items-center justify-between mt-auto pt-1.5 gap-2">
+        <div className="flex items-center justify-between mt-auto pt-1.5 gap-2 max-sm:flex-wrap">
           <span style={{ color: priceFg }}>
             {event.isSoldOut ? (
               <span className="text-[20px] font-bold">Sold Out</span>
@@ -247,19 +402,21 @@ export function EventCardItem({
               <span className="text-[20px] font-bold">{event.price}</span>
             )}
           </span>
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBookNow?.(event.id) }}
-            aria-label={`View details for ${event.title}`}
-            disabled={event.isSoldOut}
-            className="shrink-0 px-4 py-1.5 rounded-xl text-[20px] font-bold transition-all duration-150 active:scale-[0.98]"
-            style={{
-              backgroundColor: event.isSoldOut ? MUTED_FILL : GREEN,
-              color: ON_GREEN,
-              cursor: event.isSoldOut ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {event.isSoldOut ? 'Sold Out' : 'View details'}
-          </button>
+          {action ?? (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBookNow?.(event.id) }}
+              aria-label={`View details for ${event.title}`}
+              disabled={event.isSoldOut}
+              className={CARD_CTA}
+              style={{
+                backgroundColor: event.isSoldOut ? MUTED_FILL : GREEN,
+                color: ON_GREEN,
+                cursor: event.isSoldOut ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {event.isSoldOut ? 'Sold Out' : 'View details'}
+            </button>
+          )}
         </div>
       </div>
     </Link>
@@ -285,7 +442,7 @@ function OnlineEventCard({
       href={`/event/${event.id}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className="relative rounded-lg overflow-hidden flex flex-col"
       style={{
         backgroundColor: LINEN,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -300,12 +457,13 @@ function OnlineEventCard({
           src={event.imageUrl}
           alt={event.title}
           fill
+          unoptimized
           className="object-cover"
-          sizes="(max-width: 768px) calc(100vw - 96px), (max-width: 1024px) calc(50vw - 72px), (max-width: 1280px) calc(33vw - 60px), calc(25vw - 60px)"
+          sizes={IMAGE_SIZES}
           style={{ transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 0.3s ease' }}
         />
-        <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><EventShareButton item={event} /></div>
-        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}><EventWishlistButton item={event} /></div>
+        <div className={`absolute top-2 left-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : TOUCH_REVEAL}`}><EventShareButton item={event} /></div>
+        <div className={`absolute top-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : TOUCH_REVEAL}`}><EventWishlistButton item={event} /></div>
         {/* Category left, status tags right — the same pairing /event/[id] uses,
             so a card and the page it opens read as the same event. A sold-out
             card keeps its category but drops the status pills (sold-out is
@@ -313,7 +471,7 @@ function OnlineEventCard({
         <CardTagRow
           category={event.category}
           types={event.isSoldOut ? undefined : activeBadges}
-          className={`absolute bottom-2 left-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute bottom-2 left-2 right-2 transition-opacity duration-150 ${hovered ? 'opacity-100' : TOUCH_REVEAL}`}
         />
       </div>
 
@@ -326,7 +484,7 @@ function OnlineEventCard({
         </h3>
 
         {/* Date, time + venue in one row — same glyph/label pairing as EventCardItem */}
-        <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex items-center gap-3.5 min-w-0 max-sm:flex-wrap">
           <span className="flex items-center gap-[3px] shrink-0">
             <CalendarIcon color={TEXT} />
             <span className="text-[18px]" style={{ color: TEXT }}>
@@ -350,7 +508,7 @@ function OnlineEventCard({
         </div>
 
         {/* Price (left) + View details button (right) */}
-        <div className="flex items-center justify-between mt-auto pt-1.5 gap-2">
+        <div className="flex items-center justify-between mt-auto pt-1.5 gap-2 max-sm:flex-wrap">
           <span style={{ color: priceFg }}>
             {event.isSoldOut ? (
               <span className="text-[20px] font-bold">Sold Out</span>
@@ -367,7 +525,7 @@ function OnlineEventCard({
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBookNow?.(event.id) }}
             aria-label={`View details for ${event.title}`}
             disabled={event.isSoldOut}
-            className="shrink-0 px-4 py-1.5 rounded-xl text-[20px] font-bold transition-all duration-150 active:scale-[0.98]"
+            className="shrink-0 px-4 py-1.5 rounded-lg text-[20px] font-bold transition-all duration-150 active:scale-[0.98]"
             style={{
               backgroundColor: event.isSoldOut ? MUTED_FILL : GREEN,
               color: ON_GREEN,
@@ -434,29 +592,9 @@ function OnlineEventsRow({
         </Link>
       </div>
 
-      {/* Filter tabs */}
-      <div className="px-4 sm:px-6 lg:px-12 mb-5">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
-          {ONLINE_FILTER_TABS.map((tab) => {
-            const active = tab === activeTab
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                aria-pressed={active}
-                className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
-                style={
-                  active
-                    ? { backgroundColor: GREEN, color: ON_GREEN, border: `2px solid ${GREEN}` }
-                    : { backgroundColor: 'transparent', color: TEXT, border: `2px solid ${CONTROL_BORDER}` }
-                }
-              >
-                {tab}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      {/* Filter tabs — tab row on a wide mouse-driven screen, dropdown below lg
+          or on touch (see FilterTabs) */}
+      <FilterTabs tabs={ONLINE_FILTER_TABS} active={activeTab} onChange={setActiveTab} label="Filter online events" />
 
       <div className="px-4 sm:px-6 lg:px-12 pb-3">
         {isLoading ? (
@@ -503,7 +641,7 @@ function SeeAllTile({ events, href }: { events: CarouselEvent[]; href: string })
       aria-label="View all events"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="rounded-2xl flex flex-col items-center justify-center gap-5"
+      className="rounded-lg flex flex-col items-center justify-center gap-5"
       style={{
         backgroundColor: tileBg,
         // Borderless at rest, exactly like EventCardItem — this tile IS a card in
@@ -521,7 +659,7 @@ function SeeAllTile({ events, href }: { events: CarouselEvent[]; href: string })
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: 136, height: 136 }}>
         {previews.map((e, i) => (
           <div key={i} className="relative rounded-lg overflow-hidden" style={{ backgroundColor: BORDER }}>
-            <Image src={e.imageUrl} alt="" fill className="object-cover" sizes="65px" />
+            <Image src={e.imageUrl} alt="" fill unoptimized className="object-cover" sizes="65px" />
           </div>
         ))}
         {Array.from({ length: placeholders }).map((_, i) => (
@@ -531,7 +669,9 @@ function SeeAllTile({ events, href }: { events: CarouselEvent[]; href: string })
       </div>
 
       {/* Label — font sizes intentionally match event title (text-[20px] font-bold)
-          and date/venue line (text-[18px]) so they stay in sync when those change */}
+          and date/venue line (text-[18px]) so they stay in sync when those change.
+          ⚠️ FeatureBand's tiles copy the same 20/18 pair for the same reason (they
+          sit on this page too) — move those with these. */}
       <div className="flex flex-col items-center gap-1 text-center">
         <span className="text-[20px] font-bold" style={{ color: labelFg, transition: 'color 0.15s ease' }}>
           View all
@@ -625,29 +765,9 @@ export function EventsCarousel({
         </Link>
       </div>
 
-      {/* ── Filter tabs ── */}
-      <div className="px-4 sm:px-6 lg:px-12 mb-5">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
-          {FILTER_TABS.map((tab) => {
-            const active = tab === activeTab
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                aria-pressed={active}
-                className="flex-none px-4 py-1.5 rounded-full text-[20px] font-semibold whitespace-nowrap transition-all duration-150"
-                style={
-                  active
-                    ? { backgroundColor: GREEN, color: ON_GREEN, border: `2px solid ${GREEN}` }
-                    : { backgroundColor: 'transparent', color: TEXT, border: `2px solid ${CONTROL_BORDER}` }
-                }
-              >
-                {tab}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      {/* ── Filter tabs — tab row on a wide mouse-driven screen, dropdown below
+          lg or on touch (see FilterTabs) ── */}
+      <FilterTabs tabs={FILTER_TABS} active={activeTab} onChange={setActiveTab} label={`Filter events in ${location}`} />
 
       {/* ── Event grid ── */}
       <div className="px-4 sm:px-6 lg:px-12 pb-8">

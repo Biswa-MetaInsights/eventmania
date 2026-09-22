@@ -56,7 +56,7 @@ export function ShareModal({ fallback, onClose }: Props) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-3xl overflow-hidden"
+        className="w-full max-w-md rounded-lg overflow-hidden"
         style={{ backgroundColor: "var(--brand-surface)", border: "1px solid var(--brand-border)" }}
       >
         <div className="flex items-center justify-between px-6 pt-5 pb-4">
@@ -77,7 +77,7 @@ export function ShareModal({ fallback, onClose }: Props) {
         {/* Story preview */}
         <div className="px-6">
           <div
-            className="mx-auto rounded-2xl overflow-hidden"
+            className="mx-auto rounded-lg overflow-hidden"
             style={{ width: 200, aspectRatio: "9 / 16", border: "1px solid var(--brand-border)" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -90,14 +90,14 @@ export function ShareModal({ fallback, onClose }: Props) {
           <a
             href={fallback.storyUrl}
             download={`${fallback.title}-newfind.png`}
-            className="w-full py-3.5 rounded-2xl text-[16px] font-bold text-center text-[var(--brand-on-green)] transition-colors"
+            className="w-full py-3.5 rounded-lg text-[16px] font-bold text-center text-[var(--brand-on-green)] transition-colors"
             style={{ backgroundColor: GREEN }}
           >
             Download image
           </a>
           <button
             onClick={copyLink}
-            className="w-full py-3.5 rounded-2xl text-[16px] font-bold transition-colors"
+            className="w-full py-3.5 rounded-lg text-[16px] font-bold transition-colors"
             style={{ border: "2px solid var(--brand-control-border)", color: "var(--brand-text)" }}
           >
             {copied ? "Link copied ✓" : "Copy link"}

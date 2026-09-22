@@ -44,7 +44,7 @@ function Tag({ hex, label, Icon, textColor }: { hex: string; label: string; Icon
 
 function Panel({ bg, label, textColor }: { bg: string; label: string; textColor: string }) {
   return (
-    <div className="rounded-3xl p-8" style={{ backgroundColor: bg, border: "1px solid rgba(128,128,128,0.25)" }}>
+    <div className="rounded-lg p-8" style={{ backgroundColor: bg, border: "1px solid rgba(128,128,128,0.25)" }}>
       <p className="text-[13px] font-bold uppercase tracking-[0.1em] mb-6" style={{ color: "var(--brand-hint)" }}>
         {label}
       </p>

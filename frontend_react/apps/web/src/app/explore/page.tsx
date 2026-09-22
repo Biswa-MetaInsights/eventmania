@@ -7,9 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { eventsSource } from "@/lib/data-source";
 import { useLocationStore, DEFAULT_CITY, CITIES, isOnlineCity } from "@eventmind/store";
 import type { City } from "@eventmind/store";
-import { EVENT_FORMATS, type Event, type Community } from "@eventmind/types";
+import { EVENT_FORMATS, DEFAULT_CURRENCY, type Event, type Community } from "@eventmind/types";
+import { formatPrice, currencySymbol } from "@/lib/currency";
 import { Navbar } from "@/components/navbar/Navbar";
 import { EventCardItem } from "@/components/EventsCarousel";
+import { SegmentedControl } from "@/components/SegmentedControl";
 // PARKED 2026-08-14 (MVP) — import { CommunityCardItem } from "@/components/CommunityCarousel";
 // PARKED 2026-08-14 (MVP) — `toCommunityItem` dropped from this import.
 import { toCarouselEvent } from "@/lib/card-adapters";
@@ -34,6 +36,71 @@ const EVENT_TYPES = ["All", "In-Person", "Online"];
 // is not what picking a city means. 200 is still one chip away.
 const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 200];
 const DEFAULT_RADIUS = 25;
+
+// ─── Price range ─────────────────────────────────────────────────────────────
+// ⚠️ The amounts here are compared as BARE NUMBERS against `Event.price`,
+// whatever currency that event is priced in — the backend's price_min/price_max
+// do exactly the same. The labels say ₹ because India is the launch market
+// (Gautham, 2026-09-08), so a $45 event still matches "Up to ₹500". Making that
+// honest needs an FX layer, which is TODO.md §25 — do NOT fake a conversion
+// here, and do not "fix" the labels to a currency-neutral "Min"/"Max" without
+// asking: the symbol is a deliberate launch-market choice, not an oversight.
+const PRICE_CURRENCY = DEFAULT_CURRENCY;
+
+/** "₹0", "₹2,000" — a filter bound, so 0 formats as an amount, not "Free". */
+const money = (n: number) => formatPrice(n, PRICE_CURRENCY, { freeLabel: null });
+
+// The slider's right-hand stop. It is a CAP, not a maximum price: parked at the
+// far right the handle means "no upper bound" (and reads "₹10,000+"), so an
+// event priced above it is never hidden by a limit nobody deliberately set.
+const PRICE_SLIDER_MAX = 10000;
+const PRICE_STEP = 100;
+
+// `max` is inclusive (the query is `price <= max`), hence "Up to", not "Under".
+//
+// ⚠️ **Free is a PRESET, not a separate control** (Gautham, 2026-09-08). It used
+// to be a toggle switch above this row, which made it a second thing that owned
+// `price_max` and had to be kept mutually exclusive with the range by hand. It
+// is simply the range 0 → 0, so it is a chip like any other and the whole
+// exclusivity problem is gone. **Do not put a Free toggle back.**
+const PRICE_PRESETS: { label: string; min: number | null; max: number | null }[] = [
+  { label: "Free", min: 0, max: 0 },
+  { label: `Up to ${money(500)}`, min: null, max: 500 },
+  { label: `${money(500)} – ${money(2000)}`, min: 500, max: 2000 },
+  { label: `${money(2000)}+`, min: 2000, max: null },
+];
+
+/** A URL price bound → a number, or null for absent/negative/nonsense. */
+function parsePrice(raw: string | null): number | null {
+  if (raw === null || raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/** "₹500 → ₹2,000", "₹2,000+", "Up to ₹500" — the Active chip's wording for a
+ *  range that matches no preset.
+ *
+ *  ⚠️ It must handle the both-null case, even though the chip only renders when
+ *  a range is set: it is computed on every render, and the first version reached
+ *  for `money(max!)` with nothing set and took the page down with it. */
+function priceRangeLabel(min: number | null, max: number | null): string {
+  if (min === 0 && max === 0) return "Free";
+  // A floor of zero constrains nothing, so it is not worth saying — "₹0 →
+  // ₹4,000" is "Up to ₹4,000" with extra words. It arises for real: pick Free,
+  // then drag the upper handle out.
+  if (min === 0) min = null;
+  if (min !== null && max !== null) return `${money(min)} → ${money(max)}`;
+  if (min !== null) return `${money(min)}+`;
+  if (max !== null) return `Up to ${money(max)}`;
+  return "Any price"; // unreachable via the chip, which renders only for a set range
+}
+
+// Same rule as matchingPreset() for dates: a chip lights up only while the range
+// still matches exactly what it would set.
+function matchingPricePreset(min: number | null, max: number | null): string | null {
+  if (min === null && max === null) return null;
+  return PRICE_PRESETS.find((p) => p.min === min && p.max === max)?.label ?? null;
+}
 
 // ─── Date presets ────────────────────────────────────────────────────────────────
 // The chips are pure sugar over dateFrom/dateTo — every preset resolves to a
@@ -229,7 +296,19 @@ function ExploreContent() {
   const [city, setCity] = useState<City>(
     CITIES.find((c) => c.name === searchParams.get("city")) ?? selectedCity
   );
-  const [freeOnly, setFreeOnly] = useState(searchParams.get("free") === "true");
+  // Either end may be null, which means "unbounded that way" — not 0, and not
+  // PRICE_SLIDER_MAX. Both are read from the URL so a filtered search is
+  // shareable, exactly like ?category= above.
+  //
+  // `?free=true` is the old Free-events toggle's parameter, kept as an alias for
+  // the range it always meant so a link shared before 2026-09-08 still lands on
+  // free events. Nothing writes it any more.
+  const [priceMin, setPriceMin] = useState<number | null>(() =>
+    searchParams.get("free") === "true" ? 0 : parsePrice(searchParams.get("price_min"))
+  );
+  const [priceMax, setPriceMax] = useState<number | null>(() =>
+    searchParams.get("free") === "true" ? 0 : parsePrice(searchParams.get("price_max"))
+  );
   const [sellingFast, setSellingFast] = useState(searchParams.get("selling_fast") === "true");
   const [radius, setRadius] = useState(Number(searchParams.get("radius")) || DEFAULT_RADIUS);
   // Lazy initialiser so presetRange() runs once, not on every render. A URL that
@@ -286,7 +365,8 @@ function ExploreContent() {
         q: q || undefined,
         category: category !== "All" ? category : undefined,
         event_type: EVENT_FORMATS.online,
-        price_max: freeOnly ? 0 : undefined,
+        price_min: priceMin ?? undefined,
+        price_max: priceMax ?? undefined,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
       };
@@ -298,11 +378,13 @@ function ExploreContent() {
       lat: city.lat,
       lng: city.lng,
       radius,
-      price_max: freeOnly ? 0 : undefined,
+      // Free is the range 0 → 0, so it needs no parameter of its own.
+      price_min: priceMin ?? undefined,
+      price_max: priceMax ?? undefined,
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
     };
-  }, [online, q, category, eventType, city, freeOnly, dateFrom, dateTo, radius]);
+  }, [online, q, category, eventType, city, priceMin, priceMax, dateFrom, dateTo, radius]);
 
   /* PARKED 2026-08-14 (MVP) — community query params. Communities have no format
      filter, so "online" is expressed as a category here (the documented exception
@@ -320,7 +402,7 @@ function ExploreContent() {
   */
 
   const { data: events, isLoading: eventsLoading } = useQuery({
-    queryKey: ["explore-events", online, q, category, eventType, city.name, freeOnly, dateFrom, dateTo, radius],
+    queryKey: ["explore-events", online, q, category, eventType, city.name, priceMin, priceMax, dateFrom, dateTo, radius],
     queryFn: () => eventsSource.search(buildEventParams()).then((r) => r.data),
     enabled: showEvents,
   });
@@ -378,6 +460,15 @@ function ExploreContent() {
   // the Active row shows as 3 chips.
   const hasDateFilter = !!dateFrom || !!dateTo;
 
+  // Same rule for the same reason: a range is one choice, so it counts once and
+  // shows as one Active chip.
+  //
+  // ⚠️ A LOWER bound of 0 on its own is not a filter — it is "any price" typed
+  // out — so it must not light the Active row or the count. A max of 0 is the
+  // Free preset and very much is one, hence the asymmetry.
+  const hasPriceRange = (priceMin !== null && priceMin > 0) || priceMax !== null;
+  const pricePreset = matchingPricePreset(priceMin, priceMax);
+
   // Radius is meaningless for the Online pseudo-city — those events sit at
   // lat/lng 0,0 and are queried by FORMAT, not by a geographic search — so the
   // control hides rather than sitting there doing nothing.
@@ -392,7 +483,7 @@ function ExploreContent() {
     category !== "All",
     showEventFilters && eventType !== "All",
     showEventFilters && sellingFast,
-    showEventFilters && freeOnly,
+    showEventFilters && hasPriceRange,
     showEventFilters && hasDateFilter,
     showRadius && radius !== DEFAULT_RADIUS,
   ].filter(Boolean).length;
@@ -415,12 +506,30 @@ function ExploreContent() {
     setDateTo("");
   }
 
+  // The single writer for both ends, and the reason the slider and the fields
+  // can never disagree: all three controls (slider, fields, preset chips) call
+  // this, and all three render from the same two numbers.
+  function setPriceRange(min: number | null, max: number | null) {
+    setPriceMin(min);
+    setPriceMax(max);
+  }
+
+  function clearPrice() {
+    setPriceRange(null, null);
+  }
+
+  function selectPricePreset(preset: (typeof PRICE_PRESETS)[number]) {
+    // Pressing the lit chip clears it, same as a date preset.
+    if (pricePreset === preset.label) clearPrice();
+    else setPriceRange(preset.min, preset.max);
+  }
+
   function clearFilters() {
     setCategory("All");
     setEventType("All");
     setSellingFast(false);
-    setFreeOnly(false);
     setRadius(DEFAULT_RADIUS);
+    clearPrice();
     clearDates();
   }
 
@@ -431,6 +540,9 @@ function ExploreContent() {
       : dateFrom
         ? `From ${shortDate(dateFrom)}`
         : `Until ${shortDate(dateTo)}`;
+
+  // A price range is ONE filter, not two, for the same reason a date range is.
+  const priceChipLabel = pricePreset ?? priceRangeLabel(priceMin, priceMax);
 
   const noun = view === "events" ? "event" : view === "communities" ? "community" : "result";
   const countLabel = (n: number) =>
@@ -467,7 +579,7 @@ function ExploreContent() {
               onChange={(e) => setQ(e.target.value)}
               // PARKED 2026-08-14 (MVP) — was "Search events or communities…"
               placeholder="Search events…"
-              className="w-full pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
+              className="w-full pl-10 pr-4 py-3 rounded-lg text-sm focus:outline-none focus:ring-2"
               style={{
                 border: "2px solid var(--brand-control-border)",
                 backgroundColor: "var(--brand-bg)",
@@ -480,7 +592,7 @@ function ExploreContent() {
           <select
             value={city.name}
             onChange={(e) => setCity(CITIES.find((c) => c.name === e.target.value) ?? selectedCity)}
-            className="px-4 py-3 rounded-xl text-sm focus:outline-none"
+            className="px-4 py-3 rounded-lg text-sm focus:outline-none"
             style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)", color: "var(--brand-text)" }}
           >
             {CITIES.map((c) => (
@@ -491,7 +603,7 @@ function ExploreContent() {
           </select>
 
           {/* Sort by */}
-          <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
+          <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm"
             style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)", color: "var(--brand-text)" }}>
             <span className="font-medium whitespace-nowrap" style={{ color: "var(--brand-hint)" }}>Sort by</span>
             <select
@@ -522,7 +634,7 @@ function ExploreContent() {
               Create Event, and un-park VIEW_SEGMENTS, selectView, setView and
               parseView further up.
 
-          <div className="flex w-full sm:w-auto sm:inline-flex rounded-2xl p-1 gap-1" style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-surface)" }}>
+          <div className="flex w-full sm:w-auto sm:inline-flex rounded-lg p-1 gap-1" style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-surface)" }}>
             {VIEW_SEGMENTS.map((seg) => {
               const active = view === seg.value;
               return (
@@ -530,7 +642,7 @@ function ExploreContent() {
                   key={seg.value}
                   onClick={() => selectView(seg.value)}
                   aria-pressed={active}
-                  className="flex-1 min-w-0 sm:flex-none px-2 sm:px-4 py-1.5 rounded-xl text-[18px] font-bold transition-all duration-150 active:scale-[0.98]"
+                  className="flex-1 min-w-0 sm:flex-none px-2 sm:px-4 py-1.5 rounded-md text-[18px] font-bold transition-all duration-150 active:scale-[0.98]"
                   style={{
                     backgroundColor: active ? GREEN : "transparent",
                     color: active ? "var(--brand-on-green)" : "var(--brand-text)",
@@ -563,7 +675,7 @@ function ExploreContent() {
           column; below lg it stacks above the results instead. */}
       <div className="px-4 sm:px-6 lg:px-12 pb-20 flex flex-col lg:flex-row items-start gap-6">
           <aside
-            className="w-full lg:w-[300px] lg:shrink-0 rounded-2xl overflow-hidden"
+            className="w-full lg:w-[300px] lg:shrink-0 rounded-lg overflow-hidden"
             style={{ backgroundColor: "var(--brand-surface)", border: "2px solid var(--brand-control-border)" }}
           >
             <div>
@@ -589,13 +701,35 @@ function ExploreContent() {
                   )}
                 </div>
 
+                {/* Bordered because it did not read as clickable without one
+                    (Gautham, 2026-09-08) — it was bare text in a header row. It
+                    takes the sidebar CHIP's silhouette (2px
+                    --brand-control-border, rounded-lg, transparent ground)
+                    rather than inventing a third outline width.
+                    Hover FILLS green with a linen label (Gautham, 2026-09-09) —
+                    the house hover rule. Greening only the label was too quiet
+                    to read as a button: in light mode --brand-hint is #111827
+                    and the hover green #184E4A, so near-black moved to dark
+                    green and almost nothing appeared to happen. */}
                 {activeFiltersCount > 0 && (
                   <button
                     onClick={clearFilters}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = GREEN)}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--brand-hint)")}
-                    className="flex items-center gap-1.5 text-sm font-bold transition-colors"
-                    style={{ color: "var(--brand-hint)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = GREEN;
+                      e.currentTarget.style.color = "var(--brand-on-green)";
+                      e.currentTarget.style.borderColor = GREEN;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "var(--brand-hint)";
+                      e.currentTarget.style.borderColor = "var(--brand-control-border)";
+                    }}
+                    className="flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-lg text-sm font-bold transition-colors"
+                    style={{
+                      backgroundColor: "transparent",
+                      color: "var(--brand-hint)",
+                      border: "2px solid var(--brand-control-border)",
+                    }}
                   >
                     <CloseGlyph />
                     Clear all
@@ -616,34 +750,25 @@ function ExploreContent() {
 
               {showEventFilters && (
                 <>
+                  {/* The green pill SLIDES between the three formats — the
+                      track, the pill and the curve all live in
+                      components/SegmentedControl.tsx. It used to be three
+                      `.nf-chip`s each painting its own background, which
+                      cross-faded and popped; a switch with a moving part reads
+                      as a switch. The forms' Event Type field is the same
+                      component, so a change here changes both. */}
                   <FilterSection label="Format">
-                    <div
-                      className="inline-flex flex-wrap rounded-xl p-1 gap-1"
-                      style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)" }}
-                    >
-                      {EVENT_TYPES.map((t) => {
-                        const active = eventType === t;
-                        return (
-                          <button
-                            key={t}
-                            onClick={() => setEventType(t)}
-                            aria-pressed={active}
-                            className={`nf-chip ${active ? "nf-chip-selected" : ""} px-3.5 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap`}
-                            style={{
-                              backgroundColor: active ? GREEN : "transparent",
-                              color: active ? "var(--brand-on-green)" : "var(--brand-text)",
-                            }}
-                          >
-                            {t}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <SegmentedControl
+                      options={EVENT_TYPES}
+                      value={eventType}
+                      onChange={setEventType}
+                      ariaLabel="Format"
+                    />
                   </FilterSection>
 
                   {/* Availability — the card's status tags, as filters. Only
-                      "Selling Fast" lives here: Free is the Price toggle below
-                      and This Week is a Date Range preset, so nothing has two
+                      "Selling Fast" lives here: Free is a Price preset below and
+                      This Week is a Date Range preset, so nothing has two
                       homes, and Sold Out is not something anyone browses FOR
                       (those cards already sink to the bottom via soldOutLast).
                       It is NOT a Category chip — an event is Music *and* selling
@@ -696,30 +821,47 @@ function ExploreContent() {
                     </div>
                   </FilterSection>
 
+                  {/* ⚠️ THREE CONTROLS, ONE RANGE (Gautham, 2026-09-08). The
+                      slider, the two fields and the preset chips are not
+                      alternatives — they all call `setPriceRange` and all render
+                      from `priceMin`/`priceMax`, so dragging a handle retypes the
+                      fields, typing an amount moves the handles, and a chip does
+                      both. **Never give one of them its own state**; that is the
+                      only way they can ever disagree.
+
+                      Order is deliberate and Gautham's: the slider reads the
+                      range at a glance and comes first, directly under the label;
+                      the fields are for an exact figure the slider's 100-step
+                      cannot hit. There is no "Any price" chip — the range starts
+                      cleared, and the Active chip's × or Clear all removes it. */}
                   <FilterSection label="Price">
-                    <button
-                      role="switch"
-                      aria-checked={freeOnly}
-                      onClick={() => setFreeOnly((v) => !v)}
-                      className="w-full flex items-center justify-between gap-4 px-4 py-2.5 rounded-xl transition-colors"
-                      style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)" }}
-                    >
-                      <span className="text-sm font-bold" style={{ color: "var(--brand-text)" }}>
-                        Free events only
-                      </span>
-                      <span
-                        className="relative w-11 h-6 rounded-full shrink-0 transition-colors"
-                        style={{ backgroundColor: freeOnly ? GREEN : "var(--brand-muted)" }}
-                      >
-                        <span
-                          className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full transition-transform"
-                          style={{
-                            backgroundColor: "var(--brand-surface)",
-                            transform: freeOnly ? "translateX(20px)" : "none",
-                          }}
-                        />
-                      </span>
-                    </button>
+                    <PriceSlider min={priceMin} max={priceMax} onChange={setPriceRange} />
+
+                    <div className="flex items-center gap-2 mt-4">
+                      <PriceField
+                        value={priceMin}
+                        onChange={(v) => setPriceRange(v, priceMax)}
+                        placeholder="Min"
+                      />
+                      <span className="text-sm shrink-0" style={{ color: "var(--brand-hint)" }}>→</span>
+                      <PriceField
+                        value={priceMax}
+                        onChange={(v) => setPriceRange(priceMin, v)}
+                        placeholder="Max"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {PRICE_PRESETS.map((p) => (
+                        <Chip
+                          key={p.label}
+                          active={pricePreset === p.label}
+                          onClick={() => selectPricePreset(p)}
+                        >
+                          {p.label}
+                        </Chip>
+                      ))}
+                    </div>
                   </FilterSection>
                 </>
               )}
@@ -746,8 +888,8 @@ function ExploreContent() {
                     {showEventFilters && hasDateFilter && (
                       <ActiveChip label={dateChipLabel} onRemove={clearDates} />
                     )}
-                    {showEventFilters && freeOnly && (
-                      <ActiveChip label="Free events only" onRemove={() => setFreeOnly(false)} />
+                    {showEventFilters && hasPriceRange && (
+                      <ActiveChip label={priceChipLabel} onRemove={clearPrice} />
                     )}
                   </div>
                 </div>
@@ -783,7 +925,7 @@ function ExploreContent() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={clearFilters}
-                className="mt-2 text-sm font-bold px-4 py-2 rounded-xl transition-all duration-150 active:scale-[0.98]"
+                className="mt-2 text-sm font-bold px-4 py-2 rounded-lg transition-all duration-150 active:scale-[0.98]"
                 style={{ backgroundColor: GREEN, color: "var(--brand-on-green)" }}
               >
                 Clear filters
@@ -829,7 +971,7 @@ function CreateButton({ label, onClick }: { label: string; onClick: () => void }
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[20px] font-bold text-[var(--brand-on-green)] transition-all duration-150 active:scale-[0.98]"
+      className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[20px] font-bold text-[var(--brand-on-green)] transition-all duration-150 active:scale-[0.98]"
       style={{ backgroundColor: GREEN }}
     >
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -862,7 +1004,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`nf-chip ${active ? "nf-chip-selected" : ""} px-3.5 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap`}
+      className={`nf-chip ${active ? "nf-chip-selected" : ""} px-3.5 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap`}
       style={{
         backgroundColor: active ? GREEN : "transparent",
         color: active ? "var(--brand-on-green)" : "var(--brand-text)",
@@ -881,22 +1023,169 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 pl-3.5 pr-2 py-1.5 rounded-xl text-sm font-bold"
+      className="inline-flex items-center gap-1.5 pl-3.5 pr-2 py-1.5 rounded-lg text-sm font-bold"
       style={{ backgroundColor: GREEN, color: "var(--brand-on-green)", border: `2px solid ${GREEN}` }}
     >
       {label}
-      <button onClick={onRemove} aria-label={`Remove ${label} filter`} className="transition-opacity hover:opacity-60">
+      {/* The glyph is 14px; the padding (given back by the negative margin, so
+          the chip's geometry is unchanged) makes the hit area 26px under a mouse
+          and 38px under a finger. Without it the × was a 14px tap target. */}
+      <button
+        onClick={onRemove}
+        aria-label={`Remove ${label} filter`}
+        className="p-1.5 -m-1.5 [@media(pointer:coarse)]:p-3 [@media(pointer:coarse)]:-m-3 transition-opacity hover:opacity-60"
+      >
         <CloseGlyph />
       </button>
     </span>
   );
 }
 
+/** A whole-rupee amount field with the currency symbol printed inside it. It is
+ *  `type="text"` + `inputMode="numeric"`, not `type="number"`: a number input
+ *  brings spinners, accepts "1e5" and silently reports "" for a value the
+ *  browser considers invalid, none of which a filter bound wants. Non-digits are
+ *  stripped as you type, so the field can only ever hold a valid amount. */
+function PriceField({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  placeholder: string;
+}) {
+  return (
+    <span className="relative flex-1 min-w-0">
+      <span
+        className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold pointer-events-none"
+        style={{ color: "var(--brand-hint)" }}
+      >
+        {currencySymbol(PRICE_CURRENCY)}
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value === null ? "" : String(value)}
+        placeholder={placeholder}
+        aria-label={`${placeholder} price`}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/[^0-9]/g, "");
+          onChange(digits === "" ? null : Number(digits));
+        }}
+        className="w-full pl-7 pr-3 py-2 rounded-lg text-sm font-bold border-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]/20 focus:border-[var(--brand-green)]
+          border-[var(--brand-control-border)] bg-[var(--brand-bg)] text-[var(--brand-text)]"
+      />
+    </span>
+  );
+}
+
+/** Two native range inputs stacked on one track. Native is deliberate: it is
+ *  keyboard- and screen-reader-operable for free, and a slider library would be
+ *  a dependency (which needs asking) for something 40 lines can do. The stack
+ *  only works because BOTH inputs are
+ *  `pointer-events-none` and only their thumbs take pointer events back — with
+ *  the inputs live, the top one would swallow every click on the bottom one.
+ *
+ *  ⚠️ The handles are `rounded-full`, which the shape rules otherwise reserve.
+ *  A slider handle is in the same family as a toggle knob (not a
+ *  button-with-a-label), but it IS an addition to that list — flagged to
+ *  Gautham, 2026-09-08. */
+function PriceSlider({
+  min,
+  max,
+  onChange,
+}: {
+  min: number | null;
+  max: number | null;
+  onChange: (min: number | null, max: number | null) => void;
+}) {
+  // null → the ends of the track. A typed value above the cap (option A can set
+  // one) clamps for DISPLAY only; the filter itself keeps the real number.
+  const lo = Math.min(min ?? 0, PRICE_SLIDER_MAX);
+  const hi = Math.min(max ?? PRICE_SLIDER_MAX, PRICE_SLIDER_MAX);
+  const pct = (v: number) => (v / PRICE_SLIDER_MAX) * 100;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-bold" style={{ color: "var(--brand-text)" }}>{money(lo)}</span>
+        {/* The right-hand stop is a cap, not a ceiling — say so, or "₹10,000"
+            would read as a claim that nothing costs more. */}
+        <span className="text-sm font-bold" style={{ color: "var(--brand-text)" }}>
+          {max === null ? `${money(PRICE_SLIDER_MAX)}+` : money(hi)}
+        </span>
+      </div>
+
+      {/* 24px of grab band under a mouse, 44px under a finger — the inputs are
+          inset-0, so the row's height IS the vertical hit area. The track spans
+          stay where they are (top-1/2), so the mouse geometry is unchanged. */}
+      <span className="relative block h-6 [@media(pointer:coarse)]:h-11">
+        <span
+          className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full"
+          style={{ backgroundColor: "var(--brand-muted)" }}
+        />
+        <span
+          className="absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full"
+          style={{ backgroundColor: GREEN, left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={PRICE_SLIDER_MAX}
+          step={PRICE_STEP}
+          value={lo}
+          aria-label="Minimum price"
+          // One step of clearance is kept between the handles so they can never
+          // cross or stack, and 0 means "no lower bound" rather than "free".
+          onChange={(e) => {
+            const v = Math.min(Number(e.target.value), hi - PRICE_STEP);
+            onChange(v <= 0 ? null : v, max);
+          }}
+          className={RANGE_INPUT_CLS}
+        />
+        <input
+          type="range"
+          min={0}
+          max={PRICE_SLIDER_MAX}
+          step={PRICE_STEP}
+          value={hi}
+          aria-label="Maximum price"
+          onChange={(e) => {
+            const v = Math.max(Number(e.target.value), lo + PRICE_STEP);
+            onChange(min, v >= PRICE_SLIDER_MAX ? null : v);
+          }}
+          className={RANGE_INPUT_CLS}
+        />
+      </span>
+    </div>
+  );
+}
+
+/** The thumb has to be styled per-engine — there is no cross-browser selector
+ *  for it — and the track is left transparent because the two spans behind these
+ *  inputs draw the real one. */
+const RANGE_INPUT_CLS =
+  "absolute inset-0 w-full h-full appearance-none bg-transparent pointer-events-none focus:outline-none " +
+  "[&::-webkit-slider-runnable-track]:bg-transparent " +
+  "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 " +
+  "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--brand-green)] " +
+  "[&::-webkit-slider-thumb]:bg-[var(--brand-surface)] [&::-webkit-slider-thumb]:cursor-pointer " +
+  "[@media(pointer:coarse)]:[&::-webkit-slider-thumb]:w-7 [@media(pointer:coarse)]:[&::-webkit-slider-thumb]:h-7 " +
+  "[&::-moz-range-track]:bg-transparent " +
+  "[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 " +
+  "[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[var(--brand-green)] " +
+  "[&::-moz-range-thumb]:bg-[var(--brand-surface)] [&::-moz-range-thumb]:cursor-pointer " +
+  "[@media(pointer:coarse)]:[&::-moz-range-thumb]:w-7 [@media(pointer:coarse)]:[&::-moz-range-thumb]:h-7";
+
 /** A date input that shows a word ("Start") instead of the browser's mm/dd/yyyy
  *  until it's focused or filled — `type="text"` has a placeholder, `type="date"`
  *  ignores one, so the type flips on focus. The native picker indicator is
- *  stretched over the whole field and hidden, so clicking anywhere opens it and
- *  our own left-hand calendar glyph is the only one visible. */
+ *  stretched over the whole field and hidden, so clicking anywhere opens it —
+ *  which is also why this field draws NO glyph of its own: two of these sit in
+ *  one narrow sidebar row either side of an arrow, and a calendar in each would
+ *  cost the words "Start" and "End" the room they need. It is therefore not a
+ *  `FormControls.DateTimeInput`, which is the app's glyphed date field. */
 function DateField({
   value,
   min,
@@ -945,7 +1234,7 @@ function DateField({
         onClick={openPicker}
         onBlur={() => setFocused(false)}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-xl text-sm font-bold border-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]/20 focus:border-[var(--brand-green)]
+        className="w-full px-3 py-2 rounded-lg text-sm font-bold border-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]/20 focus:border-[var(--brand-green)]
           border-[var(--brand-control-border)] bg-[var(--brand-bg)] text-[var(--brand-text)]
           [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0
           [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full

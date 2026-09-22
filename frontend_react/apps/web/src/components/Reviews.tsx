@@ -70,10 +70,10 @@ export function ReviewsSection({
 export function ReviewCard({ review }: { review: Review }) {
   return (
     <div style={{ textAlign: "left" }}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
+            className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center"
             style={{ backgroundColor: "color-mix(in srgb, var(--brand-green) 8%, transparent)" }}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke={GREEN} strokeWidth={1.8}>
@@ -84,9 +84,9 @@ export function ReviewCard({ review }: { review: Review }) {
               />
             </svg>
           </div>
-          <span className="font-bold text-[var(--brand-text)]">Verified Attendee</span>
+          <span className="font-bold text-[var(--brand-text)] truncate">Verified Attendee</span>
         </div>
-        <div className="flex gap-0.5">
+        <div className="flex gap-0.5 shrink-0">
           {Array.from({ length: 5 }, (_, i) => (
             <RatingStar key={i} className="w-4 h-4" filled={i < review.rating} />
           ))}

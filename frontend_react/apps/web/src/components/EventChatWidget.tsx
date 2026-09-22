@@ -117,13 +117,13 @@ export function EventChatWidget({ event }: Props) {
       {/* ── Chat panel ── */}
       {open && (
         <div
-          className="flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+          className="flex flex-col rounded-lg overflow-hidden shadow-2xl"
           style={{
             // A flat 340×500 panel runs past the left edge of a 375px phone and
             // past the top of a short landscape viewport; both cap to the space
             // actually available, so the panel never has to be scrolled to.
             width: "min(340px, calc(100vw - 32px))",
-            height: "min(500px, calc(100vh - 200px))",
+            height: "min(500px, calc(100dvh - 200px))",
             backgroundColor: "var(--brand-surface)",
             border: "1px solid var(--brand-border)",
           }}
@@ -134,7 +134,7 @@ export function EventChatWidget({ event }: Props) {
             style={{ backgroundColor: GREEN }}
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[var(--brand-on-green)]/20">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--brand-on-green)]/20">
                 <svg className="w-4 h-4 text-[var(--brand-on-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
                 </svg>
@@ -148,7 +148,10 @@ export function EventChatWidget({ event }: Props) {
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center bg-[var(--brand-on-green)]/15 hover:bg-[var(--brand-on-green)]/25 transition-colors"
+              aria-label="Close"
+              /* 28px under a mouse; 40px under a finger, with the growth given
+                 back by the negative margin so the header row's height holds. */
+              className="w-7 h-7 [@media(pointer:coarse)]:w-10 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:-m-1.5 rounded-lg flex items-center justify-center bg-[var(--brand-on-green)]/15 hover:bg-[var(--brand-on-green)]/25 transition-colors"
             >
               <svg className="w-4 h-4 text-[var(--brand-on-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -162,7 +165,7 @@ export function EventChatWidget({ event }: Props) {
             {/* No auth state */}
             {access === "no_auth" && (
               <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-4">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)` }}>
+                <div className="w-14 h-14 rounded-lg flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)` }}>
                   <svg className="w-7 h-7" style={{ color: GREEN }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0" />
                   </svg>
@@ -179,7 +182,7 @@ export function EventChatWidget({ event }: Props) {
             {/* No access state */}
             {access === "no_access" && (
               <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-4">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "#FEF3C7" }}>
+                <div className="w-14 h-14 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF3C7" }}>
                   <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
                   </svg>
@@ -198,7 +201,7 @@ export function EventChatWidget({ event }: Props) {
               <>
                 {/* Access badge */}
                 <div className="flex justify-center pt-3 pb-1 shrink-0">
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)`, color: GREEN }}>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg" style={{ backgroundColor: `color-mix(in srgb, var(--brand-green) 8%, transparent)`, color: GREEN }}>
                     {badgeLabel} · Event Assistant
                   </span>
                 </div>
@@ -222,7 +225,7 @@ export function EventChatWidget({ event }: Props) {
 
                 {/* Input */}
                 <div className="shrink-0 px-3 py-3 border-t" style={{ borderColor: "var(--brand-border)" }}>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ border: "1px solid var(--brand-border)", backgroundColor: LINEN }}>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ border: "1px solid var(--brand-border)", backgroundColor: LINEN }}>
                     <input
                       ref={inputRef}
                       type="text"
@@ -237,7 +240,9 @@ export function EventChatWidget({ event }: Props) {
                     <button
                       onClick={send}
                       disabled={!input.trim() || loading}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
+                      aria-label="Send"
+                      /* Same coarse-pointer bump as the close button above. */
+                      className="w-7 h-7 [@media(pointer:coarse)]:w-10 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:-m-1.5 shrink-0 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
                       style={{ backgroundColor: GREEN }}
                     >
                       <svg className="w-3.5 h-3.5 text-[var(--brand-on-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -301,7 +306,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         </div>
       )}
       <div
-        className="max-w-[220px] px-3 py-2 rounded-2xl text-[13px] leading-relaxed"
+        className="max-w-[85%] px-3 py-2 rounded-lg text-[13px] leading-relaxed"
         style={{
           backgroundColor: isUser ? GREEN : "var(--brand-surface)",
           color: isUser ? "var(--brand-on-green)" : "var(--brand-text)",
@@ -328,7 +333,7 @@ function TypingIndicator() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
         </svg>
       </div>
-      <div className="px-4 py-3 rounded-2xl" style={{ backgroundColor: "var(--brand-surface)", borderBottomLeftRadius: 4 }}>
+      <div className="px-4 py-3 rounded-lg" style={{ backgroundColor: "var(--brand-surface)", borderBottomLeftRadius: 4 }}>
         <div className="flex gap-1 items-center">
           {[0, 1, 2].map((i) => (
             <span

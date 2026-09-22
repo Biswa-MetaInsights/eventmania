@@ -4,7 +4,7 @@
 //  "Browse by category" — the two-row rail that sits directly above the footer
 //  on home.
 //
-//  A category tile borrows the EVENT CARD's chassis — same rounded-2xl, same
+//  A category tile borrows the EVENT CARD's chassis — same rounded-lg, same
 //  borderless-at-rest → 2px-border + 6px-lift hover, same aspect-video photo —
 //  but it has NO BODY. The tile IS the photo, with the category's name riding on
 //  a scrim at its bottom edge (Gautham's call: "no white space below the
@@ -47,7 +47,7 @@ import { GUTTERS } from '@/lib/layout'
 import { CategoryBadge, categoryStyle } from './EventBadges'
 import { EventArrowButton } from './EventActions'
 
-const GREEN = BRAND.green // the section header's "View all" link
+// const GREEN = BRAND.green // the section header's "View all" link — PARKED with it
 const SURFACE = BRAND.surface // the tile's own background, behind the photo
 const TEXT = BRAND.text
 
@@ -126,7 +126,7 @@ const CATEGORIES: { name: string; image: string; alt: string }[] = [
   { name: 'Food & Drink', image: photo('1414235077428-338989a2e8c0'), alt: 'Diners sharing plates at a restaurant table' },
 ]
 
-const EXPLORE_ALL = '/explore?view=events'
+// const EXPLORE_ALL = '/explore?view=events' // PARKED with the header's "View all"
 const categoryHref = (name: string) =>
   `/explore?view=events&category=${encodeURIComponent(name)}`
 
@@ -143,8 +143,11 @@ const COLUMNS =
 
 // Identical to the event cards', so a tile in this rail asks the browser for the
 // same image widths its neighbours above do.
+// Keyed to the grid's real breakpoints: 1-up below sm (px-4 gutters), 2-up to
+// xl, 4-up from xl. The old string under-asked below 640px (blurry) and
+// over-asked ~2x between 640 and 768.
 const IMAGE_SIZES =
-  '(max-width: 768px) calc(100vw - 96px), (max-width: 1024px) calc(50vw - 72px), (max-width: 1280px) calc(33vw - 60px), calc(25vw - 60px)'
+  '(max-width: 639px) calc(100vw - 32px), (max-width: 1279px) calc(50vw - 34px), calc(25vw - 39px)'
 
 // Where a scroll arrow sits: hard against the page edge (Gautham's call — "as
 // close to the edges of the browser as possible", so they stop covering tiles).
@@ -170,12 +173,13 @@ const ARROW_POS = 'absolute top-[calc(50%-8px)] -translate-y-1/2 z-10 transition
 const ARROW_LEFT = 'left-0'
 const ARROW_RIGHT = 'right-0'
 
-// The right-pointing arrow, drawn in TWO places in this file — the section's
-// "View all" link and each tile's affordance — so the path lives in one const
-// and the two cannot drift into different arrows. It is the same glyph
+// The right-pointing arrow — PARKED, like the `GREEN` / `EXPLORE_ALL` consts
+// above, now that neither of its two call sites renders: the tile's chip arrow
+// was removed (2026-08-21, see the tile) and the section's "View all" link is
+// commented out. Uncomment WITH that link. It is the same glyph
 // `EventArrowButton` draws and the same one every "View all" link in the app
 // uses; if an `ArrowIcon` is ever added to EventIcons.tsx, both should take it.
-const ARROW_PATH = 'M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3'
+// const ARROW_PATH = 'M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3'
 
 // ─── Tile ──────────────────────────────────────────────────────────────────────
 
@@ -205,7 +209,7 @@ function CategoryTile({ name, image, alt }: { name: string; image: string; alt: 
       aria-label={`Explore ${name} events`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative block aspect-video rounded-2xl overflow-hidden"
+      className="relative block aspect-video rounded-lg overflow-hidden"
       style={{
         backgroundColor: SURFACE,
         boxShadow: hovered ? '0 12px 28px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
@@ -233,54 +237,27 @@ function CategoryTile({ name, image, alt }: { name: string; image: string; alt: 
           the surface those colours were contrast-checked against), so no lift
           here. `liftAccent` is only for the border, which draws on the page.
 
-          `min-w-0` lets the chip give way rather than push the arrow off the
-          tile: the longest name ("Health & Wellness") ellipsises instead. */}
+          `min-w-0` lets the chip give way rather than overflow the tile: the
+          longest name ("Health & Wellness") ellipsises instead. */}
       {/* `justify-end` puts the chip at the tile's BOTTOM-RIGHT (Gautham's
           call); it used to sit bottom-left.
 
-          The arrow rides INSIDE the chip, straight after the name, rather than
-          sitting apart at the tile's right edge — so it reads as part of the
-          category rather than as a separate control. It goes in via
-          `CategoryBadge`'s `trailing` prop; the chip is shared, so it is a
-          PROP, not a fork.
+          ⚠️ The chip carried a right-pointing ARROW after the name, in via
+          `CategoryBadge`'s `trailing` prop. **Removed on Gautham's call
+          (2026-08-21) — do not put it back without asking.** It was decoration
+          for something the tile already said: the whole tile is a link to that
+          category, so the arrow was a third signal after the photo and the
+          name. The chip is now name-only, and the tile's sole moving part on
+          hover is the lift. (The `trailing` prop stays on the shared chip; it
+          is generic, and nothing else in the file depended on the arrow.)
 
-          ⚠️ Decoration — the chip is not interactive and this sits inside the
-          tile's Link. Same reason the Explore button was removed: a nested
-          control would be a second tab stop performing one action. **Do not
-          make it focusable or give it an onClick.** It carries no tooltip
-          either: one was built and removed as redundant, since the arrow, the
-          category name and the whole-tile link all already say the same thing.
-
-          ⚠️ `stroke="currentColor"`, NOT a colour of its own. The chip sets
-          `color` to the category's accent, so the arrow inherits exactly what
-          the name is painted in and the two can never drift apart. (Green was
-          tried here and dropped — inside a chip whose label is already the
-          category's colour, a green arrow read as a third colour.) Heavier than
-          the "View all" links' arrow — 3.25 vs 2 — because it stands alone
-          rather than beside text. It nudges right on tile hover: the tile's
-          only moving part besides the lift. */}
+          Two earlier rounds died the same way and are also closed: an Explore
+          BUTTON at the tile's right edge (a nested control = a second tab stop
+          for one action) and a tooltip on the arrow (redundant with the name).
+          The lesson is the standing one here — the tile explains itself with a
+          photo and a name; anything further is noise. */}
       <div className="absolute inset-x-0 bottom-0 flex justify-end px-4 pb-4">
-        <CategoryBadge
-          category={name}
-          size="lg"
-          className="min-w-0"
-          trailing={
-            <svg
-              aria-hidden
-              className="w-5 h-5 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={3.25}
-              style={{
-                transform: hovered ? 'translateX(3px)' : 'translateX(0)',
-                transition: 'transform 0.3s ease',
-              }}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d={ARROW_PATH} />
-            </svg>
-          }
-        />
+        <CategoryBadge category={name} size="lg" className="min-w-0" />
       </div>
     </Link>
   )
@@ -339,6 +316,15 @@ export function CategoryGrid() {
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
     >
+      {/* ⚠️ The header's "View all" link is PARKED, not deleted (Gautham,
+          2026-08-20: "unnecessary"). Every tile already goes to /explore with
+          its category, and the rail's own arrows move through them, so the link
+          was a third route to the same place. Restore = uncomment this block
+          AND the `GREEN` / `EXPLORE_ALL` / `ARROW_PATH` consts above, all three
+          parked with it so they do not sit unused. (`ARROW_PATH` joined them on
+          2026-08-21, when the tiles' chip arrow was removed and this became its
+          last reference.) The row keeps `justify-between` so the link drops
+          straight back into place. */}
       <div className={`flex items-center justify-between ${GUTTERS} mb-5`}>
         <h2
           className="font-extrabold tracking-[-0.5px]"
@@ -346,6 +332,7 @@ export function CategoryGrid() {
         >
           Browse by category
         </h2>
+        {/*
         <Link
           href={EXPLORE_ALL}
           aria-label="View all events"
@@ -357,6 +344,7 @@ export function CategoryGrid() {
             <path strokeLinecap="round" strokeLinejoin="round" d={ARROW_PATH} />
           </svg>
         </Link>
+        */}
       </div>
 
       <div className={`relative ${GUTTERS}`}>

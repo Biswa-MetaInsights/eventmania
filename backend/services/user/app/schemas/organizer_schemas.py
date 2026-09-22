@@ -11,6 +11,8 @@ class OrganizerProfileCreate(BaseModel):
     company_website: Optional[str] = None
     country: str
     registration_number: str
+    bank_name: str
+    bank_account_number: str
 
 class OrganizerProfileOut(BaseModel):
     id: UUID
@@ -22,6 +24,10 @@ class OrganizerProfileOut(BaseModel):
     company_website: Optional[str] = None
     country: str
     registration_number: str
+    # Rows written before the payout columns existed read back as "" — the
+    # migration's backfill. See backend/scripts/migrate_add_bank_columns.py.
+    bank_name: str = ""
+    bank_account_number: str = ""
     verification_status: VerificationStatus
 
     class Config:

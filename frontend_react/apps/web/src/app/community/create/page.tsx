@@ -93,7 +93,7 @@ export default function CreateCommunityPage() {
           </p>
           <button
             onClick={() => router.push(`/community/${existingCommunitySlug}`)}
-            className="px-8 py-4 rounded-2xl text-sm font-bold text-[var(--brand-on-green)]"
+            className="px-8 py-4 rounded-lg text-sm font-bold text-[var(--brand-on-green)]"
             style={{ backgroundColor: GREEN }}
           >
             View My Community
@@ -109,7 +109,7 @@ export default function CreateCommunityPage() {
       <div className="min-h-screen" style={{ backgroundColor: "var(--brand-bg)" }}>
         <Navbar />
         <div className={`py-20 max-w-lg mx-auto ${GUTTERS}`}>
-          <div className="rounded-2xl p-10 text-center" style={{ backgroundColor: "var(--brand-bg)", border: "1px solid var(--brand-border)" }}>
+          <div className="rounded-lg p-6 sm:p-10 text-center" style={{ backgroundColor: "var(--brand-bg)", border: "1px solid var(--brand-border)" }}>
             <div className="text-5xl mb-6">🔒</div>
             <h1 className="text-[24px] font-bold mb-3" style={{ color: "var(--brand-text)" }}>
               Not eligible yet
@@ -131,17 +131,19 @@ export default function CreateCommunityPage() {
               {publishedEventCount} / 2 events published
             </p>
 
-            <div className="flex gap-3">
+            {/* Stacked below sm — two flex-1 buttons share ~210px on a 320px
+                phone and "Create an Event" wraps mid-phrase. */}
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => router.push("/organizer/create")}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-[var(--brand-on-green)]"
+                className="flex-1 py-3 rounded-lg text-sm font-bold text-[var(--brand-on-green)]"
                 style={{ backgroundColor: GREEN }}
               >
                 Create an Event
               </button>
               <button
-                onClick={() => router.push("/organizer")}
-                className="flex-1 py-3 rounded-xl text-sm font-bold"
+                onClick={() => router.push("/organizer/events")}
+                className="flex-1 py-3 rounded-lg text-sm font-bold"
                 style={{ border: `2px solid ${GREEN}`, color: GREEN, backgroundColor: "var(--brand-bg)" }}
               >
                 My Events
@@ -197,14 +199,14 @@ export default function CreateCommunityPage() {
         <div className="flex items-center gap-4 mb-10">
           <button
             onClick={() => router.back()}
-            className="w-9 h-9 rounded-full flex items-center justify-center"
+            className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center"
             style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)" }}
           >
             <svg className="w-4 h-4" style={{ color: "var(--brand-hint)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
           </button>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-[28px] font-bold" style={{ color: "var(--brand-text)" }}>Create Your Community</h1>
             <p className="text-[18px]" style={{ color: "var(--brand-hint)" }}>
               Group all your events under one community brand.
@@ -213,7 +215,7 @@ export default function CreateCommunityPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="rounded-2xl p-8 space-y-6" style={{ backgroundColor: "var(--brand-bg)", border: "1px solid var(--brand-border)" }}>
+          <div className="rounded-lg p-5 sm:p-8 space-y-6" style={{ backgroundColor: "var(--brand-bg)", border: "1px solid var(--brand-border)" }}>
             <FormField label="Community Name" error={fieldErrors.name}>
               <input
                 type="text"
@@ -252,7 +254,7 @@ export default function CreateCommunityPage() {
           </div>
 
           {/* Info callout */}
-          <div className="flex gap-3 mt-4 px-4 py-3 rounded-xl text-xs leading-relaxed"
+          <div className="flex gap-3 mt-4 px-4 py-3 rounded-lg text-xs leading-relaxed"
             style={{ backgroundColor: "var(--brand-surface)", color: "var(--brand-text)" }}>
             <svg className="w-4 h-4 shrink-0 mt-0.5" style={{ color: GREEN }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
@@ -264,11 +266,11 @@ export default function CreateCommunityPage() {
           </div>
 
           {error && (
-            <p className="text-sm px-4 py-3 rounded-xl mt-4 bg-red-50 text-red-600 border border-red-200">{error}</p>
+            <p className="text-sm px-4 py-3 rounded-lg mt-4 bg-red-50 text-red-600 border border-red-200">{error}</p>
           )}
 
           {success && (
-            <div className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl mt-4"
+            <div className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg mt-4"
               style={{ color: GREEN, backgroundColor: "color-mix(in srgb, var(--brand-green) 10%, transparent)" }}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -280,7 +282,7 @@ export default function CreateCommunityPage() {
           <button
             type="submit"
             disabled={isSubmitting || success}
-            className="w-full mt-6 py-4 rounded-2xl text-[var(--brand-on-green)] text-sm font-bold transition-colors disabled:opacity-50"
+            className="w-full mt-6 py-4 rounded-lg text-[var(--brand-on-green)] text-sm font-bold transition-colors disabled:opacity-50"
             style={{ backgroundColor: GREEN }}
           >
             {isSubmitting ? (
@@ -321,7 +323,7 @@ function FormField({
 
 function inputCls(hasError: boolean): string {
   return (
-    "w-full px-4 py-3 rounded-xl text-sm transition-colors resize-none " +
+    "w-full px-4 py-3 rounded-lg text-sm transition-colors resize-none " +
     "placeholder:text-[var(--brand-muted)] focus:outline-none focus:ring-2 " +
     (hasError
       ? "border border-red-400 bg-red-50 focus:ring-red-200"

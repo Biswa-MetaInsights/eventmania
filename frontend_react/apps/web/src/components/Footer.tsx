@@ -17,7 +17,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "For Organisers",
     links: [
       { label: "Create Event", href: "/organizer/create" },
-      { label: "Organizer Console", href: "/organizer" },
+      { label: "Organizer Console", href: "/organizer/events" },
     ],
   },
   {
@@ -56,7 +56,9 @@ export function Footer() {
           </div>
 
           {/* Link columns */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-14">
+          {/* One column under 420px: two 128px cells wrapped every heading. The
+              arbitrary step is emitted before `sm`, so `sm` still wins at 640+. */}
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-14">
             {COLUMNS.map((col) => (
               <div key={col.title} className="flex flex-col gap-3">
                 <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "rgba(242,239,234,0.6)" }}>

@@ -28,3 +28,6 @@ Thumbs.db
 *.key
 requirements-slim.txt
 start.bat
+
+# Node
+node_modules/

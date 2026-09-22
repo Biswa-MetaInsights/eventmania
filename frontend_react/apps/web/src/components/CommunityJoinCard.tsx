@@ -134,7 +134,9 @@ export function CommunityJoinCard({
           />
         )}
 
-        <div className="flex items-center justify-between gap-3 mt-7">
+        {/* Both chips are TAG_SHAPE (nowrap) — together they are wider than a
+            320–375px card, so the row wraps instead of pushing off the edge. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-7">
           <DetailPeopleChip
             count={community.member_count.toLocaleString()}
             label={community.member_count === 1 ? "member" : "members"}

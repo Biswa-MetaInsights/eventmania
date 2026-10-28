@@ -1,70 +1,33 @@
-# 🚀 EventMania: The Agentic Event Marketplace
+# NewFind — Event Discovery and Communities
 
----
+NewFind is an event discovery, organizer, and community platform developed by MetaInsights BV.
 
-## 🏛️ 1. Executive Summary & Philosophy
-**EventMind** is a next-generation marketplace platform that leverages **Autonomous AI Agents** to automate the entire event management lifecycle—from event creation and marketing to attendee networking and ticketing.
+## Frontend (supported)
 
-By shifting from a passive tool to an **agentic ecosystem**, EventMind provides organizers with a "zero-touch" backend and attendees with a hyper-personalized discovery experience.
+The supported web frontend is **Next.js + React + TypeScript**, located at `frontend_react/apps/web`. Flutter is legacy and must not be used for new development or deployment.
 
----
+### Development
 
-## 🏢 2. Business & Marketplace Architecture
-*Scale Your Events with Autonomous Intelligence*
+Requirements: Node.js 20+, pnpm 9+.
 
-### 🔄 The Event Lifecycle Loop
-| Phase | Value Proposition |
-| :--- | :--- |
-| **Creation** | Organizers input raw ideas; AI automatically optimizes for SEO and compliance. |
-| **Discovery** | Attendees find events based on their **AI-Generated Interest Mosaics**, not just keywords. |
-| **Monetization** | Instant, secure checkout via **Stripe** with automated organizer split-payments. |
-| **Networking** | **Shadow Bonding Agents** match attendees with similar profiles in the Chat communities. |
-| **Analytics** | Deep-dive insights into demand, sentiment, and attendee engagement. |
+```bash
+cd frontend_react
+pnpm install
+pnpm --filter @eventmind/web dev
+```
 
----
+The `@eventmind/*` workspace package identifiers are legacy technical names, pending coordinated migration to `@newfind/*` with lockfile and imports updated together.
 
-## ⚙️ 3. Technical System Architecture
-*Microservices | Event-Sourcing | Agentic AI*
+## Backend
 
-### 🛠️ The Tech Stack
-- **Frontend**: Flutter Web (Indigo/Rose Aesthetics, High-Performance Dart).
-- **Backend API**: 10+ Python Microservices (FastAPI).
-- **Communication**: Kafka (Asynchronous events) + Redis (Real-time caching).
-- **Database Layer**: PostgreSQL (Production) / SQLite (Local Shadow Mode).
-- **AI Brain**: Gemini 1.5 Pro + CrewAI (Agentic Framework).
+Python FastAPI services are located in `backend/`. See `backend/` and `docker-compose.yml` for configuration. Set API environment variables for your deployment; do not commit credentials.
 
----
+## Rename and deployment safety
 
-## 🚀 4. Getting Started (Shadow Mode)
-We've built a custom **One-Click Bootstrap** to bypass Docker/Kafka requirements for immediate testing:
+- **Official product name:** NewFind
+- **Supported frontend:** Next.js (not Flutter)
+- **Legacy code:** Keep existing Flutter code untouched until the Next.js build and deployment are verified.
+- **Repository:** Currently `eventmania`; GitHub repository rename to `newfind` is a separate repository-settings operation.
+- **Deployment:** No deployment is triggered by this documentation change.
 
-> **Requirements:** Python 3.11+ (tested on 3.13 64-bit), Flutter SDK installed.
-> **Python version note:** Originally developed on Python 3.11/3.12. Dependency versions have been updated to support Python 3.13. Do NOT use 32-bit Python.
-> **Windows Note:** Run this once to allow activation scripts:
-> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
-
-1.  **Create & activate a virtual environment** (once only):
-    ```powershell
-    py -m venv .venv
-    .venv\Scripts\Activate.ps1
-    ```
-
-2.  **Install dependencies** (once only, with venv active):
-    ```powershell
-    py backend/scripts/install_all.py
-    ```
-
-3.  **Launch Backend** — Terminal 1 (activate venv first):
-    ```powershell
-    .venv\Scripts\Activate.ps1
-    py backend/scripts/shadow_runner.py
-    ```
-
-4.  **Launch Frontend** — Terminal 2:
-    ```powershell
-    cd frontend
-    flutter run -d chrome
-    ```
-
----
-### *A Biswa-MetaInsights Enterprise*
+Powered by MetaInsights BV.

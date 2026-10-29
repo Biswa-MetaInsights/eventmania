@@ -62,7 +62,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/auth_db
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_HOST: redis
-      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      TICKETING_SERVICE_URL: http://ticketing:8004
       DEBUG: "false"
 
   user:

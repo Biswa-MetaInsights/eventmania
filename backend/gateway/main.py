@@ -29,17 +29,17 @@ app.add_middleware(
 
 # Service Map (Internal Docker bridge addresses if using Docker)
 SERVICE_MAP: Dict[str, str] = {
-    "auth": "http://auth:8000/auth",
-    "user": "http://user:8000/users",
-    "event": "http://event:8000/events",
-    "ticket": "http://ticketing:8000/tickets",
-    "ticketing": "http://ticketing:8000/tickets",
-    "payment": "http://payment:8000/payments",
-    "notification": "http://notification:8000/notifications",
-    "chat": "http://chat:8000/chat",
-    "recommendation": "http://recommendation:8000/recommendations",
-    "review": "http://review:8000/reviews",
-    "community": "http://community:8000/communities",
+    "auth": "http://auth:8001/auth",
+    "user": "http://user:8002/users",
+    "event": "http://event:8003/events",
+    "ticket": "http://ticketing:8004/tickets",
+    "ticketing": "http://ticketing:8004/tickets",
+    "payment": "http://payment:8005/payments",
+    "notification": "http://notification:8006/notifications",
+    "chat": "http://chat:8007/chat",
+    "recommendation": "http://recommendation:8008/recommendations",
+    "review": "http://review:8009/reviews",
+    "community": "http://community:8011/communities",
 }
 
 # Shared HTTP Client for Proxying

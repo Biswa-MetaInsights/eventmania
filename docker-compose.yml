@@ -1,74 +1,112 @@
+# NewFind Hetzner single-host staging stack. Configure secrets in .env (never commit .env).
 services:
-  # --- Infrastructure ---
   postgres:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    # Host port 55432 to avoid clashing with a native Postgres on 5432.
-    ports: [ "55432:5432" ]
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
-      # Persist data across container recreation.
       - pgdata:/var/lib/postgresql/data
-      # Runs once on first init (empty volume): creates the per-service DBs.
-      - ./backend/db/init:/docker-entrypoint-initdb.d
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
-    ports: [ "6379:6379" ]
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.6.1
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:latest
-    depends_on: [ zookeeper ]
-    ports: [ "9092:9092" ]
+    image: confluentinc/cp-kafka:7.6.1
+    restart: unless-stopped
+    depends_on: [zookeeper]
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-  # --- API Gateway ---
   gateway:
     build: ./backend/gateway
-    ports: [ "8000:8000" ]
-    depends_on: [ auth, event, user, ticketing ]
+    restart: unless-stopped
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on: [auth, user, event, ticketing]
     environment:
-      - REDIS_HOST=redis
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      APP_PORT: "8000"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Set CORS_ALLOWED_ORIGINS}
 
-  # --- Microservices (Port managed via environment) ---
   auth:
     build: ./backend/services/auth
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/auth_db
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      APP_PORT: "8001"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/auth_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      DEBUG: "false"
 
   user:
     build: ./backend/services/user
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/user_db
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      APP_PORT: "8002"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/user_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      DEBUG: "false"
 
   event:
     build: ./backend/services/event
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/event_db
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      APP_PORT: "8003"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/event_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      DEBUG: "false"
 
   ticketing:
     build: ./backend/services/ticketing
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/ticketing_db
-      - REDIS_HOST=redis
-
-  # Add other services as needed...
+      APP_PORT: "8004"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ticketing_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      DEBUG: "false"
 
 volumes:
   pgdata:
+  redisdata:

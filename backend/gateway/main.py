@@ -14,14 +14,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Biswa API Gateway", version="1.0.0")
+app = FastAPI(title="NewFind API Gateway", version="1.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Policy (Global entry point)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to frontend domain
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,18 +29,17 @@ app.add_middleware(
 
 # Service Map (Internal Docker bridge addresses if using Docker)
 SERVICE_MAP: Dict[str, str] = {
-    "auth": "http://localhost:8001/auth",
-    "user": "http://localhost:8002/users",
-    "community": "http://localhost:8002/users/communities",
-    "event": "http://localhost:8003/events",
-    "ticket": "http://localhost:8004/tickets",
-    "ticketing": "http://localhost:8004/tickets",
-    "payment": "http://localhost:8005/payments",
-    "notification": "http://localhost:8006/notifications",
-    "chat": "http://localhost:8007/chat",
-    "recommendation": "http://localhost:8008/recommendations",
-    "review": "http://localhost:8009/reviews",
-    "community": "http://localhost:8011/communities",
+    "auth": "http://auth:8000/auth",
+    "user": "http://user:8000/users",
+    "event": "http://event:8000/events",
+    "ticket": "http://ticketing:8000/tickets",
+    "ticketing": "http://ticketing:8000/tickets",
+    "payment": "http://payment:8000/payments",
+    "notification": "http://notification:8000/notifications",
+    "chat": "http://chat:8000/chat",
+    "recommendation": "http://recommendation:8000/recommendations",
+    "review": "http://review:8000/reviews",
+    "community": "http://community:8000/communities",
 }
 
 # Shared HTTP Client for Proxying

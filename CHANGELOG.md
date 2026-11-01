@@ -10,7 +10,7 @@
 ---
 
 ## 2026-11-01
-- Prepared isolated Hetzner core deployment, authenticated access and persistent free bookings; local checks pass, live rollout awaits server access.
+- Deployed the isolated persistent core backend; deployed API, concurrent booking and restart-persistence checks pass. Public routing and frontend verification await approval.
 
 ## 2026-09-11
 

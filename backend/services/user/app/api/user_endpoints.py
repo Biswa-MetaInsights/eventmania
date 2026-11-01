@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
+from pydantic import BaseModel, Field
+import os
+import secrets
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user_profile import UserProfile
@@ -7,6 +10,22 @@ from uuid import UUID
 from typing import List
 
 router = APIRouter(prefix="/users", tags=["Users Profile"])
+
+class ProfileCreate(BaseModel):
+    user_id: UUID
+    full_name: str = Field(min_length=1, max_length=200)
+
+@router.post("/internal/profile", status_code=201)
+def initialize_profile(data: ProfileCreate, x_internal_key: str = Header(""), db: Session = Depends(get_db)):
+    expected = os.getenv("INTERNAL_API_KEY", "")
+    if not expected or not secrets.compare_digest(x_internal_key, expected):
+        raise HTTPException(status_code=403, detail="Internal access only")
+    profile = db.query(UserProfile).filter(UserProfile.id == data.user_id).first()
+    if not profile:
+        profile = UserProfile(id=data.user_id, full_name=data.full_name)
+        db.add(profile)
+        db.commit()
+    return {"id": str(profile.id)}
 
 @router.get("/{user_id}", response_model=UserProfileOut)
 def get_user_profile(user_id: UUID, db: Session = Depends(get_db)):

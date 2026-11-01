@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks, Header
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -12,6 +12,9 @@ from backend.shared.kafka_utils import KafkaManager
 import logging
 import asyncio
 import math
+import os
+import secrets
+import httpx
 
 router = APIRouter(prefix="/events", tags=["Event Management"])
 
@@ -41,10 +44,25 @@ def _cache_get(key: str):
     return None
 
 def _cache_set(key: str, data) -> None:
+    if len(_search_cache) >= 256:
+        _search_cache.clear()
     _search_cache[key] = {"data": data, "ts": _time.time()}
 
 def _cache_invalidate() -> None:
     _search_cache.clear()
+
+def with_inventory(events):
+    if not events:
+        return []
+    data = [item if isinstance(item, dict) else EventOut.model_validate(item).model_dump(mode="json") for item in events]
+    try:
+        response = httpx.get(settings.TICKETING_SERVICE_URL + "/tickets/counts",
+                             params=[("event_id", item["id"]) for item in data], timeout=5)
+        response.raise_for_status()
+        counts = response.json()
+    except httpx.HTTPError:
+        raise HTTPException(503, "Ticket inventory is temporarily unavailable")
+    return [{**item, "tickets_sold": counts.get(item["id"], 0)} for item in data]
 
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371  # Earth radius in kilometers
@@ -146,7 +164,7 @@ def search_events(
     lng: Optional[float] = Query(None, description="User longitude"),
     radius: Optional[int] = Query(20, description="Search radius in km"),
     organizer_id: Optional[UUID] = Query(None, description="Filter by organizer"),
-    limit: Optional[int] = Query(50, description="Max results to return"),
+    limit: int = Query(50, ge=1, le=200, description="Max results to return"),
     db: Session = Depends(get_db)
 ):
     ck = _cache_key(
@@ -155,7 +173,7 @@ def search_events(
     )
     cached = _cache_get(ck)
     if cached is not None:
-        return cached
+        return with_inventory(cached)
 
     query = db.query(Event).filter(Event.status == status)
 
@@ -202,12 +220,14 @@ def search_events(
             else:
                 filtered.append(ev)
         result = filtered[:limit]
-        _cache_set(ck, result)
-        return result
+        data = with_inventory(result)
+        _cache_set(ck, data)
+        return data
 
     result = query.limit(limit).all()
-    _cache_set(ck, result)
-    return result
+    data = with_inventory(result)
+    _cache_set(ck, data)
+    return data
 
 @router.get("/count")
 def count_events(
@@ -230,12 +250,23 @@ def count_events(
     # Counting a single column is both cheaper and immune to that skew.
     return {"count": db.query(func.count(Event.id)).filter(Event.status == status).scalar() or 0}
 
+@router.get("/internal/{event_id}", response_model=EventOut)
+def get_event_for_booking(event_id: UUID, x_internal_key: str = Header(""), db: Session = Depends(get_db)):
+    # Avoid a circular event -> ticketing -> event call while inventory is locked.
+    expected = os.getenv("INTERNAL_API_KEY", "")
+    if not expected or not secrets.compare_digest(x_internal_key, expected):
+        raise HTTPException(403, "Internal access only")
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event not found")
+    return event
+
 @router.get("/{event_id}", response_model=EventOut)
 def get_event(event_id: UUID, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    return event
+    return with_inventory([event])[0]
 
 @router.patch("/{event_id}", response_model=EventOut)
 def update_event(event_id: UUID, event_in: EventUpdate, db: Session = Depends(get_db)):
@@ -250,4 +281,5 @@ def update_event(event_id: UUID, event_in: EventUpdate, db: Session = Depends(ge
     db.add(event)
     db.commit()
     db.refresh(event)
+    _cache_invalidate()
     return event

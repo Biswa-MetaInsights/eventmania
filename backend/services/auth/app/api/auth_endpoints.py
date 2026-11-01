@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import httpx
+import os
+from uuid import UUID
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user_credentials import UserCredentials, UserRole
@@ -20,6 +24,8 @@ kafka_manager = KafkaManager(
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register_user(user_in: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    if user_in.role.value == "admin":
+        raise HTTPException(status_code=403, detail="Administrator registration is disabled")
     # 1. Check if user already exists
     existing_user = db.query(UserCredentials).filter(UserCredentials.email == user_in.email).first()
     if existing_user:
@@ -32,6 +38,18 @@ def register_user(user_in: UserRegister, background_tasks: BackgroundTasks, db: 
         role=user_in.role
     )
     db.add(new_user)
+    db.flush()
+    if os.getenv("KAFKA_ENABLED", "true").lower() == "false":
+        try:
+            response = httpx.post(
+                os.environ["USER_SERVICE_URL"] + "/users/internal/profile",
+                json={"user_id": str(new_user.id), "full_name": user_in.full_name},
+                headers={"X-Internal-Key": os.environ["INTERNAL_API_KEY"]}, timeout=5,
+            )
+            response.raise_for_status()
+        except (httpx.HTTPError, KeyError):
+            db.rollback()
+            raise HTTPException(status_code=503, detail="Profile service unavailable; please retry")
     db.commit()
     db.refresh(new_user)
 
@@ -76,7 +94,7 @@ def login_user(form_data: UserLogin, db: Session = Depends(get_db)):
 
     # 3. Create tokens
     access_token = AuthService.create_access_token(
-        data={"sub": str(user.id), "email": user.email, "role": str(user.role)}
+        data={"sub": str(user.id), "email": user.email, "role": user.role.value}
     )
     refresh_token = AuthService.create_refresh_token(
         data={"sub": str(user.id)}
@@ -86,49 +104,18 @@ def login_user(form_data: UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/social-login", response_model=Token)
 def social_login(social_in: SocialLogin, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    # 1. Fetch user by email
-    user = db.query(UserCredentials).filter(UserCredentials.email == social_in.email).first()
-    
-    if not user:
-        # Create new user if not exist (similar to register)
-        user = UserCredentials(
-            email=social_in.email,
-            hashed_password=AuthService.get_password_hash("SOCIAL_AUTH_PROVIDER_NO_PWD"),
-            role=UserRole.USER,
-            is_verified=True
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-        # Publish UserCreated event for social user
-        event_data = {
-            "user_id": str(user.id),
-            "full_name": social_in.full_name,
-            "email": social_in.email,
-            "role": str(user.role),
-            "provider": social_in.provider
-        }
-        background_tasks.add_task(kafka_manager.send, "user.created", event_data)
-
-    # 2. Create tokens
-    access_token = AuthService.create_access_token(
-        data={"sub": str(user.id), "email": user.email, "role": str(user.role)}
-    )
-    refresh_token = AuthService.create_refresh_token(
-        data={"sub": str(user.id)}
-    )
-
-    return Token(access_token=access_token, refresh_token=refresh_token)
-
+    raise HTTPException(status_code=503, detail="Social login is disabled until provider verification is configured")
 # Protected route example
 @router.get("/me", response_model=UserMinOut)
-def get_current_user(token: str, db: Session = Depends(get_db)):
-    payload = AuthService.decode_token(token)
-    if not payload:
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()), db: Session = Depends(get_db)):
+    payload = AuthService.decode_token(credentials.credentials)
+    if not payload or payload.get("token_type") != "access":
          raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     
-    user_id = payload.get("sub")
+    try:
+        user_id = UUID(payload.get("sub", ""))
+    except (ValueError, TypeError):
+        raise HTTPException(401, "Invalid token subject")
     user = db.query(UserCredentials).filter(UserCredentials.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

@@ -27,7 +27,7 @@ class OrganizerProfile(Base):
     # domestic format without another migration.
     bank_name = Column(String(200), nullable=False, default="")
     bank_account_number = Column(String(64), nullable=False, default="")
-    verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.VERIFIED, nullable=False)
+    verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.PENDING, nullable=False)
 
     def __repr__(self):
         return f"<OrganizerProfile(company='{self.company_name}', status='{self.verification_status}')>"

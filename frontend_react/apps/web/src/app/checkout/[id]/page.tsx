@@ -3,11 +3,11 @@
 import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { paymentsApi } from "@eventmind/api";
+import { bookFreeEvent } from "@/lib/bookings";
 import { eventsSource } from "@/lib/data-source";
 import { useAuthStore, useTicketsStore } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
-import { formatPrice, paymentCurrency } from "@/lib/currency";
+import { formatPrice } from "@/lib/currency";
 import { GUTTERS } from "@/lib/layout";
 
 const GREEN = "var(--brand-green)";
@@ -22,16 +22,13 @@ export default function CheckoutPage({
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userEmail = useAuthStore((s) => s.userEmail);
+  const [bookingRequestId, setBookingRequestId] = useState<string | null>(null);
   const addTicket = useTicketsStore((s) => s.addTicket);
 
   const [ticketCount, setTicketCount] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
 
   // Auth guard
   useEffect(() => {
@@ -70,32 +67,14 @@ export default function CheckoutPage({
     setError(null);
     setIsProcessing(true);
     try {
-      if (isFree) {
-        await new Promise((r) => setTimeout(r, 800));
-      } else {
-        await paymentsApi.createIntent({
-          user_id: userEmail ?? "guest",
-          event_id: id,
-          amount: total,
-          currency: paymentCurrency(event!.currency),
-          metadata: { ticket_count: ticketCount },
-        });
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-      addTicket({
-        id: `ticket-${Date.now()}`,
-        event_id: id,
-        event_title: event!.title,
-        start_date: event!.start_date,
-        price_paid: total,
-        currency: event!.currency,
-        seat_info: "General Admission",
-        qr_hash: `${id}-${userEmail}-${Date.now()}`,
-        claimed_at: new Date().toISOString(),
-      });
+      if (!isFree) throw new Error("Paid bookings are currently unavailable.");
+      const requestId = bookingRequestId ?? crypto.randomUUID();
+      setBookingRequestId(requestId);
+      const tickets = await bookFreeEvent(id, ticketCount, requestId);
+      tickets.forEach(addTicket);
       setShowSuccess(true);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(isFree ? "Booking failed. Please retry; your request will not create duplicate tickets." : "Paid bookings are currently unavailable. Please choose a free event.");
     } finally {
       setIsProcessing(false);
     }
@@ -186,7 +165,7 @@ export default function CheckoutPage({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                     </svg>
                     <div>
-                      <p className="text-xs text-[var(--brand-hint)]">Ticket confirmation will be sent to</p>
+                      <p className="text-xs text-[var(--brand-hint)]">Booking account</p>
                       <p className="text-sm font-semibold text-[var(--brand-text)]">{userEmail}</p>
                     </div>
                   </div>
@@ -195,28 +174,16 @@ export default function CheckoutPage({
                   </p>
                 </div>
               ) : (
-                /* Paid event — show card fields */
-                <div className="space-y-4">
-                  <PayInput label="Cardholder Name" type="text" icon={<PersonIcon />}
-                    value={cardName} onChange={setCardName} />
-                  <PayInput label="Card Number" type="text" icon={<CardIcon />}
-                    value={cardNumber} onChange={setCardNumber} placeholder="•••• •••• •••• ••••" />
-                  {/* Two short fields side by side is fine from sm up; at 375px each
-                      would be ~130px, too narrow for the icon + "MM / YY". */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <PayInput label="Expiry Date" type="text" icon={<CalIcon />}
-                      value={expiry} onChange={setExpiry} placeholder="MM / YY" />
-                    <PayInput label="CVV" type="password" icon={<LockIcon />}
-                      value={cvv} onChange={setCvv} placeholder="•••" />
-                  </div>
-                </div>
+                <p className="text-sm text-[var(--brand-hint)]">
+                  Paid bookings are currently unavailable. Free events can be booked now.
+                </p>
               )}
 
               {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
 
               <button
                 onClick={handlePay}
-                disabled={isProcessing}
+                disabled={isProcessing || !isFree}
                 className="mt-6 w-full py-4 rounded-lg text-[var(--brand-on-green)] text-[18px] font-bold transition-colors disabled:opacity-60"
                 style={{ backgroundColor: GREEN }}
                 onMouseEnter={(e) => !isProcessing && (e.currentTarget.style.backgroundColor = "var(--brand-green-hover)")}
@@ -228,13 +195,13 @@ export default function CheckoutPage({
                     {isFree ? "Claiming…" : "Processing…"}
                   </span>
                 ) : (
-                  isFree ? "Claim Free Ticket" : `Pay ${money(total)}`
+                  isFree ? "Claim Free Ticket" : "Paid bookings unavailable"
                 )}
               </button>
 
               {!isFree && (
                 <p className="text-center text-xs text-[var(--brand-hint)] mt-4">
-                  Securely processed by Stripe
+                  Payments are disabled during initial testing
                 </p>
               )}
             </div>
@@ -260,8 +227,8 @@ export default function CheckoutPage({
             </h2>
             <p className="text-[var(--brand-hint)] mb-8 leading-relaxed">
               {isFree
-                ? "Your spot has been reserved. We've sent a confirmation to your email."
-                : "Your payment was processed successfully. We've sent your tickets via email."}
+                ? "Your booking is saved. View your tickets in My Dashboard."
+                : "Paid bookings are currently unavailable."}
             </p>
             <button
               onClick={() => router.push("/dashboard")}
@@ -288,38 +255,4 @@ function SummaryRow({ label, value, bold = false, color = "var(--brand-text)" }:
       <span style={{ fontSize: bold ? 24 : 16, fontWeight: bold ? 700 : 400, color }}>{value}</span>
     </div>
   );
-}
-
-function PayInput({ label, type, icon, value, onChange, placeholder }: {
-  label: string; type: string; icon: React.ReactNode;
-  value: string; onChange: (v: string) => void; placeholder?: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-lg"
-      style={{ backgroundColor: "var(--brand-surface)", border: "1px solid var(--brand-border)" }}>
-      <span className="text-[var(--brand-hint)] shrink-0">{icon}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder ?? label}
-        // min-w-0: an <input> has an intrinsic ~160px width and does not
-        // shrink below it, so Expiry + CVV overflowed the 1024px sidebar.
-        className="flex-1 min-w-0 bg-transparent text-sm outline-none text-[var(--brand-text)] placeholder:text-[var(--brand-muted)]"
-      />
-    </div>
-  );
-}
-
-function PersonIcon() {
-  return <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0" /></svg>;
-}
-function CardIcon() {
-  return <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" /></svg>;
-}
-function CalIcon() {
-  return <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25" /></svg>;
-}
-function LockIcon() {
-  return <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>;
 }

@@ -307,7 +307,6 @@ checklist: `COMPONENTS.md` and `TODO.md` §12.
 | `lib/currency.ts` | **The** price formatter — never hand-write a currency symbol |
 | `lib/csv.ts` | **The** CSV download — never hand-roll `values.join(",")` |
 | `lib/checkin-store.ts` | **The** door record behind Attendees' check-in controls — localStorage, this device only, until `TODO.md` §19.3 |
-| `lib/dev-flags.ts` | **The** developer escape hatches — every one gated on `NODE_ENV === "development"` **and** an env var |
 | `lib/layout.ts` | `GUTTERS` — **the** standard horizontal padding |
 | `lib/pointer.ts` | `hoverCapable()` — guards `onMouseEnter`-driven *state* (menus) so a tap does not open-then-close it |
 | `lib/share-event.ts` | **The** share pipeline, both kinds |
@@ -408,20 +407,9 @@ rules apply, and costs nothing on a backend or docs task. The *reasoning* behind
 
 ## Shipping checklist
 
-### Strip the dev bypass
+### Production access
 
-`lib/dev-flags.ts` holds the developer escape hatches — today `SKIP_ORGANIZER_VERIFICATION`, which
-opens `/organizer/create` with no verified organiser profile and adds a dev strip to
-`/organizer/onboarding`. **Remove all of it as part of shipping**, in this order:
-
-1. Delete `lib/dev-flags.ts`.
-2. In `app/organizer/create/page.tsx` — drop the import, reset `verificationChecked` to `useState(false)`, delete the early return in the gate effect, and put the back button back to a plain `router.back()`.
-3. In `app/organizer/onboarding/page.tsx` — drop the import, delete the early return that suppresses the verified-organiser redirect, and delete the terracotta-edged dev strip above the header.
-4. Remove `NEXT_PUBLIC_SKIP_ORGANIZER_VERIFICATION` from `.env.local.example` and from every developer's `.env.local`.
-5. Delete the `lib/dev-flags.ts` row from `COMPONENTS.md` and from this file's *Component Registry*, and `CLAUDE.md`'s guideline 13 with them.
-
-**What this is NOT:** it is not a live hole in production — the reasoning is stated once, in
-`CLAUDE.md` guideline 13, along with the corollary that matters more than this checklist.
+Organizer development bypasses have been removed. Run type-check and backend integration tests before release. Set NEXT_PUBLIC_DATA_MODE=real and an HTTPS NEXT_PUBLIC_API_URL only after backend health checks pass.
 
 ---
 

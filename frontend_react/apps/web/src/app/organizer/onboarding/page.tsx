@@ -16,7 +16,6 @@ import {
   DetailStickyShell,
   STICKY_BAR_HEIGHT,
 } from "@/components/DetailCard";
-import { SKIP_ORGANIZER_VERIFICATION } from "@/lib/dev-flags";
 import { GUTTERS } from "@/lib/layout";
 
 const GREEN = "var(--brand-green)";
@@ -94,11 +93,6 @@ export default function OrganizerOnboardingPage() {
 
   useEffect(() => {
     if (!isAuthenticated) { router.replace("/auth"); return; }
-    /* An organiser who is already verified normally gets bounced straight to the
-       create form. Under the dev bypass that redirect is exactly what stops you
-       from LOOKING at this page — and it would fire the moment the create page's
-       back button landed you here, so the pair would ping-pong. */
-    if (SKIP_ORGANIZER_VERIFICATION) return;
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
     organizerApi.get(userId)
@@ -169,35 +163,6 @@ export default function OrganizerOnboardingPage() {
         className={`pt-8 max-w-[1536px] mx-auto ${GUTTERS}`}
         style={{ paddingBottom: STICKY_BAR_HEIGHT + 32 }}
       >
-        {/* DEV ONLY — the forward half of the create ⇄ onboarding round trip.
-            Deliberately a strip ABOVE the page rather than a control inside it:
-            this page's own layout is what you came here to look at, and a button
-            threaded into the header would change the thing under review. The
-            TERRACOTTA edge is the tell that it is not product UI — nothing else
-            on this page is outlined in the annotation colour, and this product
-            has no dashed borders anywhere (Gautham, 2026-09-09). Dropped from
-            the bundle entirely when the flag is off — see lib/dev-flags.ts. */}
-        {SKIP_ORGANIZER_VERIFICATION && (
-          <div
-            className="mb-6 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3"
-            style={{
-              border: "2px solid var(--brand-terracotta)",
-              backgroundColor: "var(--brand-surface)",
-            }}
-          >
-            <p style={{ color: "var(--brand-hint)" }}>
-              Dev bypass on — verification is not being enforced.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/organizer/create")}
-              className="px-4 py-2 rounded-lg font-bold transition-colors bg-[var(--brand-green)] hover:bg-[var(--brand-green-hover)]"
-              style={{ color: "var(--brand-on-green)" }}
-            >
-              Skip to Create Event →
-            </button>
-          </div>
-        )}
 
         {/* Header — the create page's back arrow and title block. Plain history
             here in both modes: under the bypass the dev strip above is already

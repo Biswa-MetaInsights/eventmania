@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -12,7 +12,15 @@ class UserRole(str, enum.Enum):
 class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
-    full_name: str
+    full_name: str = Field(min_length=1, max_length=200)
+
+    @field_validator("password")
+    @classmethod
+    def password_bytes(cls, value):
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("Password must be at most 72 UTF-8 bytes")
+        return value
+
     role: UserRole = UserRole.USER
 
 class UserLogin(BaseModel):

@@ -1,4 +1,4 @@
-# NewFind Hetzner single-host staging stack. Configure secrets in .env (never commit .env).
+# Isolated NewFind core stack; no shared TalktoFile resources.
 services:
   postgres:
     image: postgres:15-alpine
@@ -7,107 +7,276 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    - pgdata:/var/lib/postgresql/data
+    - ./backend/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test:
+      - CMD-SHELL
+      - pg_isready -U ${POSTGRES_USER}
       interval: 10s
       timeout: 5s
       retries: 10
-
+    mem_limit: 384m
+    cpus: 0.5
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+    - newfind
+    command:
+    - postgres
+    - -c
+    - shared_buffers=64MB
+    - -c
+    - max_connections=40
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command:
+    - redis-server
+    - --appendonly
+    - 'yes'
+    - --maxmemory
+    - 48mb
+    - --maxmemory-policy
+    - noeviction
     volumes:
-      - redisdata:/data
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    restart: unless-stopped
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.1
-    restart: unless-stopped
-    depends_on: [zookeeper]
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
+    - redisdata:/data
+    mem_limit: 96m
+    cpus: 0.2
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+    - newfind
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
   gateway:
     build: ./backend/gateway
     restart: unless-stopped
-    ports: ["127.0.0.1:8000:8000"]
-    depends_on: [auth, user, event, ticketing]
+    ports:
+    - 127.0.0.1:${NEWFIND_API_PORT:-18000}:8000
+    depends_on:
+      auth:
+        condition: service_healthy
+      user:
+        condition: service_healthy
+      event:
+        condition: service_healthy
+      ticketing:
+        condition: service_healthy
     environment:
-      APP_PORT: "8000"
+      APP_PORT: '8000'
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Set CORS_ALLOWED_ORIGINS}
-
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+    mem_limit: 192m
+    cpus: 0.35
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+    - newfind
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+    - no-new-privileges:true
   auth:
-    build: ./backend/services/auth
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: auth
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      user:
+        condition: service_healthy
     environment:
-      APP_PORT: "8001"
+      APP_PORT: '8001'
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/auth_db
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       TICKETING_SERVICE_URL: http://ticketing:8004
-      DEBUG: "false"
-
+      DEBUG: 'false'
+      KAFKA_ENABLED: 'false'
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY}
+      USER_SERVICE_URL: http://user:8002
+    mem_limit: 192m
+    cpus: 0.35
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+    - newfind
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/', timeout=3)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+    - no-new-privileges:true
   user:
-    build: ./backend/services/user
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: user
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      APP_PORT: "8002"
+      APP_PORT: '8002'
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/user_db
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_HOST: redis
-      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
-      DEBUG: "false"
-
+      DEBUG: 'false'
+      KAFKA_ENABLED: 'false'
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY}
+    mem_limit: 192m
+    cpus: 0.35
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+    - newfind
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/', timeout=3)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+    - no-new-privileges:true
   event:
-    build: ./backend/services/event
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: event
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      APP_PORT: "8003"
+      APP_PORT: '8003'
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/event_db
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_HOST: redis
-      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
-      DEBUG: "false"
-
+      DEBUG: 'false'
+      KAFKA_ENABLED: 'false'
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY}
+      TICKETING_SERVICE_URL: http://ticketing:8004
+    mem_limit: 192m
+    cpus: 0.35
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+    - newfind
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/', timeout=3)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+    - no-new-privileges:true
   ticketing:
-    build: ./backend/services/ticketing
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: ticketing
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      APP_PORT: "8004"
+      APP_PORT: '8004'
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ticketing_db
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_HOST: redis
-      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
-      DEBUG: "false"
-
+      DEBUG: 'false'
+      KAFKA_ENABLED: 'false'
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY}
+      EVENT_SERVICE_URL: http://event:8003
+    mem_limit: 192m
+    cpus: 0.35
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+    - newfind
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8004/', timeout=3)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+    - no-new-privileges:true
 volumes:
-  pgdata:
-  redisdata:
+  pgdata: null
+  redisdata: null
+name: newfind
+networks:
+  newfind: {}

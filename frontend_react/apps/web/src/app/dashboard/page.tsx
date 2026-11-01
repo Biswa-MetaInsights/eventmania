@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, Suspense, type MouseEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { loadBookings } from "@/lib/bookings";
 import { useRouter, useSearchParams } from "next/navigation";
-import { avatarFor, useAuthStore, useProfileStore, useTicketsStore, useWishlistStore } from "@eventmind/store";
+import { avatarFor, useAuthStore, useProfileStore, useWishlistStore } from "@eventmind/store";
 import type { StoredTicket, WishlistItem } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
 import { ProfilePictureModal } from "@/components/ProfilePictureModal";
@@ -85,7 +87,11 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userEmail = useAuthStore((s) => s.userEmail);
-  const tickets = useTicketsStore((s) => s.tickets);
+  const bookingQuery = useQuery({
+    queryKey: ["bookings", userEmail], queryFn: loadBookings,
+    enabled: isAuthenticated, retry: false,
+  });
+  const tickets = bookingQuery.data ?? [];
   const wishlistItems = useWishlistStore((s) => s.items);
 
   // Who is signed in, and do they run events? Shares the console's query keys,
@@ -157,7 +163,7 @@ function DashboardContent() {
       {/* ── Tab content ── */}
       <div className={`py-8 ${GUTTERS}`}>
         {activeTab === "tickets" ? (
-          <TicketsTab tickets={tickets} />
+          bookingQuery.isPending ? <p>Loading tickets…</p> : bookingQuery.isError ? <p role="alert">Tickets could not be loaded. Please refresh or sign in again.</p> : <TicketsTab tickets={tickets} />
         ) : activeTab === "wishlist" ? (
           <WishlistTab items={wishlistItems} />
         ) : activeTab === "events" ? (

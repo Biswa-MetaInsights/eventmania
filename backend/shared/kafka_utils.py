@@ -5,6 +5,7 @@ import os
 from typing import Any, Callable, Dict, Optional
 
 # Use a mock implementation if requested for local-only testing
+KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true").lower() == "true"
 MOCK_MODE = os.getenv("MOCK_KAFKA", "FALSE") == "TRUE"
 
 class KafkaManager:
@@ -16,6 +17,9 @@ class KafkaManager:
         self.logger = logging.getLogger(f"kafka.{client_id}")
 
     async def start(self):
+        if not KAFKA_ENABLED:
+            self.logger.info("Kafka disabled; optional notifications and agents are unavailable.")
+            return
         if MOCK_MODE:
             self.logger.info("🛠️ Kafka Mock Started (Shadow Mode)")
             self.is_running = True
@@ -35,6 +39,8 @@ class KafkaManager:
             self.is_running = False
 
     async def send(self, topic: str, value: Dict[str, Any]):
+        if not KAFKA_ENABLED:
+            return
         if not self.is_running:
             self.logger.warning(f"Attempted to send to {topic} but KafkaManager is not running.")
             return
@@ -72,12 +78,12 @@ class KafkaManager:
             auto_offset_reset='earliest'
         )
         await consumer.start()
-        logger.info(f"Kafka Consumer for {topic} started (group: {group_id}).")
+        self.logger.info(f"Kafka Consumer for {topic} started (group: {group_id}).")
         try:
             async for msg in consumer:
-                logger.info(f"Received event from {topic}: {msg.value}")
+                self.logger.info(f"Received event from {topic}: {msg.value}")
                 await callback(msg.value)
         except Exception as e:
-            logger.error(f"Error consuming events from {topic}: {e}")
+            self.logger.error(f"Error consuming events from {topic}: {e}")
         finally:
             await consumer.stop()

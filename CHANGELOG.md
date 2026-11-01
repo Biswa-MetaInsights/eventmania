@@ -9,6 +9,9 @@
 
 ---
 
+## 2026-11-01
+- Prepared isolated Hetzner core deployment, authenticated access and persistent free bookings; local checks pass, live rollout awaits server access.
+
 ## 2026-09-11
 
 - **The dashboard's fourth tab is "Profile", and it takes a picture** (Gautham) — "Participant Profile" was renamed (every tab there is already a participant's), and the avatar disc gained an always-visible camera badge that opens `ProfilePictureModal` — the same `CoverImageField` an organiser picks a cover photo with, at `kind="avatar"`: a circular preview, upload or a pasted link, Remove. The picture also replaces the green initial disc in the navbar's account menu. It is stored in `useProfileStore` (localStorage, keyed by email) rather than on `profiles.avatar_url`, which is a `String(512)` with no upload endpoint behind it — the same wall the cover image hit. `image-upload.ts` grew `fileToAvatarDataUrl`: 320px, centre-cropped square, 150 KB.

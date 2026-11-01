@@ -1,3 +1,5 @@
+from access import authorize, principal
+from uuid import UUID
 import httpx
 import logging
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
@@ -42,6 +44,9 @@ SERVICE_MAP: Dict[str, str] = {
     "community": "http://community:8011/communities",
 }
 
+# Allow isolated test endpoints without changing production defaults.
+SERVICE_MAP = {name: os.getenv(f"BACKEND_{name.upper()}_URL", url) for name, url in SERVICE_MAP.items()}
+
 # Shared HTTP Client for Proxying
 client = httpx.AsyncClient()
 
@@ -59,10 +64,12 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
     if service_name not in SERVICE_MAP:
         raise HTTPException(status_code=404, detail=f"Service '{service_name}' not found.")
 
+    await authorize(request, service_name, path, client)
+
     target_url = f"{SERVICE_MAP[service_name]}/{path}"
     
     # 1. Forward original query parameters
-    params = dict(request.query_params)
+    params = list(request.query_params.multi_items())
     
     # 2. Forward original body
     body = await request.body()
@@ -71,6 +78,8 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
     headers = dict(request.headers)
     headers.pop("host", None)
     headers.pop("content-length", None)
+    headers.pop("x-internal-key", None)
+    headers["accept-encoding"] = "identity"
 
     try:
         response = await client.request(
@@ -82,11 +91,21 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
             timeout=30.0
         )
         
+        if service_name == "event" and request.method == "GET" and response.status_code == 200:
+            try:
+                UUID(path.strip("/"))
+            except ValueError:
+                pass
+            else:
+                event = response.json()
+                if event.get("status") != "published" and event.get("organizer_id") != principal(request)["sub"]:
+                    raise HTTPException(403, "Private event")
+
         # Return matched response to the client
         return Response(
             content=response.content,
             status_code=response.status_code,
-            headers=dict(response.headers)
+            headers={k: v for k, v in response.headers.items() if k.lower() not in {"content-encoding", "content-length", "transfer-encoding", "connection", "access-control-allow-origin", "access-control-allow-credentials"}}
         )
 
     # Must precede the RequestError handler below — TimeoutException is a subclass

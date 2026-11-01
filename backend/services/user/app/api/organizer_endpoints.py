@@ -14,14 +14,14 @@ def submit_organizer_profile(user_id: UUID, data: OrganizerProfileCreate, db: Se
         # Allow re-submission to update details
         for field, value in data.model_dump().items():
             setattr(existing, field, value)
-        existing.verification_status = VerificationStatus.VERIFIED
+        existing.verification_status = VerificationStatus.PENDING
         db.commit()
         db.refresh(existing)
         return existing
 
     profile = OrganizerProfile(
         user_id=user_id,
-        verification_status=VerificationStatus.VERIFIED,
+        verification_status=VerificationStatus.PENDING,
         **data.model_dump(),
     )
     db.add(profile)

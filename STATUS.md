@@ -81,19 +81,21 @@ Phase 2 restore checklist: `TODO.md` §12.
 
 ## In progress / partial
 
+- **Hetzner core deployment** — code prepared on `deployment/hetzner-backend`; not deployed. Local integration, production frontend build and changed-file lint pass. Server authentication is blocked; Docker/PostgreSQL runtime and browser/mobile QA remain unverified. Detailed infrastructure notes are kept in the private deployment report.
+- **Free ticket issuance** — checkout calls the persistent booking endpoint and dashboard loads backend tickets. Capacity checks, retry idempotency and restart persistence pass local SQLite integration; PostgreSQL concurrency and live journeys remain untested. Paid bookings are disabled.
+
 - **Chat** — reachable and working live, but the unread glow and inbox are a **frontend-only MVP** (`ChatPresence.tsx`). Messages are not persisted, so nothing received while the app is closed is detected. See `TODO.md`. ⚠️ It is a **group room per event** (room id = event id, membership = ticket-holders ∪ organiser, broadcast to every socket in the room) — verified by reading the code, **not yet by running two clients against one event** (`TODO.md` §3c). In it **nobody is identifiable**: every other sender renders as `Attendee <4 chars of UUID>` with no organiser badge, so the organiser cannot be picked out.
 - **Joining a community** — ⚠️ moot while communities are parked. When restored: the "Join this community" CTA is on the page (card + sticky bar) and **does nothing on click, by design**. There is no membership table, no join endpoint and no new-event notification hook; the joined-state UI is not designed yet. Full spec in `TODO.md` §3b.
 - **Community reviews** — ⚠️ moot while communities are parked. When restored, the block aggregates reviews from the community's past events, because the review service is event-scoped. `TODO.md` §11.
 - **SEO metadata** — `/event/[id]` has `generateMetadata()` + share images. Other dynamic routes do not. `/community/[slug]`'s is **parked** (static title, share images 404).
 - **Ticketmaster geocoding** — ingestion runs, but many events land with `lat: 0, lng: 0` because no geocoder is wired up. See `TODO.md`.
 - **Organiser-authored event content** — announcements, agenda of the programme, FAQ, offer name ("Early bird") and an editable cover image are **fully built on the frontend** and render publicly on `/event/[id]`. **None of the five has a backend column**, so they persist in `dummy` mode only (in module memory: they survive navigation and die on reload) and every authoring control is **disabled with an explanation** in `real` mode rather than saving into a void. `image_url` is the cheapest to make real — the column exists, it is just missing from `EventUpdate`. Full spec: `TODO.md` §19.12.
-- **Postponing / cancelling / publishing an event** — the organiser's controls on `/event/[id]` are built and write through `PATCH /event/{id}`, which persists. **Duplicate** writes a fresh draft through `POST /event/`. **Everything around the write is missing:** the event service does not distinguish a postponement from an edit, publishes no Kafka message for either, sends no notification and no email, and — the live hole — **does not check that the caller owns the event.** Both dialogs state on screen what does not happen, rather than implying it does. Full spec: `TODO.md` §20.
+- **Postponing / cancelling / publishing an event** — the organiser's controls on `/event/[id]` are built and write through `PATCH /event/{id}`, which persists. **Duplicate** writes a fresh draft through `POST /event/`. **Everything around the write is missing:** the event service does not distinguish a postponement from an edit, publishes no Kafka message for either, sends no notification and no email, and the reviewed deployment gateway now checks event ownership (not yet deployed). Both dialogs state on screen what does not happen, rather than implying it does. Full spec: `TODO.md` §20.
 
 ---
 
 ## Not started
 
-- **Real ticket issuance** — tickets live in Zustand/localStorage only, never written to the database.
 - **Notification bell** — icon present, no panel and no backend. **Shape decided 2026-09-02** (both audiences, dropdown panel, chat button left alone): `TODO.md` §24. ⚠️ **It now owes a signal that used to be on screen:** the organiser console's "N need you" header pill was removed the same day, so refund requests and unpaid bookings have no ambient indicator anywhere until this is built. Deliberate — the pill was a dead-end `<span>` duplicating the "Needs you today" column below it — but it is a debt, not a clean deletion.
 - **Help page** — link present, no page.
 - **Social login** — buttons present, disabled.

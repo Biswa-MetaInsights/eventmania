@@ -41,7 +41,6 @@ import { ListEditorModal } from "@/components/organizer/ListEditorModal";
 import { OUTLINE_BUTTON } from "@/lib/controls";
 import { currencySymbol } from "@/lib/currency";
 import { EXTRAS_ARE_LOCAL, eventsSource } from "@/lib/data-source";
-import { SKIP_ORGANIZER_VERIFICATION } from "@/lib/dev-flags";
 import { EXTRAS_HINT } from "@/lib/event-extras";
 import {
   CATEGORIES,
@@ -441,14 +440,10 @@ export default function CreateEventPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
-  /* Starts true under the dev bypass — the gate is then already open on the first
-     render. Setting it from inside the effect instead would trip
-     `react-hooks/set-state-in-effect` and cost a throwaway render. */
-  const [verificationChecked, setVerificationChecked] = useState(SKIP_ORGANIZER_VERIFICATION);
+  const [verificationChecked, setVerificationChecked] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) { router.replace("/auth"); return; }
-    if (SKIP_ORGANIZER_VERIFICATION) return;
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
 
@@ -642,52 +637,11 @@ export default function CreateEventPage() {
         className={`pt-8 max-w-[1536px] mx-auto ${GUTTERS}`}
         style={{ paddingBottom: STICKY_BAR_HEIGHT_COMPACT + 32 }}
       >
-        {/* DEV ONLY — the return half of the create ⇄ onboarding round trip, and
-            the twin of the strip at the top of /organizer/onboarding. The back
-            arrow below already walks there under the bypass, but it reads as a
-            back button, so it is not a door anyone can SPOT — with both the
-            create-page redirect and the console's "Become an organiser" empty
-            state switched off by the dev flags, the onboarding page had no
-            visible way in at all (Gautham, 2026-09-11). Same TERRACOTTA edge as
-            its twin, for the same reason: nothing else on this page is outlined
-            in the annotation colour, and this product has no dashed borders
-            anywhere (Gautham, 2026-09-09). Dropped from the bundle entirely when
-            the flag is off — see lib/dev-flags.ts. */}
-        {SKIP_ORGANIZER_VERIFICATION && (
-          <div
-            className="mb-6 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3"
-            style={{
-              border: "2px solid var(--brand-terracotta)",
-              backgroundColor: "var(--brand-surface)",
-            }}
-          >
-            <p style={{ color: "var(--brand-hint)" }}>
-              Dev bypass on — verification is not being enforced.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/organizer/onboarding")}
-              className="px-4 py-2 rounded-lg font-bold transition-colors bg-[var(--brand-green)] hover:bg-[var(--brand-green-hover)]"
-              style={{ color: "var(--brand-on-green)" }}
-            >
-              ← Organiser registration
-            </button>
-          </div>
-        )}
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          {/* Under the dev bypass this walks to /organizer/onboarding rather than
-              into history, so the two pages can be reviewed as a pair. For a real
-              organiser it stays plain history — they reach this form from the
-              console, and sending them to a verification page they have already
-              completed would be a bug, not a shortcut. */}
           <button
-            onClick={() =>
-              SKIP_ORGANIZER_VERIFICATION
-                ? router.push("/organizer/onboarding")
-                : router.back()
-            }
+            onClick={() => router.back()}
             className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center transition-colors"
             style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)" }}
           >

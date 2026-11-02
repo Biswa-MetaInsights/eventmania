@@ -99,7 +99,7 @@ export default function OrganizerOnboardingPage() {
     if (!userId) return;
     organizerApi.get(userId)
       .then(() => router.replace("/organizer/create"))
-      .catch(() => { /* not verified yet — stay */ });
+      .catch(() => { /* no organizer profile yet — stay */ });
   }, [hasHydrated, isAuthenticated, router, tokens]);
 
   if (!hasHydrated || !isAuthenticated) return null;
@@ -182,10 +182,10 @@ export default function OrganizerOnboardingPage() {
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="text-[28px] font-bold" style={{ color: "var(--brand-text)" }}>Verify your organisation</h1>
+            <h1 className="text-[28px] font-bold" style={{ color: "var(--brand-text)" }}>Set up your organisation</h1>
             <p className="text-[18px]" style={{ color: "var(--brand-hint)" }}>
-              To publish events on NewFind, we need your company details for trust and compliance.
-              This is a one-time step. Your information is kept private.
+              Add your organisation details to publish events. Your organisation name appears publicly.
+              Contact details, company address and bank details stay private.
             </p>
           </div>
         </div>
@@ -382,7 +382,7 @@ export default function OrganizerOnboardingPage() {
                       <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
                       Verifying…
                     </span>
-                  ) : "Verify & Continue"
+                  ) : "Save & Continue"
                 }
               />
             </div>

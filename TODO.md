@@ -27,14 +27,14 @@ frontend half is a *swap*, not a build. Read the section before assuming there i
 
 | # | Item | Tag |
 |---|---|---|
-| 1 | Real public organiser identity | Implemented; release verification pending |
+| 1 | Real public organiser identity | Implemented; see current release status |
 | 2 | `Today` / `Recommended` badges are dead for real data | `[FE+BE]` |
 | 2b | Tag derivation belongs in the backend | `[FE+BE]` |
 | 3 | Chat backend — persistence, room list, real unread | `[BE]` |
 | 3b | Join a community | `[FE+BE]` · parked |
 | 3c | Verify the participant room end to end | `[FE+BE]` |
 | 4 | Ticketmaster geocoding | `[BE]` |
-| 5 | Core auth guards wait for hydration | Implemented; release verification pending |
+| 5 | Core auth guards wait for hydration | Implemented; see current release status |
 | 6 | Event card meta row over-stuffed | `[FE]` · decision |
 | 7 | Chat launcher overlaps the Similar-events card | `[FE]` · decision |
 | 7b | Event assistant for unregistered users | `[FE+BE]` · decision |
@@ -56,7 +56,7 @@ frontend half is a *swap*, not a build. Read the section before assuming there i
 | 23 | `registration_closed` has no backend — the UI ships ahead of it | `[BE]` |
 | 24 | Notifications move to the navbar bell | `[BE]` — pill removed 2026-09-02, **the bell now owes its signals** |
 | 25 | Multi-currency — every amount is a bare number | `[FE+BE]` · decision |
-| 26 | Organizer contact email persistence and migration | Implemented; release verification pending |
+| 26 | Organizer contact email persistence and migration | Implemented; see current release status |
 
 ---
 
@@ -100,16 +100,7 @@ derived **client-side, per card**, in `toCarouselEvent()` (`lib/card-adapters.ts
 | `this-week` | `!soldOut && isThisWeek(start_date)` |
 | `free` | `price === 0` |
 
-**⚠️ Two of those four can never fire on a real event either.** `tickets_sold` is
-`Column(Integer, default=0)` in `services/event/app/models/event.py` and **nothing in the repo ever
-writes to it** — a repo-wide grep returns only the column definition, the Pydantic field, fixture
-literals and read sites. Tickets never reach the database at all (§11, "real ticket issuance"), so
-`tickets_sold` is permanently `0` on live data and **`sold-out` and `selling-fast` appear only on
-the dummy fixtures, which hardcode the numbers.** Only `this-week` and `free` survive against a real
-backend.
-
-The same zero shows through on the detail page: `/event/[id]` passes `going={event.tickets_sold}`
-and `left={capacity - tickets_sold}` into the booking card, so every real event reads "0 going".
+**Live inventory is now implemented (Biswajith Gopinathan, 2026-11-02).** Event search/details hydrate actual persisted ticket counts from ticketing. Free ticket issuance, capacity enforcement, idempotency and persistence passed deployed tests. Backend-owned tags and full-catalogue filtering below remain pending.
 
 **Second problem — the derivation is duplicated.** `app/explore/page.tsx` re-implements the sold-out,
 selling-fast and popularity predicates independently of `card-adapters.ts`. Two copies of the 0.7
@@ -527,50 +518,9 @@ into "we'll pick the right ones for you", which is §2 and is not built.
 
 ---
 
-## 16. `[FE]` Event rooms are being parked for Phase 2 — the `FeatureBand` chat card goes with them
+## 16. Real-mode capability presentation — implemented (Biswajith Gopinathan)
 
-**Gautham's plan (2026-08-20), mostly not yet actioned.** The per-event chat room every event
-carries is to be **commented out and pushed to the next phase**, the same way communities were
-parked on 2026-08-14 — parked, not deleted.
-
-> ⚠️ **One piece of this IS done, and it was a deletion, not a parking.** The organiser console's
-> **Event rooms section** was removed outright on 2026-09-01 (Gautham) — see §19's header. That was
-> the organiser's private mirror of the room, and it is gone for good, not commented out. **The
-> participant-facing room is a separate question and is still fully live** — `/chat`,
-> `/chat/[roomId]`, `EventChatWidget`, `ChatPresence` and the `FeatureBand` tile below are all
-> untouched, and everything in this section still applies to them.
-
-⚠️ **The home page advertises it, so the copy has to move in the SAME change.** `FeatureBand`'s
-lead participant tile is *"Talk to the organiser before you go — Every event has its own room. Ask
-the organiser, meet the people going, even before it starts. Say goodbye to endless emails."* The
-moment rooms are unreachable that tile is **a promise the product cannot keep**, on the page whose
-whole job is to earn trust. It is the first card a participant reads.
-
-**Adjust the card — do not just delete it and leave a hole.** In order of preference:
-1. **Comment it out** alongside the room code, exactly like the parked "Everything in one feed"
-   card two lines below it in `FEATURES.participants`. That leaves the participants half with one
-   feature tile plus its CTA.
-2. **Or replace it** with §15's "plenty to choose from" tile if the catalogue is big enough by then —
-   that would keep the half at two feature tiles and needs no grid change.
-
-⚠️ **Removing a tile IS a layout change.** The band is one flat grid whose top step is
-`band:grid-cols-7`, sized to exactly today's seven tiles. Dropping the chat card makes it six, so
-`grid-cols-7` must become `grid-cols-6` **and** its 1400px breakpoint should be re-picked — six wider
-tiles need less room, so the row can start earlier. The narrower steps are bound with `max-band:`
-for a reason; read the notes in the component and beside `--breakpoint-band` in `globals.css`
-before touching them.
-
-**What else names the room, and must be swept in the same pass:**
-- `components/ChatPresence.tsx` — the app-wide listener mounted in `layout.tsx` that lights the
-  navbar's chat glow. Its whole purpose is per-event rooms.
-- The chat button in `components/navbar/Navbar.tsx` and its unread dot (`eventmind-chat-unread`).
-- `/chat`, and the room entry point on `/event/[id]`.
-- ⚠️ **`EventChatWidget.tsx` is NOT this.** That is the AI event assistant, a different feature that
-  stays — and `FeatureBand`'s second participant tile ("An AI assistant that knows the event inside
-  out") is about the assistant, not the room. **Do not park that card by mistake.**
-
-**Related, and partly superseded by this:** §3 (chat persistence, room list, real unread) and §7b
-(should the assistant open to unregistered users) — §3's work is exactly what parking defers.
+Real mode hides chat, notification and event-assistant entry points, ticket chat actions and the unimplemented Recommended filter. ChatPresence opens no sockets or organizer-room queries in real mode. Home cards describe discovery, persisted free tickets, event management, publishing and free listings; paid checkout is explicitly unavailable. Dummy-mode components remain for future work. Hiding controls does not complete the deferred backend services.
 
 ---
 
@@ -1303,3 +1253,12 @@ a comment pointing here.
 ## 26. Organizer contact email — implemented (Biswajith Gopinathan)
 
 The user service persists and returns contact_email on the private organizer profile. An additive, repeatable startup migration preserves existing rows and backfills their company email because historical contact inputs were discarded. Older clients without contact_email also use company_email; new submissions preserve the supplied contact address. Public organizer responses exclude both addresses.
+
+## 27. Launch operations and verification — owner: Biswajith Gopinathan
+
+- Daily protected local PostgreSQL backups are installed. Four core databases passed isolated restoration, checksums and public-table row-count checks. Off-server storage and retention/disk monitoring remain pending; local snapshots cannot recover a lost server.
+- Complete mobile/device verification and the organizer onboarding-to-publish browser journey. API workflow and ownership checks pass.
+- Add health/error monitoring, review security/rate limits and run basic load tests.
+- Configure password recovery/email verification and transactional email with the required provider configuration.
+- Connect a dedicated NewFind domain; new paid services require explicit approval.
+- Rename the GitHub repository to newfind once authenticated settings access is available, then validate server remotes and Vercel connectivity.

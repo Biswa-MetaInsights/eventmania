@@ -51,7 +51,7 @@ export function Footer() {
             <BrandLogo markSize={55} gap={16} style={{ color: LINEN }} />
             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "rgba(242,239,234,0.75)" }}>
               {/* PARKED 2026-08-14 (MVP) — was "…find events, communities, and experiences near you." */}
-              AI-powered event discovery — find events and experiences near you.
+              Find events and experiences near you.
             </p>
           </div>
 
@@ -78,7 +78,7 @@ export function Footer() {
           style={{ borderTop: "1px solid rgba(242,239,234,0.18)" }}
         >
           <p className="text-sm" style={{ color: "rgba(242,239,234,0.7)" }}>
-            © {new Date().getFullYear()} EventMind. All rights reserved.
+            © {new Date().getFullYear()} NewFind. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             {/* Social icons */}

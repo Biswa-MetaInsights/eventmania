@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { reviewsApi, organizerApi } from "@eventmind/api";
-import { eventsSource } from "@/lib/data-source";
+import { eventsSource, isDummyMode } from "@/lib/data-source";
 import type { Review, ReviewAggregates } from "@eventmind/api";
 import { useAuthStore } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
@@ -505,7 +505,7 @@ export default function EventDetailPage({
       <SimilarEvents event={event} />
 
       {/* ── AI Event Assistant widget ── */}
-      <EventChatWidget event={event} />
+      {isDummyMode && <EventChatWidget event={event} />}
 
       {/* ── Sticky bar ──
           ⚠️ It follows the sidebar: the organiser's says what they came to find

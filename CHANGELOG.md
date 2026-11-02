@@ -10,7 +10,7 @@
 ---
 
 ## 2026-11-02
-- **Biswajith Gopinathan** — implement safe public organizer identity, contact-email persistence/migration, core auth hydration guards and NewFind-only backup/restore tooling.
+- **Biswajith Gopinathan** — implement safe public organizer identity, contact-email persistence/migration, core auth hydration guards and verified daily local database backups; hide unsupported real-mode features and replace unimplemented marketing claims.
 
 ## 2026-11-01
 - Deployed the isolated persistent core backend; deployed API, concurrent booking and restart-persistence checks pass. Public routing and frontend registration/free-booking verification subsequently passed.

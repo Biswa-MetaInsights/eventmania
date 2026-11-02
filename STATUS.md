@@ -111,13 +111,13 @@ Phase 2 restore checklist: `TODO.md` §12.
 
 These are live and **not** bugs to fix on sight — each was a conscious call. Full context and fix specs in `TODO.md`.
 
-- **`Today` and `Recommended` badges can never appear on a real event** — nothing emits them, so the home page's "Recommended" filter tab matches nothing.
+- **Today and Recommended signals remain unimplemented** — the Recommended home tab is hidden until the engine is deployed.
 - **The event card's meta row truncates the venue at `xl:grid-cols-4`** — 44px of room for the venue at 1440px.
 - **The floating chat launcher overlaps the fourth "Similar events" card** at every width.
 - **Core protected routes now wait for auth hydration** — dashboard, checkout, organizer onboarding and event creation use `_hasHydrated`; parked chat/community routes require review before enabling.
 - **Event mutations are authenticated and owned at the public gateway** — cross-user edits are rejected; private service ports remain unexposed.
 - **Capacity is editable with no floor and no notice to anyone** — Gautham's call (2026-08-24). It can be set below `tickets_sold`, and no ticket is voided or refunded. The edit dialog states the consequence in words when the field is touched — **that warning is the whole guardrail, do not trim it.** ⚠️ **The ticket PRICE is no longer part of this** (Gautham, 2026-09-01): price and currency are fixed at creation and the dialog shows both read-only, so the 2026-08-24 reversal now stands for capacity alone.
-- **Three of `FeatureBand`'s five live cards advertise work that isn't finished.** Gautham's call (2026-08-17). The **pricing** card ("Free to list. Small fee for paid events." — a 2% convenience fee **paid by the participant**, revised 2026-08-19) and the **stats** card have no implementation at all (`TODO.md` §13, §14), and the **chat card** is only half-true — event rooms are live and the organiser is in them, but only for people who already booked, so a prospective attendee cannot yet reach an organiser (`TODO.md` §7b). The lead card's copy deliberately never states *when* you can chat, so it stays accurate either way — **do not "clarify" it into "once you book".** Everything else on the band is shipped.
+- **Real-mode capability presentation** — chat, assistant, notification entry points and Recommended tabs are hidden. Home cards describe the deployed free-event features. Deferred services remain incomplete.
 
 ---
 
@@ -134,4 +134,4 @@ These are live and **not** bugs to fix on sight — each was a conscious call. F
 - Public organizer identity uses a safe name/status-only endpoint; both event cards hide fabricated trust/counts.
 - Contact email migration, persistence and public/private response separation pass regression tests.
 - Core auth redirects wait for hydration.
-- Local database backup and isolated restore tooling is prepared; server execution and off-server copies remain unverified.
+- Daily protected local backups are installed; all four core databases passed isolated restoration, checksums and table-row counts. Off-server copies and retention/disk monitoring remain pending.

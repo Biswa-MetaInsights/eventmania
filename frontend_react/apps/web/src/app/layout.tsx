@@ -30,7 +30,7 @@ const appFont = Roboto({
 export const metadata: Metadata = {
   title: "NewFind: find new online and offline events",
   description:
-    "AI-powered platform to discover events and experiences near you.",
+    "Discover events and experiences near you.",
   applicationName: "NewFind",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NewFind: find new online and offline events",
     description:
-      "AI-powered platform to discover events and experiences near you.",
+      "Discover events and experiences near you.",
     siteName: "NewFind",
     type: "website",
     images: [
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NewFind: find new online and offline events",
     description:
-      "AI-powered platform to discover events and experiences near you.",
+      "Discover events and experiences near you.",
     images: ["/brand/newfind-og-1200x630.png"],
   },
 };

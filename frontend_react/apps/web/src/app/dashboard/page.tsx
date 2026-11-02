@@ -1,5 +1,6 @@
 "use client";
 
+import { isDummyMode } from "@/lib/data-source";
 import { useEffect, useState, Suspense, type MouseEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { loadBookings } from "@/lib/bookings";
@@ -412,7 +413,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
           <p className="text-[18px] line-clamp-1" style={{ color: "var(--brand-text)" }}>{ticket.seat_info}</p>
         </>
       }
-      action={
+      action={isDummyMode ? (
         <button
           onClick={(e) => stop(e, () => router.push(`/chat/${ticket.event_id}?name=${encodeURIComponent(ticket.event_title)}`))}
           aria-label={`Join the chat for ${ticket.event_title}`}
@@ -420,7 +421,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
         >
           Join Chat
         </button>
-      }
+      ) : undefined}
     />
   );
 }

@@ -597,7 +597,7 @@ export function Navbar() {
               <ThemeToggle />
             </div>
 
-            {isAuthenticated && (
+            {isAuthenticated && isDummyMode && (
               <>
                 <div className="w-2" />
                 <div onMouseEnter={closeOnHover}>
@@ -713,7 +713,7 @@ export function Navbar() {
               </Link>
             ) : (
               <div className="flex flex-col">
-                <MobileNavButton emoji="💬" label="Messages" showDot={hasUnread} onTap={() => { setMobileOpen(false); router.push("/chat"); }} />
+                {isDummyMode && <MobileNavButton emoji="💬" label="Messages" showDot={hasUnread} onTap={() => { setMobileOpen(false); router.push("/chat"); }} />}
                 {/* Mirrors AvatarMenu — wishlist and the organiser dashboard
                     live in the two sections above, not here. */}
                 <MobileNavButton emoji="🎟️" label="My Dashboard" onTap={() => { setMobileOpen(false); router.push("/dashboard"); }} />

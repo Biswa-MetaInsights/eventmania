@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--base", default="http://127.0.0.1:18000")
 parser.add_argument("--state", type=Path, default=Path(".qa-state.json"))
 parser.add_argument("--verify", action="store_true")
+parser.add_argument("--fixture", action="store_true", help="Create a labelled free event for browser checkout checks")
 args = parser.parse_args()
 
 
@@ -86,13 +87,18 @@ start = datetime.utcnow() + timedelta(days=7)
 event = {"organizer_id":organizer_id, "title":"[QA] NewFind deployment " + uuid4().hex[:8],
          "description":"Disposable deployment test; no real attendance or payment.",
          "start_date":start.isoformat(), "end_date":(start+timedelta(hours=2)).isoformat(),
-         "capacity":3, "price":0, "currency":"EUR", "status":"published"}
+         "capacity":10 if args.fixture else 3, "price":0, "currency":"EUR", "status":"published"}
 created = expect(api("POST", "/event/", event, organizer_token), 201, "event creation")
 event_id = created["id"]
 found = expect(api("GET", "/event/search?q=" + event["title"].split()[-1]), 200, "event discovery")
 assert any(item["id"] == event_id for item in found)
 expect(api("GET", "/event/" + event_id), 200, "event details")
 expect(api("PATCH", "/event/" + event_id, {"title":"Unauthorized change"}, attendee_token), 403, "event ownership enforced")
+
+if args.fixture:
+    print("BROWSER_EVENT_ID=" + event_id, flush=True)
+    raise SystemExit(0)
+
 
 def book(_):
     body = {"event_id":event_id, "user_id":attendee_id, "quantity":1, "request_id":str(uuid4())}

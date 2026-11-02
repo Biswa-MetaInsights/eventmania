@@ -23,14 +23,14 @@ export default function AuthPage() {
   // sign-up form (keeping the entered email/password) and drop the cursor into
   // the Full Name field — the only thing left for the user to fill in.
   const nameRef = useRef<HTMLInputElement>(null);
-  const [focusNameOnSignup, setFocusNameOnSignup] = useState(false);
+  const focusNameOnSignup = useRef(false);
 
   useEffect(() => {
-    if (!isLogin && focusNameOnSignup) {
+    if (!isLogin && focusNameOnSignup.current) {
       nameRef.current?.focus();
-      setFocusNameOnSignup(false);
+      focusNameOnSignup.current = false;
     }
-  }, [isLogin, focusNameOnSignup]);
+  }, [isLogin]);
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -50,15 +50,15 @@ export default function AuthPage() {
         router.push("/");
       }
     } catch (err) {
-      console.error("[Auth error]", err);
+      console.error("[Auth error]", isAxiosError(err) ? err.response?.status ?? "network" : "unexpected");
       if (isAxiosError(err)) {
         if (!err.response) {
-          setError("Cannot reach the server. Is the backend running on port 8000?");
+          setError("Unable to connect. Please try again.");
         } else if (isLogin && err.response.data?.detail === "email_not_registered") {
           // No account for this email — carry the entered credentials into the
           // sign-up form so the user only needs to add their name.
           setIsLogin(false);
-          setFocusNameOnSignup(true);
+          focusNameOnSignup.current = true;
           setError("This email isn't registered with us. Please sign up to continue.");
         } else {
           setError(err.response.data?.detail ?? `Error ${err.response.status}`);

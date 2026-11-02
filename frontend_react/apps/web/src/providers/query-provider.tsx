@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/api-config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 

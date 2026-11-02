@@ -106,10 +106,18 @@ def test_core_user_journeys_and_security(core):
     assert client.post("/auth/social-login", json={}).status_code in (401, 403)
     assert client.post("/auth/register", json={"email":"admin@example.org", "password":"longpassword", "full_name":"admin", "role":"admin"}).status_code == 403
     data = {"full_name":"Test Organizer", "company_name":"QA", "company_address":"QA address",
-            "company_email":"qa@example.org", "country":"Belgium", "registration_number":"TEST",
+            "company_email":"qa@example.org", "contact_email":"contact@example.org", "country":"Belgium", "registration_number":"TEST",
             "bank_name":"TEST ONLY", "bank_account_number":"TEST ONLY"}
     r = client.post(f"/user/{organizer}/organizer", headers=organizer_headers, json=data)
     assert r.status_code == 201, r.text
+    assert r.json()["contact_email"] == "contact@example.org"
+    restart("user")
+    assert client.get(f"/user/{organizer}/organizer", headers=organizer_headers).json()["contact_email"] == "contact@example.org"
+    public = client.get(f"/user/{organizer}/organizer/public")
+    assert public.status_code == 200, public.text
+    assert public.json() == {"user_id": organizer, "name": "QA", "verification_status": "pending"}
+    assert client.get(f"/user/{organizer}/organizer", headers=attendee_headers).status_code == 403
+    assert client.post(f"/user/{organizer}/organizer/public", json={}, headers=attendee_headers).status_code == 403
     event = {"organizer_id":organizer, "title":"Integration QA Event", "description":"Automated isolated test",
              "start_date":"2030-12-01T12:00:00", "end_date":"2030-12-01T14:00:00",
              "capacity":2, "price":0, "currency":"EUR", "status":"published"}

@@ -4,7 +4,7 @@
 > Delete an entry once it ships (and add a `CHANGELOG.md` line). `STATUS.md` lists these as
 > one-liners — read the spec here before picking one up.
 >
-> **Items marked NEEDS A DECISION are blocked on Gautham.** Do not silently work around them.
+> **Current backlog owner: Biswajith Gopinathan (Biswa-MetaInsights).** Biswajith authorized the combined launch backlog on 2026-11-02; routine implementation decisions no longer wait for Gautham. Existing historical notes retain their authorship. Paid services, disruptive production changes and real payments still require explicit approval.
 
 ---
 
@@ -27,14 +27,14 @@ frontend half is a *swap*, not a build. Read the section before assuming there i
 
 | # | Item | Tag |
 |---|---|---|
-| 1 | Organiser identity on `/event/[id]` is hardcoded | `[FE+BE]` |
+| 1 | Real public organiser identity | Implemented; release verification pending |
 | 2 | `Today` / `Recommended` badges are dead for real data | `[FE+BE]` |
 | 2b | Tag derivation belongs in the backend | `[FE+BE]` |
 | 3 | Chat backend — persistence, room list, real unread | `[BE]` |
 | 3b | Join a community | `[FE+BE]` · parked |
 | 3c | Verify the participant room end to end | `[FE+BE]` |
 | 4 | Ticketmaster geocoding | `[BE]` |
-| 5 | Auth guards race zustand hydration | `[FE]` · decision |
+| 5 | Core auth guards wait for hydration | Implemented; release verification pending |
 | 6 | Event card meta row over-stuffed | `[FE]` · decision |
 | 7 | Chat launcher overlaps the Similar-events card | `[FE]` · decision |
 | 7b | Event assistant for unregistered users | `[FE+BE]` · decision |
@@ -56,34 +56,13 @@ frontend half is a *swap*, not a build. Read the section before assuming there i
 | 23 | `registration_closed` has no backend — the UI ships ahead of it | `[BE]` |
 | 24 | Notifications move to the navbar bell | `[BE]` — pill removed 2026-09-02, **the bell now owes its signals** |
 | 25 | Multi-currency — every amount is a bare number | `[FE+BE]` · decision |
-| 26 | Contact person email on `/organizer/onboarding` is collected but not persisted | `[BE]` |
+| 26 | Organizer contact email persistence and migration | Implemented; release verification pending |
 
 ---
 
-## 1. `[FE+BE]` Organiser identity on `/event/[id]` is hardcoded — must fix before launch
+## 1. Organiser identity — implemented (Biswajith Gopinathan)
 
-**Where:** the green header on **both** right-column cards in `app/event/[id]/page.tsx` — the
-participant's `BookingCard` and the organiser's `OrganiserEventCard`, which show the same block
-(Gautham, 2026-09-01).
-
-Every part of the organiser block is fake: the name is the literal string `"NewFind Collective"` —
-the `ORGANISER_NAME` constant both cards are passed — the avatar is that string's first letter, and
-"✓ Verified · 40+ events" is a fixed string. There is no organiser lookup, no verification flag and
-no event count behind it. Gautham approved this **for now** so the card could match the reference
-design. **"Verified" is a trust claim** — it cannot ship to real users as-is.
-
-**Fix:** look the organiser up by `event.organizer_id` via `organizerApi`, then pass real
-`organizer` / `verified` / `eventCount` props into both cards, replacing `ORGANISER_NAME`.
-`CommunityJoinCard` already does exactly this lookup — **copy it, don't re-derive it.**
-
-⚠️ **The name is the ORGANISATION's, not the person's** (Gautham, 2026-09-01): `company_name` on
-`OrganizerProfile`, falling back to `full_name`. `/organizer/onboarding` already collects it and
-`organizerApi.get(userId)` already returns it, so **nothing new is needed on the create-event form.**
-
-`OrganizerProfile` also carries `VerificationStatus` (`"unverified" | "pending" | "verified"`), so
-the verified flag is `verification_status === "verified"`. **The event count has no backend field
-yet and needs one.** Where an organiser is unverified or the count is unknown, **hide the trust
-line — do not fake it.**
+Both event sidebar views use the same privacy-safe public organizer lookup. The API exposes only user_id, name and verification_status; bank/contact/address data remains owner-only. Unknown counts are hidden, and a badge appears only for a genuinely verified profile. The organization name falls back to full_name; failed lookups display a neutral unavailable label.
 
 ---
 
@@ -143,8 +122,7 @@ Explore panel). A "Free" tab that silently misses free events further down the r
 than no tab.
 
 **Fix, in order:**
-1. **Make `tickets_sold` real** — increment it on issuance. Blocked on §11's real ticket issuance;
-   until that lands, anything built on it stays decorative.
+1. **Live inventory is implemented** — event responses hydrate actual persisted ticket counts from ticketing. Server-owned tags and catalogue filters below remain pending.
 2. **Move derivation server-side** — return a computed tag array on the event payload from
    `/event/search` and `/event/{id}`, with the thresholds owned by the event service.
 3. **Accept the same tags as filter parameters** on `/event/search`, so the tabs filter the
@@ -269,24 +247,9 @@ Once geocoding works end to end, `seed_events.py` is no longer needed for popula
 
 ---
 
-## 5. `[FE]` Auth guards race zustand hydration — NEEDS A DECISION (behaviour change)
+## 5. Auth hydration — core routes fixed (Biswajith Gopinathan)
 
-Every guard is `useEffect(() => { if (!isAuthenticated) router.replace("/auth") })`, which fires on
-the first client render — **before** zustand's `persist` has rehydrated `eventmind-auth` from
-localStorage. So `isAuthenticated` is still `false`, the guard redirects, and `/auth` (seeing the
-now-hydrated session) sends the user on to `/`.
-
-Reproduced repeatedly on `/dashboard`, `/organizer`, `/organizer/my-events`: a hard load lands on
-`/`, a soft client-side navigation usually survives — the signature of a hydration race, and why it
-looks intermittent in normal use.
-
-**The fix already exists in the codebase and is simply not used here.** The store exposes
-`_hasHydrated`, and `app/page.tsx` already gates on it
-(`hasHydrated ? _selectedCity : DEFAULT_CITY`); `/chat` does too. The guards should do the same —
-wait for `_hasHydrated` before deciding, and render the loader until then.
-
-**Do not "fix" it by removing the guard.** Flagged as needing a decision only because it is an
-auth-behaviour change rather than a layout one.
+Dashboard, checkout, organizer onboarding and event creation wait for persisted authentication before redirecting or fetching. The console already used this guard. Parked community/chat routes still need the same review when enabled.
 
 ---
 
@@ -410,7 +373,7 @@ nothing in common but their size.
 - `[FE]` **SEO metadata** on dynamic routes other than `/event/[id]` and `/community/[slug]`.
 - `[FE+BE]` **Notification bell** — icon present, no panel, no backend.
 - `[FE]` **Help page** — link present, no page.
-- `[BE]` **Real ticket issuance** — tickets are Zustand/localStorage only, never written to the database.
+- `[BE]` **Paid/tiered ticket issuance** — free booking persistence, live inventory and idempotency are implemented and tested; paid issuance and tiers remain pending.
 - `[FE+BE]` **Social login** — buttons present, disabled.
 - `[FE+BE]` **Event image upload** — `image_url` exists and is populated for synced events; no organiser upload path, no field on the create form.
 - `[FE+BE]` **Ticket tiers** — backend supports one price per event; Free/Standard/VIP needs schema changes.
@@ -1337,23 +1300,6 @@ a comment pointing here.
 
 ---
 
-## 26. `[BE]` Contact person email on `/organizer/onboarding` is collected but not persisted
+## 26. Organizer contact email — implemented (Biswajith Gopinathan)
 
-**Added 2026-09-11.** The Contact Person section now has an Email field beside Full Name
-(`app/organizer/onboarding/page.tsx`), sent as `contact_email` in the `POST /user/{id}/organizer`
-body (`OrganizerProfileCreate` in `packages/api/src/organizer.ts`). The backend does not have this
-field: `OrganizerProfileCreate` in `backend/services/user/app/schemas/organizer_schemas.py` doesn't
-declare it, and `OrganizerProfile` (`backend/services/user/app/models/organizer_profile.py`) has no
-column for it, so Pydantic silently drops it — the value is typed, collected and thrown away.
-
-**To close it:**
-
-1. Add a `contact_email` column to `OrganizerProfile` (the model) — `String(255), nullable=False`,
-   same shape as `company_email`.
-2. Add `contact_email: EmailStr` to both `OrganizerProfileCreate` and `OrganizerProfileOut` in
-   `organizer_schemas.py`.
-3. Add `contact_email: string` to `OrganizerProfile` in `packages/types/src/index.ts` once the
-   backend returns it — not before, or the type promises a field the API never sends.
-4. No migration tooling exists for this service (no `alembic/` directory) — the table is created via
-   `Base.metadata.create_all`, so a fresh `platform_dev.db` picks the column up; an existing dev DB
-   needs the column added by hand or the file deleted and reseeded (`CLAUDE.md` §10).
+The user service persists and returns contact_email on the private organizer profile. An additive, repeatable startup migration preserves existing rows and backfills their company email because historical contact inputs were discarded. Older clients without contact_email also use company_email; new submissions preserve the supplied contact address. Public organizer responses exclude both addresses.

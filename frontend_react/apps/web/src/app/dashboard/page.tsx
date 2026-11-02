@@ -86,10 +86,11 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const userEmail = useAuthStore((s) => s.userEmail);
   const bookingQuery = useQuery({
     queryKey: ["bookings", userEmail], queryFn: loadBookings,
-    enabled: isAuthenticated, retry: false,
+    enabled: hasHydrated && isAuthenticated, retry: false,
   });
   const tickets = bookingQuery.data ?? [];
   const wishlistItems = useWishlistStore((s) => s.items);
@@ -116,10 +117,11 @@ function DashboardContent() {
   const setActiveTab = (tab: TabId) => router.replace(`/dashboard?tab=${tab}`, { scroll: false });
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   const displayName = userEmail ? userEmail.split("@")[0].split(".")[0] : "User";
   const capitalized = displayName.charAt(0).toUpperCase() + displayName.slice(1);

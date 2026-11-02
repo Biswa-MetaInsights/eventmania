@@ -21,6 +21,7 @@ export default function CheckoutPage({
   const { id } = use(params);
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const userEmail = useAuthStore((s) => s.userEmail);
   const [bookingRequestId, setBookingRequestId] = useState<string | null>(null);
   const addTicket = useTicketsStore((s) => s.addTicket);
@@ -32,16 +33,17 @@ export default function CheckoutPage({
 
   // Auth guard
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
   const { data: event, isLoading } = useQuery({
     queryKey: ["event", id],
     queryFn: () => eventsSource.get(id).then((r) => r.data),
-    enabled: isAuthenticated,
+    enabled: hasHydrated && isAuthenticated,
   });
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   if (isLoading || !event) {
     return (

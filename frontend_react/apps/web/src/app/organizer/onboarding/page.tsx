@@ -72,6 +72,7 @@ function subFromToken(token: string | null): string {
 export default function OrganizerOnboardingPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
 
   const [fullName, setFullName] = useState("");
@@ -92,15 +93,16 @@ export default function OrganizerOnboardingPage() {
   const selectedCountry = COUNTRIES.find((c) => c.code === country) ?? COUNTRIES[0];
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) { router.replace("/auth"); return; }
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
     organizerApi.get(userId)
       .then(() => router.replace("/organizer/create"))
       .catch(() => { /* not verified yet — stay */ });
-  }, [isAuthenticated, router, tokens]);
+  }, [hasHydrated, isAuthenticated, router, tokens]);
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   function validate(): boolean {
     const errors: Record<string, string> = {};
@@ -358,7 +360,7 @@ export default function OrganizerOnboardingPage() {
               <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
               </svg>
-              Organisation verified! Taking you to create your event…
+              Organisation details saved! Taking you to create your event…
             </div>
           )}
 

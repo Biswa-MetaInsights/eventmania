@@ -80,10 +80,15 @@ attendee, attendee_token, attendee_id = account("attendee")
 expect(api("PATCH", "/user/" + attendee_id, {"bio":"Disposable QA profile"}, attendee_token), 200, "profile update")
 expect(api("GET", "/user/" + organizer_id, token=attendee_token), 403, "cross-user profile denied")
 profile = {"full_name":"NewFind QA", "company_name":"QA TEST ONLY",
-           "company_address":"QA TEST ONLY", "company_email":"qa@example.org",
+           "company_address":"QA TEST ONLY", "company_email":"qa@example.org", "contact_email":"contact@example.org",
            "country":"Belgium", "registration_number":"QA-TEST",
            "bank_name":"TEST ONLY", "bank_account_number":"TEST ONLY"}
 expect(api("POST", f"/user/{organizer_id}/organizer", profile, organizer_token), 201, "organizer onboarding")
+private_profile = expect(api("GET", f"/user/{organizer_id}/organizer", token=organizer_token), 200, "saved organizer profile")
+assert private_profile["contact_email"] == "contact@example.org"
+public_profile = expect(api("GET", f"/user/{organizer_id}/organizer/public"), 200, "public organizer identity")
+assert public_profile == {"user_id": organizer_id, "name": "QA TEST ONLY", "verification_status": "pending"}
+expect(api("GET", f"/user/{organizer_id}/organizer", token=attendee_token), 403, "private organizer details protected")
 start = datetime.utcnow() + timedelta(days=7)
 event = {"organizer_id":organizer_id, "title":"[QA] NewFind deployment " + uuid4().hex[:8],
          "description":"Disposable deployment test; no real attendance or payment.",

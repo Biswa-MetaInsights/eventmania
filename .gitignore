@@ -45,3 +45,6 @@ compose.proxy.yaml
 proxy-validation.log
 persistence.log
 apply-proxy.log
+
+# Private NewFind database backup snapshots
+.backups/

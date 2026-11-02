@@ -43,6 +43,14 @@ async def authorize(request, service, path, client):
             if request.query_params.get("organizer_id") != claims["sub"]:
                 raise HTTPException(403, "Private events require organizer ownership")
         return
+    if service == "user" and method == "GET":
+        parts = path.split("/")
+        if len(parts) == 3 and parts[1:] == ["organizer", "public"]:
+            try:
+                UUID(parts[0])
+            except ValueError:
+                raise HTTPException(422, "Invalid organizer identity")
+            return
     claims = principal(request)
     subject = claims["sub"]
     if service == "auth" and path == "me":

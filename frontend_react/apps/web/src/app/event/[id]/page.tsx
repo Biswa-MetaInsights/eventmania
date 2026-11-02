@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { reviewsApi } from "@eventmind/api";
+import { reviewsApi, organizerApi } from "@eventmind/api";
 import { eventsSource } from "@/lib/data-source";
 import type { Review, ReviewAggregates } from "@eventmind/api";
 import { useAuthStore } from "@eventmind/store";
@@ -65,33 +65,6 @@ import { formatPrice } from "@/lib/currency";
 
 const GREEN = "var(--brand-green)";
 
-/**
- * ⚠️ PLACEHOLDER, and it feeds BOTH sidebar cards (Gautham, 2026-09-01).
- *
- * The organiser block reads identically in the participant and organiser views —
- * same eyebrow, same name, same trust line — so toggling the preview never
- * changes it. That is only possible while ONE string answers for both, which is
- * why it lives here rather than at either call site.
- *
- * It is a FALLBACK as of 2026-09-11, not the only answer: `/organizer/create`
- * now asks for the organisation's name and an event that carries one prints it
- * instead (`organiserNameOf` below). This still shows for every event written
- * before that field existed, and for every real-mode event until the column
- * lands — there is no organiser lookup on this page either way.
- *
- * ⚠️ It is the ORGANISATION's name that belongs here (Gautham, 2026-09-01), not
- * the signed-in person's, and "Verified · 40+ events" in `BookingCard` /
- * `OrganiserEventCard` has to become real at the same time. Logged as TODO.md §1.
- */
-const ORGANISER_NAME = "NewFind Collective";
-
-/** The organisation to print under "Organised by". Blank and whitespace-only
- *  both fall through to the placeholder — an empty heading is worse than a
- *  stand-in. */
-function organiserNameOf(event: { organization_name?: string }): string {
-  return event.organization_name?.trim() || ORGANISER_NAME;
-}
-
 function fmt(iso: string, opts: Intl.DateTimeFormatOptions) {
   return new Date(iso).toLocaleDateString("en-US", opts);
 }
@@ -113,6 +86,16 @@ export default function EventDetailPage({
     queryKey: ["event", id],
     queryFn: () => eventsSource.get(id).then((r) => r.data),
   });
+
+  const { data: organizer } = useQuery({
+    queryKey: ["public-organizer", event?.organizer_id],
+    queryFn: () => organizerApi.publicProfile(event!.organizer_id).then((r) => r.data),
+    enabled: !!event?.organizer_id,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const organizerName = organizer?.name || event?.organization_name?.trim() || "Organizer details unavailable";
+  const organizerVerified = organizer?.verification_status === "verified";
 
   const { data: reviews = [] } = useQuery<Review[]>({
     queryKey: ["reviews", id],
@@ -484,7 +467,7 @@ export default function EventDetailPage({
               their attendee list is the opposite of helpful. */}
           <div className={`order-1 lg:order-2 ${organiserView ? "" : DIMMED}`}>
             {organiserView ? (
-              <OrganiserEventCard event={event} organiserName={organiserNameOf(event)} />
+              <OrganiserEventCard event={event} organiserName={organizerName} verified={organizerVerified} />
             ) : (
               <BookingCard
                 cancelled={cancelled}
@@ -492,7 +475,8 @@ export default function EventDetailPage({
                 dateLabel={fmt(event.start_date, { weekday: "long", month: "short", day: "numeric" })}
                 timeLabel={fmtTime(event.start_date)}
                 location={location}
-                organizer={organiserNameOf(event)}
+                organizer={organizerName}
+                verified={organizerVerified}
                 price={event.price}
                 currency={event.currency}
                 offerName={event.offer_name}
@@ -624,6 +608,7 @@ function BookingCard({
   timeLabel,
   location,
   organizer,
+  verified = false,
   price,
   currency,
   offerName,
@@ -638,6 +623,7 @@ function BookingCard({
   timeLabel: string;
   location: string;
   organizer: string;
+  verified?: boolean;
   price: number;
   currency?: string;
   /** The organiser's own name for this price — "Early bird". Optional, and
@@ -658,18 +644,11 @@ function BookingCard({
   const soldOut = left <= 0;
   return (
     <DetailCardShell>
-      {/* ⚠️ The name comes from `organiserNameOf` — the event's own organisation
-          name, or `ORGANISER_NAME` when it has none. The TRUST LINE below is
-          still hardcoded and there is still no organiser lookup on this page.
-          Logged as TODO.md §1; "Verified" cannot ship to real users as-is.
-
-          ⚠️ `OrganiserEventCard` renders this SAME header, deliberately. Change
-          the eyebrow or the subline in one and change it in the other. */}
       <DetailCardHeader
         eyebrow="Organised by"
         name={organizer}
-        subline="Verified · 40+ events"
-        verified
+        subline={verified ? "Verified" : undefined}
+        verified={verified}
       />
 
       <DetailCardBody>

@@ -8,6 +8,7 @@ class OrganizerProfileCreate(BaseModel):
     company_name: str
     company_address: str
     company_email: EmailStr
+    contact_email: Optional[EmailStr] = None
     company_website: Optional[str] = None
     country: str
     registration_number: str
@@ -21,6 +22,7 @@ class OrganizerProfileOut(BaseModel):
     company_name: str
     company_address: str
     company_email: str
+    contact_email: str
     company_website: Optional[str] = None
     country: str
     registration_number: str
@@ -32,3 +34,9 @@ class OrganizerProfileOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PublicOrganizerProfile(BaseModel):
+    user_id: UUID
+    name: str
+    verification_status: VerificationStatus

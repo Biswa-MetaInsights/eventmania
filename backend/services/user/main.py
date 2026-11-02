@@ -13,6 +13,8 @@ from app.core.config import settings
 # Initialize database tables
 UserBase.metadata.create_all(bind=engine)
 OrganizerBase.metadata.create_all(bind=engine)
+from app.db.migrations import migrate_organizer_contact_email
+migrate_organizer_contact_email(engine)
 CommunityBase.metadata.create_all(bind=engine)
 
 app = FastAPI(

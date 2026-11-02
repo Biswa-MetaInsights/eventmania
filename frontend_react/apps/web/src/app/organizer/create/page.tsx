@@ -327,6 +327,7 @@ function subFromToken(token: string | null): string {
 export default function CreateEventPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
 
   // Event basics
@@ -443,6 +444,7 @@ export default function CreateEventPage() {
   const [verificationChecked, setVerificationChecked] = useState(false);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) { router.replace("/auth"); return; }
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
@@ -462,9 +464,9 @@ export default function CreateEventPage() {
         */
       })
       .catch(() => router.replace("/organizer/onboarding"));
-  }, [isAuthenticated, router, tokens]);
+  }, [hasHydrated, isAuthenticated, router, tokens]);
 
-  if (!isAuthenticated || !verificationChecked) return null;
+  if (!hasHydrated || !isAuthenticated || !verificationChecked) return null;
 
   /**
    * Open a list dialog on the rows written so far — or on ONE BLANK ROW when

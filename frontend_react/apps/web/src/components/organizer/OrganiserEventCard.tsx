@@ -48,9 +48,11 @@ export const manageRevenueHref = (eventId: string) =>
 export function OrganiserEventCard({
   event,
   organiserName,
+  verified = false,
 }: {
   event: Event;
   organiserName: string;
+  verified?: boolean;
 }) {
   const id = String(event.id);
   const state = lifecycleOf(event);
@@ -70,22 +72,11 @@ export function OrganiserEventCard({
 
   return (
     <DetailCardShell>
-      {/* ⚠️ THE SAME HEADER THE PARTICIPANT'S `BookingCard` SHOWS — same eyebrow,
-          same name, same trust line (Gautham, 2026-09-01). The organiser block is
-          the one part of the card that must NOT change when the view toggles;
-          only the body below it is this file's own. Both names come from one
-          `ORGANISER_NAME` in `app/event/[id]/page.tsx`, which is what keeps the
-          two in step — change the eyebrow or the subline in one card and change
-          it in the other.
-
-          ⚠️ `verified` is still a claim nothing backs: there is no real
-          `verification_status` on this page, and "40+ events" is a literal.
-          Logged as TODO.md §1 for BOTH cards now, not just the booking one. */}
       <DetailCardHeader
         eyebrow="Organised by"
         name={organiserName}
-        subline="Verified · 40+ events"
-        verified
+        subline={verified ? "Verified" : undefined}
+        verified={verified}
       />
 
       <DetailCardBody>

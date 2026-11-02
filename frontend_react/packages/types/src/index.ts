@@ -200,6 +200,12 @@ export interface ApiError {
 
 export type VerificationStatus = "unverified" | "pending" | "verified";
 
+export interface PublicOrganizerProfile {
+  user_id: string;
+  name: string;
+  verification_status: VerificationStatus;
+}
+
 export interface OrganizerProfile {
   id: string;
   user_id: string;
@@ -207,6 +213,7 @@ export interface OrganizerProfile {
   company_name: string;
   company_address: string;
   company_email: string;
+  contact_email: string;
   company_website?: string;
   country: string;
   registration_number: string;

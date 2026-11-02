@@ -1,4 +1,5 @@
 import type { Event, Community } from "@eventmind/types";
+import { isExternalEvent } from "@/lib/external-events";
 import { formatPrice } from "@/lib/currency";
 import { eventImageUrl } from "@/lib/event-media";
 import type { CarouselEvent } from "@/components/EventsCarousel";
@@ -49,8 +50,9 @@ export function toCarouselEvent(event: Event): CarouselEvent {
   const { date, time } = cardDateTime(event.start_date);
   const venue = (event.location as Record<string, string>)?.name ?? "Venue TBC";
   const price = Number(event.price);
-  const isFree = price === 0;
-  const isSoldOut = event.capacity > 0 && event.tickets_sold >= event.capacity;
+  const external = isExternalEvent(event);
+  const isFree = !external && price === 0;
+  const isSoldOut = !external && event.capacity > 0 && event.tickets_sold >= event.capacity;
   const sellingFast = !isSoldOut && event.capacity > 0 && event.tickets_sold / event.capacity > 0.7;
   const thisWeek = !isSoldOut && isThisWeek(start);
 
@@ -71,7 +73,7 @@ export function toCarouselEvent(event: Event): CarouselEvent {
     date,
     time,
     venue,
-    price: isFree ? "Free" : `${formatPrice(price, event.currency)} onwards`,
+    price: external ? "Check Ticketmaster" : isFree ? "Free" : `${formatPrice(price, event.currency)} onwards`,
     imageUrl: eventImageUrl(event, 800, 450),
     badge: badgeTypes[0] ? LABELS[badgeTypes[0]] : undefined,
     badgeTypes: badgeTypes.length ? badgeTypes : undefined,

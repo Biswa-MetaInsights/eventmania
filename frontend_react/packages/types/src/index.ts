@@ -73,6 +73,8 @@ export interface FaqItem {
 }
 
 export interface Event {
+  source?: string;
+  external_id?: string;
   id: string;
   organizer_id: string;
   title: string;

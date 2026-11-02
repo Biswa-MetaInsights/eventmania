@@ -54,6 +54,8 @@ def book_free_event(data: BookingCreate, db: Session = Depends(get_db)):
         event = result.json()
     except (httpx.HTTPError, KeyError):
         raise HTTPException(503, "Event service unavailable")
+    if event.get("source", "native") != "native":
+        raise HTTPException(409, "Book this external event with its original ticket provider")
     if event["status"] != "published" or datetime.fromisoformat(event["start_date"]).replace(tzinfo=None) <= datetime.utcnow():
         raise HTTPException(409, "Event is not open for booking")
     if float(event["price"]) != 0:

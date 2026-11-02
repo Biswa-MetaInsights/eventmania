@@ -2,6 +2,8 @@ import { apiClient } from "./client";
 import type { Event, CurrencyCode } from "@eventmind/types";
 
 export interface EventSearchParams {
+  /** Non-published searches require the authenticated organizer_id at the gateway. */
+  status?: "draft" | "published" | "cancelled" | "completed";
   q?: string;
   category?: string;
   event_type?: string;

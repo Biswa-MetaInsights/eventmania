@@ -380,7 +380,7 @@ export default function OrganizerOnboardingPage() {
                   isSubmitting ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                      Verifying…
+                      Saving…
                     </span>
                   ) : "Save & Continue"
                 }

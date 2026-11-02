@@ -61,6 +61,7 @@ import { toCarouselEvent } from "@/lib/card-adapters";
 import { eventImageUrl, HERO_SCRIM } from "@/lib/event-media";
 import { heroTitleSize } from "@/lib/hero-title";
 import { GUTTERS } from "@/lib/layout";
+import { isExternalEvent, externalTicketUrl } from "@/lib/external-events";
 import { formatPrice } from "@/lib/currency";
 
 const GREEN = "var(--brand-green)";
@@ -90,11 +91,11 @@ export default function EventDetailPage({
   const { data: organizer } = useQuery({
     queryKey: ["public-organizer", event?.organizer_id],
     queryFn: () => organizerApi.publicProfile(event!.organizer_id).then((r) => r.data),
-    enabled: !!event?.organizer_id,
+    enabled: !!event?.organizer_id && !isExternalEvent(event),
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
-  const organizerName = organizer?.name || event?.organization_name?.trim() || "Organizer details unavailable";
+  const organizerName = event && isExternalEvent(event) ? "Ticketmaster listing" : organizer?.name || event?.organization_name?.trim() || "Organizer details unavailable";
   const organizerVerified = organizer?.verification_status === "verified";
 
   const { data: reviews = [] } = useQuery<Review[]>({
@@ -198,7 +199,9 @@ export default function EventDetailPage({
   // an event that will not take place at all; using them here would tell a
   // ticket holder their event was called off.
   const registrationClosed = lifecycle === "registration_closed";
-  const bookable = !cancelled && !registrationClosed;
+  const external = isExternalEvent(event);
+  const providerUrl = externalTicketUrl(event);
+  const bookable = !cancelled && !registrationClosed && (!external || !!providerUrl);
   const DIMMED = cancelled ? "grayscale opacity-60" : "";
   // The shared card controls speak CarouselEvent, so a wishlist save from here is
   // byte-identical to one from a card and renders the same in /dashboard.
@@ -210,6 +213,10 @@ export default function EventDetailPage({
 
   function handleBookNow() {
     if (!bookable) return;
+    if (external) {
+      if (providerUrl) window.location.assign(providerUrl);
+      return;
+    }
     router.push(isAuthenticated ? `/checkout/${id}` : "/auth");
   }
 
@@ -470,6 +477,9 @@ export default function EventDetailPage({
               <OrganiserEventCard event={event} organiserName={organizerName} verified={organizerVerified} />
             ) : (
               <BookingCard
+                external={external}
+                providerAvailable={!!providerUrl}
+                unlimited={event.capacity === 0}
                 cancelled={cancelled}
                 registrationClosed={registrationClosed}
                 dateLabel={fmt(event.start_date, { weekday: "long", month: "short", day: "numeric" })}
@@ -526,11 +536,11 @@ export default function EventDetailPage({
         />
       ) : (
         <DetailStickyBar
-          caption="Starting from"
-          amount={formatPrice(event.price, event.currency)}
+          caption={external ? "Tickets" : "Starting from"}
+          amount={external ? "Check Ticketmaster" : formatPrice(event.price, event.currency)}
           // Same priority as the booking card's CTA below, and for the same
           // reason: cancelled outranks closed outranks full.
-          cta={cancelled ? "Event cancelled" : registrationClosed ? "Registration closed" : "Book Now"}
+          cta={cancelled ? "Event cancelled" : registrationClosed ? "Registration closed" : external ? "View tickets on Ticketmaster" : "Book Now"}
           onClick={handleBookNow}
           disabled={!bookable}
           gutters={GUTTERS}
@@ -615,6 +625,9 @@ function BookingCard({
   isFree,
   going,
   left,
+  external = false,
+  providerAvailable = false,
+  unlimited = false,
   cancelled = false,
   registrationClosed = false,
   onBook,
@@ -623,6 +636,9 @@ function BookingCard({
   timeLabel: string;
   location: string;
   organizer: string;
+  external?: boolean;
+  providerAvailable?: boolean;
+  unlimited?: boolean;
   verified?: boolean;
   price: number;
   currency?: string;
@@ -641,7 +657,7 @@ function BookingCard({
   registrationClosed?: boolean;
   onBook: () => void;
 }) {
-  const soldOut = left <= 0;
+  const soldOut = !external && !unlimited && left <= 0;
   return (
     <DetailCardShell>
       <DetailCardHeader
@@ -667,25 +683,26 @@ function BookingCard({
             and together they outgrow the stacked card on a 320–375px phone —
             the shell is overflow-hidden, so without it the second chip was
             silently clipped. */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-7">
+        {!external && <div className="flex flex-wrap items-center justify-between gap-3 mt-7">
           <DetailPeopleChip count={going} label="going" />
           {/* ⚠️ Hidden once registration is closed. The card is NOT dimmed in
               that state (unlike a cancelled one), so "12 spots left" would sit
               directly above a disabled "Registration closed" button and read as
               a bug — scarcity copy only makes sense while the seats are
               claimable. */}
-          {!soldOut && !registrationClosed && <DetailAccentChip text={`${left} spots left`} />}
-        </div>
+          {!soldOut && !registrationClosed && <DetailAccentChip text={unlimited ? "Open registration" : `${left} spots left`} />}
+        </div>}
 
+        {external && <p className="mt-6 text-[16px]">Tickets and availability are managed by Ticketmaster. NewFind does not issue tickets for this listing.</p>}
         <DetailDivider />
 
         <DetailPriceRow
           // The offer takes over the caption when there is one: "Early bird"
           // above the figure says more than "Starting from" and is what the
           // organiser typed it for. A free event never has one.
-          label={offerName?.trim() || "Starting from"}
-          amount={formatPrice(price, currency)}
-          suffix={isFree ? undefined : "/ ticket"}
+          label={external ? "Tickets" : offerName?.trim() || "Starting from"}
+          amount={external ? "Check Ticketmaster" : formatPrice(price, currency)}
+          suffix={external || isFree ? undefined : "/ ticket"}
         />
 
         {/* ⚠️ `outline`, not a green fill (Gautham, 2026-08-31) — the same skin
@@ -700,10 +717,10 @@ function BookingCard({
                 ? "Registration closed"
                 : soldOut
                   ? "Sold Out"
-                  : "Book Now"
+                  : external ? "View tickets on Ticketmaster" : "Book Now"
           }
           onClick={onBook}
-          disabled={cancelled || registrationClosed || soldOut}
+          disabled={cancelled || registrationClosed || soldOut || (external && !providerAvailable)}
           variant="outline"
         />
       </DetailCardBody>

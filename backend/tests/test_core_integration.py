@@ -67,6 +67,8 @@ def core(tmp_path_factory):
         for name in names:
             start(name)
         with httpx.Client(base_url=urls["gateway"], timeout=10, trust_env=False) as client:
+            client.event_internal_url = urls["event"]
+            client.internal_api_key = env["INTERNAL_API_KEY"]
             yield client, restart
     finally:
         for process in processes.values():
@@ -130,13 +132,24 @@ def test_core_user_journeys_and_security(core):
     assert client.get(f"/event/{event_id}").status_code == 200
     assert client.patch(f"/event/{event_id}", json={"title":"Hijack"}, headers=attendee_headers).status_code == 403
     assert client.patch(f"/event/{event_id}", json={"title":"Integration QA Updated"}, headers=organizer_headers).status_code == 200
+    draft = client.post("/event", json={**event, "title": "Draft lifecycle QA", "status": "draft"}, headers=organizer_headers)
+    assert draft.status_code == 201, draft.text
+    draft_id = draft.json()["id"]
+    params = {"organizer_id": organizer, "status": "draft"}
+    assert any(row["id"] == draft_id for row in client.get("/event/search", params=params, headers=organizer_headers).json())
+    assert client.get("/event/search", params=params).status_code == 401
+    assert client.get("/event/search", params=params, headers=attendee_headers).status_code == 403
+    assert client.get(f"/event/{draft_id}").status_code == 401
+    assert client.get(f"/event/{draft_id}", headers=organizer_headers).status_code == 200
+    assert client.patch(f"/event/{draft_id}", json={"status": "published"}, headers=organizer_headers).status_code == 200
+    assert client.get(f"/event/{draft_id}").status_code == 200
     booking = {"event_id":event_id, "user_id":attendee, "quantity":2, "request_id":str(uuid4())}
     r = client.post("/ticket/book", json=booking, headers=attendee_headers)
     assert r.status_code == 201, r.text
     ticket_ids = [t["id"] for t in r.json()]
     assert len(ticket_ids) == 2
     assert client.get(f"/event/{event_id}").json()["tickets_sold"] == 2
-    assert client.get("/event/search").json()[0]["tickets_sold"] == 2
+    assert next(row for row in client.get("/event/search").json() if row["id"] == event_id)["tickets_sold"] == 2
     assert [t["id"] for t in client.post("/ticket/book", json=booking, headers=attendee_headers).json()] == ticket_ids
     booking["request_id"] = str(uuid4())
     assert client.post("/ticket/book", json=booking, headers=attendee_headers).status_code == 409
@@ -155,3 +168,31 @@ def test_core_user_journeys_and_security(core):
     assert preflight.headers["access-control-allow-origin"] == "https://newfind.example"
     denied = client.options("/event/search", headers={"Origin":"https://evil.example", "Access-Control-Request-Method":"GET"})
     assert "access-control-allow-origin" not in denied.headers
+
+
+def test_external_listings_are_private_to_import_and_cannot_issue_tickets(core):
+    client, _ = core
+    payload = {"email": "external-check@example.org", "password": secrets.token_urlsafe(20), "full_name": "QA"}
+    assert client.post("/auth/register", json=payload).status_code == 201
+    token = client.post("/auth/login", json=payload).json()["access_token"]
+    headers = {"Authorization": "Bearer " + token}
+    user = client.get("/auth/me", headers=headers).json()["id"]
+    listing = {"organizer_id": str(uuid4()), "title": "External Provider QA Listing", "start_date": "2031-12-01T12:00:00",
+               "end_date": "2031-12-01T14:00:00", "capacity": 100, "price": 0, "status": "published",
+               "source": "ticketmaster", "external_id": "QA-LOCAL-ONLY", "event_website": "https://www.ticketmaster.be/event/qa-local-only"}
+    endpoint = client.event_internal_url + "/events/ingest"
+    assert httpx.post(endpoint, json=listing, trust_env=False).status_code == 403
+    internal = {"X-Internal-Key": client.internal_api_key}
+    response = httpx.post(endpoint, json=listing, headers=internal, trust_env=False)
+    assert response.status_code == 200, response.text
+    event_id = response.json()["id"]
+    again = httpx.post(endpoint, json={**listing, "title": "External Provider QA Updated"}, headers=internal, trust_env=False)
+    assert again.json()["id"] == event_id
+    assert client.post("/event/ingest", json=listing, headers=headers).status_code == 403
+    bad = httpx.post(endpoint, json={**listing, "event_website": "https://ticketmaster.com.evil.example/fake"}, headers=internal, trust_env=False)
+    assert bad.status_code == 422
+    booking = {"event_id": event_id, "user_id": user, "quantity": 1, "request_id": str(uuid4())}
+    assert client.post("/ticket/book", json=booking, headers=headers).status_code == 409
+    assert client.get(f"/ticket/user/{user}", headers=headers).json() == []
+    free = client.get("/event/search", params={"price_max": 0}).json()
+    assert all(e["id"] != event_id for e in free)

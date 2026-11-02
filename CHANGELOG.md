@@ -10,6 +10,7 @@
 ---
 
 ## 2026-11-02
+- **Biswajith Gopinathan** — fix owner draft visibility; prepare bounded Ticketmaster sync and external-ticket safeguards; remove fictional-event fallback from discovery.
 - **Biswajith Gopinathan** — implement safe public organizer identity, contact-email persistence/migration, core auth hydration guards and verified daily local database backups; hide unsupported real-mode features and replace unimplemented marketing claims.
 
 ## 2026-11-01

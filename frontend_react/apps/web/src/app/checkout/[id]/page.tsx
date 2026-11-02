@@ -4,6 +4,7 @@ import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { bookFreeEvent } from "@/lib/bookings";
+import { isExternalEvent } from "@/lib/external-events";
 import { eventsSource } from "@/lib/data-source";
 import { useAuthStore, useTicketsStore } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
@@ -52,6 +53,14 @@ export default function CheckoutPage({
           style={{ borderColor: `${GREEN} transparent transparent transparent` }} />
       </div>
     );
+  }
+
+  if (isExternalEvent(event)) {
+    return <div className="min-h-screen bg-[var(--brand-bg)]"><Navbar /><main className={`py-12 ${GUTTERS}`}>
+      <h1 className="text-[28px] font-bold">Book with the original ticket provider</h1>
+      <p className="mt-4 text-[18px]">NewFind does not issue tickets for this external listing.</p>
+      <button className="mt-6 px-5 py-3 rounded-lg bg-[var(--brand-green)] text-[var(--brand-on-green)]" onClick={() => router.push(`/event/${id}`)}>View event details</button>
+    </main></div>;
   }
 
   const unitPrice = event.price ?? 0;

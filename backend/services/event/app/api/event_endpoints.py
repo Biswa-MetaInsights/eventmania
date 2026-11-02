@@ -112,7 +112,7 @@ def create_event(event_in: EventCreate, background_tasks: BackgroundTasks, db: S
     return new_event
 
 @router.post("/ingest", response_model=EventOut)
-def ingest_event(event_in: EventIngest, db: Session = Depends(get_db)):
+def ingest_event(event_in: EventIngest, x_internal_key: str = Header(""), db: Session = Depends(get_db)):
     """Idempotently upsert an externally-sourced event.
 
     Keyed on (source, external_id). On first sight the event is inserted; on
@@ -120,6 +120,12 @@ def ingest_event(event_in: EventIngest, db: Session = Depends(get_db)):
     this does not publish to Kafka — aggregated events bypass the moderation and
     content-generation agents, which only apply to native organiser content.
     """
+    expected = os.getenv("INTERNAL_API_KEY", "")
+    if not expected or not secrets.compare_digest(x_internal_key, expected):
+        raise HTTPException(403, "Internal access only")
+    from backend.shared.ticketmaster import safe_ticket_url
+    if event_in.source != "ticketmaster" or not safe_ticket_url(event_in.event_website):
+        raise HTTPException(422, "A valid Ticketmaster listing URL is required")
     existing = (
         db.query(Event)
         .filter(Event.source == event_in.source, Event.external_id == event_in.external_id)
@@ -204,6 +210,9 @@ def search_events(
         query = query.filter(Event.price >= price_min)
     if price_max is not None:
         query = query.filter(Event.price <= price_max)
+        if price_max == 0:
+            # External missing prices are not a promise of free admission.
+            query = query.filter(Event.source == "native")
 
     query = query.order_by(Event.start_date)
 

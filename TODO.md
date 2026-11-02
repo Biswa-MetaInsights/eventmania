@@ -223,20 +223,11 @@ ticketed on the same event, and confirm each sees the other's message.
 
 ---
 
-## 4. `[BE]` Ticketmaster geocoding
+## 4. `[OPS+BE]` Activate and verify the Ticketmaster catalogue — Biswajith Gopinathan
 
-Ingestion runs, but many Ticketmaster events carry no venue coordinates and are currently saved with
-`lat: 0, lng: 0`. That is a real point in the Atlantic, so those events fall out of every radius
-search. Needs a geocoding API (Google Maps or Nominatim) in
-`backend/services/recommendation/app/services/ticketmaster_ingestion.py`.
+A lightweight one-shot importer is prepared (`backend/scripts/sync_external_events.py` and `backend/shared/ticketmaster_sync.py`). It runs in the existing event container, authenticates private ingestion, validates provider links, upserts provider IDs, and stops cleanly on provider errors. Default scope is Brussels/BE, Amsterdam/NL and Luxembourg/LU, two pages per city. A timer may be installed only after a successful real import. Native tickets and provider listings are distinct: external checkout is blocked server-side and the UI directs visitors to Ticketmaster.
 
-Note `eventCoords()` in `SimilarEvents.tsx` already treats `0,0` as "no coordinates" — keep that
-guard until this is fixed.
-
-Once geocoding works end to end, `seed_events.py` is no longer needed for populating **events**
-(still useful for communities).
-
----
+Pending: restore Hetzner sign-in, confirm a private Ticketmaster key, deploy event/ticketing changes, run a real import, verify provenance/links/images and repeated-sync identity, then activate the refresh timer. No real import is claimed until those checks pass. Venue coordinates are used when supplied; missing coordinates remain missing rather than fake 0,0. No paid geocoding is configured.
 
 ## 5. Auth hydration — core routes fixed (Biswajith Gopinathan)
 
@@ -636,10 +627,7 @@ mobile). Left as-is for now.
 >   why the header's "N need you" pill is attendees-only and the "next up" hero lost its "Questions"
 >   tile and both room CTAs. Do not reintroduce a count that can only print zero.
 
-**Real today:** Events, from `eventsSource.search({ organizer_id })` via
-`organizerSource.events()`. Event, when, where, sold (`tickets_sold`/`capacity`), gross revenue
-(`tickets_sold × price`, in the event's own currency) and the live/upcoming/past/draft buckets are
-all derived from data the events service actually returns.
+**Real today:** Events read through `organizerSource.events()` with the signed-in organizer ID. The console now explicitly requests draft, published, cancelled and completed states instead of silently showing published events only. Each state is currently capped at 200 rows; cursor pagination remains pending for larger organizer portfolios.
 
 **Not real — and deliberately NOT faked.** In `dummy` data mode these render the fixtures in
 `lib/fixtures/organizer.ts` so the whole design is visible with no backend; in `real` mode
@@ -1257,7 +1245,7 @@ The user service persists and returns contact_email on the private organizer pro
 ## 27. Launch operations and verification — owner: Biswajith Gopinathan
 
 - Daily protected local PostgreSQL backups are installed. Four core databases passed isolated restoration, checksums and public-table row-count checks. Off-server storage and retention/disk monitoring remain pending; local snapshots cannot recover a lost server.
-- Complete mobile/device verification and the organizer onboarding-to-publish browser journey. API workflow and ownership checks pass.
+- Complete mobile/device verification and the organizer publish/edit/participant-booking browser checks. Organizer onboarding and draft creation passed; draft console visibility was identified and fixed in code.
 - Add health/error monitoring, review security/rate limits and run basic load tests.
 - Configure password recovery/email verification and transactional email with the required provider configuration.
 - Connect a dedicated NewFind domain; new paid services require explicit approval.

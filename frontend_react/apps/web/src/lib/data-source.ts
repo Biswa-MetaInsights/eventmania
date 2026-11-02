@@ -402,16 +402,18 @@ export const organizerSource = {
    * production. The other fixtures belong to other organisers and are
    * discoverable, never manageable.
    *
-   * ⚠️ Real mode returns PUBLISHED events only, because `eventsApi.search`
-   * defaults `status: "published"` and there is no organiser-scoped endpoint
-   * that includes drafts. So the Drafts tab is always empty against a live
-   * backend — part of TODO.md §19, not a bug in the page.
+   * Real mode requests every lifecycle state with the owner's identity. The
+   * gateway rejects non-published searches for anyone other than that owner.
    */
-  events: (organiserId: string): Promise<{ data: Event[] }> =>
-    // Copies, for the reason written up on `snapshot` — this is the query the
-    // status select invalidates, and handing back the fixture objects themselves
-    // would make the refetch deep-equal to what the console is already showing.
-    isDummyMode ? ok(dummyMyEvents.map(snapshot)) : eventsApi.search({ organizer_id: organiserId }),
+  events: async (organiserId: string): Promise<{ data: Event[] }> => {
+    if (isDummyMode) return ok(dummyMyEvents.map(snapshot));
+    if (!organiserId) return ok([]);
+    const states = ["draft", "published", "cancelled", "completed"] as const;
+    const responses = await Promise.all(states.map(status =>
+      eventsApi.search({ organizer_id: organiserId, status, limit: 200 })
+    ));
+    return { data: responses.flatMap(response => response.data) };
+  },
 
   /** Ticket holders for one event. `eventId` is ignored in dummy mode. */
   attendees: (): Promise<{ data: DummyAttendee[] }> => ok(isDummyMode ? dummyAttendees : []),

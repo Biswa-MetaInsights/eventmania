@@ -26,7 +26,8 @@ def api(method, path, body=None, token=None):
     headers = {"Content-Type": "application/json"}
     if token:
         headers["Authorization"] = "Bearer " + token
-    request = Request(args.base.rstrip("/") + path,
+    normalized = path.rstrip("/") if path != "/" else path
+    request = Request(args.base.rstrip("/") + normalized,
                       data=None if body is None else json.dumps(body).encode(),
                       headers=headers, method=method)
     try:

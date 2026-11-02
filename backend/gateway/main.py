@@ -54,9 +54,10 @@ client = httpx.AsyncClient()
 async def shutdown_event():
     await client.aclose()
 
+@app.api_route("/{service_name}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @app.api_route("/{service_name}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @limiter.limit("60/minute") # Global Rate Limit
-async def gateway_proxy(service_name: str, path: str, request: Request):
+async def gateway_proxy(request: Request, service_name: str, path: str = ""):
     """
     Standardized Proxy Gateway.
     Routes incoming /service/path requests to internal internal_service_url/path.

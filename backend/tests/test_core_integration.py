@@ -114,7 +114,8 @@ def test_core_user_journeys_and_security(core):
              "start_date":"2030-12-01T12:00:00", "end_date":"2030-12-01T14:00:00",
              "capacity":2, "price":0, "currency":"EUR", "status":"published"}
     assert client.post("/event/", json=event).status_code == 401
-    r = client.post("/event/", json=event, headers=organizer_headers)
+    assert client.post("/event", json=event).status_code == 401
+    r = client.post("/event", json=event, headers=organizer_headers)
     assert r.status_code == 201, r.text
     event_id = r.json()["id"]
     assert client.get("/event/search", params={"q":"Integration QA"}).json()[0]["id"] == event_id

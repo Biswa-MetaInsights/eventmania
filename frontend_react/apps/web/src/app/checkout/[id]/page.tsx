@@ -84,8 +84,13 @@ export default function CheckoutPage({
       const tickets = await bookFreeEvent(id, ticketCount, requestId);
       tickets.forEach(addTicket);
       setShowSuccess(true);
-    } catch {
-      setError(isFree ? "Booking failed. Please retry; your request will not create duplicate tickets." : "Paid bookings are currently unavailable. Please choose a free event.");
+    } catch (cause) {
+      const detail = (cause as { response?: { data?: { detail?: unknown } } } | null)?.response?.data?.detail;
+      if (detail === "You cannot book your own event") {
+        setError("Organisers cannot book their own event. Use a separate participant account to test ticket booking.");
+      } else {
+        setError(isFree ? "Booking failed. Please retry; your request will not create duplicate tickets." : "Paid bookings are currently unavailable. Please choose a free event.");
+      }
     } finally {
       setIsProcessing(false);
     }

@@ -1250,3 +1250,7 @@ The user service persists and returns contact_email on the private organizer pro
 - Configure password recovery/email verification and transactional email with the required provider configuration.
 - Connect a dedicated NewFind domain; new paid services require explicit approval.
 - Rename the GitHub repository to newfind once authenticated settings access is available, then validate server remotes and Vercel connectivity.
+
+### Organizer browser verification — Biswajith Gopinathan, 2026-11-02
+
+Completed in production: synthetic organizer setup; draft create/list/edit/refresh/publish; a free booking of another organizer's event; confirmed QR ticket persistence after reload. Self-booking correctly rejected. Remaining: real provider sync and its backend guards require renewed Hetzner sign-in and a private Ticketmaster key.

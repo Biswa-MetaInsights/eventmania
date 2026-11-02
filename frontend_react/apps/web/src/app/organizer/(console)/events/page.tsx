@@ -241,7 +241,7 @@ export default function ConsoleEventsPage() {
               {inTab.length > 0
                 ? `No ${price === "free" ? "free" : "paid"} events in this tab.`
                 : tab === "drafts" && !isDummyMode
-                  ? "The events endpoint only returns published events, so drafts cannot be listed yet — TODO.md §19."
+                  ? "No drafts yet. Save an event as a draft to see it here."
                   : "Nothing in this tab."}
             </p>
           )}

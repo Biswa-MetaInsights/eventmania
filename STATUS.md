@@ -142,3 +142,9 @@ These are live and **not** bugs to fix on sight — each was a conscious call. F
 - External Ticketmaster detail pages route to validated provider URLs and do not offer NewFind checkout. The backend booking rejection and authenticated ingestion route are prepared and tested locally, pending server deployment.
 - Discovery no longer calls the unavailable public ingestion service or falls back to AI-generated fictional events.
 - The one-shot sync reuses the event container, stays within a bounded request budget, and never prints API keys. No Kafka, AI service or additional paid infrastructure is needed.
+
+### Live browser verification — 2026-11-02, Biswajith Gopinathan
+
+- Organizer onboarding with an explicitly synthetic QA organisation, online draft creation, owner draft listing, description editing, reload persistence and publishing passed in production.
+- Booking a different organiser's free QA event passed; dashboard showed confirmed ticket #38371952 with a QR code, unchanged after reload. Self-booking was rejected as intended; checkout now explains that restriction. No payment was processed.
+- Real external imports remain blocked by the expired Hetzner browser sign-in. A private server-side Ticketmaster key has not yet been confirmed. Backend importer/guard deployment and provider verification remain pending.

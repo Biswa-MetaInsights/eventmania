@@ -37,3 +37,11 @@ start.bat
 
 # Node
 node_modules/
+
+# Private deployment rollback and routing artifacts
+.env.before-proxy
+caddy.*.json
+compose.proxy.yaml
+proxy-validation.log
+persistence.log
+apply-proxy.log

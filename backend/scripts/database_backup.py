@@ -22,6 +22,8 @@ COMPOSE = ['docker', 'compose', '-p', 'newfind', 'exec', '-T', 'postgres']
 
 
 def run(command, **kwargs):
+    if "input" not in kwargs:
+        kwargs.setdefault("stdin", subprocess.DEVNULL)
     return subprocess.run(command, check=True, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, timeout=180, **kwargs).stdout
 
@@ -66,7 +68,7 @@ def backup():
         output = destination / (database + '.dump')
         with output.open('xb') as handle:
             subprocess.run(source_command('pg_dump', '-Fc', '--no-owner', '--no-acl', database),
-                           stdout=handle, stderr=subprocess.PIPE, check=True, timeout=180)
+                           stdin=subprocess.DEVNULL, stdout=handle, stderr=subprocess.PIPE, check=True, timeout=180)
         os.chmod(output, 0o600)
         after = source_counts(database)
         if before != after:
@@ -87,7 +89,7 @@ def verify(destination):
     prefix = ['docker', 'exec', name]
     try:
         for attempt in range(60):
-            probe = subprocess.run(prefix + ['pg_isready', '-U', 'postgres'], stdout=subprocess.DEVNULL,
+            probe = subprocess.run(prefix + ['pg_isready', '-U', 'postgres'], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL)
             if probe.returncode == 0:
                 break

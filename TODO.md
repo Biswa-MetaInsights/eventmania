@@ -227,7 +227,7 @@ ticketed on the same event, and confirm each sees the other's message.
 
 A lightweight one-shot importer is prepared (`backend/scripts/sync_external_events.py` and `backend/shared/ticketmaster_sync.py`). It runs in the existing event container, authenticates private ingestion, validates provider links, upserts provider IDs, and stops cleanly on provider errors. Default scope is Brussels/BE, Amsterdam/NL and Luxembourg/LU, two pages per city. A timer may be installed only after a successful real import. Native tickets and provider listings are distinct: external checkout is blocked server-side and the UI directs visitors to Ticketmaster.
 
-Pending: restore Hetzner sign-in, confirm a private Ticketmaster key, deploy event/ticketing changes, run a real import, verify provenance/links/images and repeated-sync identity, then activate the refresh timer. No real import is claimed until those checks pass. Venue coordinates are used when supplied; missing coordinates remain missing rather than fake 0,0. No paid geocoding is configured.
+Deployed and checked on 2026-11-03: event/ticketing safeguards, database backup, healthy services and persistent core API journeys. Pending: configure a private Ticketmaster key (absent from server and Vercel), run a real import, verify provenance/links/images and repeated-sync identity, then activate the refresh timer. No real import is claimed until those checks pass. Venue coordinates are used when supplied; missing coordinates remain missing rather than fake 0,0. No paid geocoding is configured.
 
 ## 5. Auth hydration — core routes fixed (Biswajith Gopinathan)
 
@@ -1253,4 +1253,4 @@ The user service persists and returns contact_email on the private organizer pro
 
 ### Organizer browser verification — Biswajith Gopinathan, 2026-11-02
 
-Completed in production: synthetic organizer setup; draft create/list/edit/refresh/publish; a free booking of another organizer's event; confirmed QR ticket persistence after reload. Self-booking correctly rejected. Remaining: real provider sync and its backend guards require renewed Hetzner sign-in and a private Ticketmaster key.
+Completed in production: synthetic organizer setup; draft create/list/edit/refresh/publish; a free booking of another organizer's event; confirmed QR ticket persistence after reload. Self-booking correctly rejected. Backend safeguards are deployed and Hetzner sign-in is restored. Remaining: real provider sync requires a private Ticketmaster key, then live verification.

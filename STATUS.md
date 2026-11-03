@@ -75,7 +75,7 @@ Phase 2 restore checklist: `TODO.md` §12.
 - **One design signature, console included** (2026-08-22) — the organiser console was token-coherent but signature-incoherent: same `--brand-*` colours, its own type scale, no photography, no hover on anything. It now runs on the **site's type scale** (20px row titles / 17px body / 32px extrabold figures / headings on `EventsCarousel`'s extrabold `-0.5px` recipe), its status chip is an `EventBadge` in all but colour, its filter tab **is** the home page's filter tab, every row and control reacts to the pointer, and **it has photographs** — each table row carries the event's own card picture and the Events hero is that photo under `HERO_SCRIM`. The console is now the only region of the app with zero `data-keep-type` opt-outs (it previously held 24 of 29). **One-directional: nothing on home, `/explore` or `/event/[id]` was restyled.** Rationale + the signature/register distinction: `DESIGN_NOTES.md` §11. ⚠️ **Not yet re-swept for responsiveness** — the console's tables widened with the type (`minWidth` moved with them) and no browser driver is installed; see the responsiveness line above.
 - **One dummy world, two views** — the organiser console and the public site now draw the same events. `lib/fixtures/events.ts` splits into other organisers' events (discoverable only) and `dummyMyEvents`, the eight the signed-in developer owns; `lib/fixtures/organizer.ts` **derives** every console figure from those eight rather than restating them, so a title or total cannot drift between the overview band and the table beneath it. Verified: portfolio revenue = earnings net, portfolio tickets = sum of `tickets_sold`, every room and earnings row maps to a real event, no draft or finished event reaches discovery, and all eight resolve at `/event/[id]`.
 - **Postgres** — `postgres_runner.py` runs the stack on per-service Postgres databases as an alternative to shadow-mode SQLite.
-- **Ticketmaster ingestion** — lightweight private sync code and provider-link protection are prepared and locally tested. The live importer is not activated; server sign-in and a configured Ticketmaster API key are required. No real provider events have been verified as imported.
+- **Ticketmaster ingestion** — lightweight private sync code and provider-link protection are prepared and locally tested. The importer code is deployed, but no Ticketmaster API key is configured and its schedule remains inactive. No real provider events have been verified as imported.
 
 ---
 
@@ -139,7 +139,7 @@ These are live and **not** bugs to fix on sight — each was a conscious call. F
 ## Organizer journey and external catalogue — Biswajith Gopinathan
 
 - Organizer console fetches owner-scoped draft, published, cancelled and completed events; public discovery remains published-only.
-- External Ticketmaster detail pages route to validated provider URLs and do not offer NewFind checkout. The backend booking rejection and authenticated ingestion route are prepared and tested locally, pending server deployment.
+- External Ticketmaster detail pages route to validated provider URLs and do not offer NewFind checkout. The backend booking rejection and authenticated ingestion route are deployed; regression tests pass locally. Real provider ingestion and checkout remain unverified until a private API key is configured.
 - Discovery no longer calls the unavailable public ingestion service or falls back to AI-generated fictional events.
 - The one-shot sync reuses the event container, stays within a bounded request budget, and never prints API keys. No Kafka, AI service or additional paid infrastructure is needed.
 
@@ -147,4 +147,12 @@ These are live and **not** bugs to fix on sight — each was a conscious call. F
 
 - Organizer onboarding with an explicitly synthetic QA organisation, online draft creation, owner draft listing, description editing, reload persistence and publishing passed in production.
 - Booking a different organiser's free QA event passed; dashboard showed confirmed ticket #38371952 with a QR code, unchanged after reload. Self-booking was rejected as intended; checkout now explains that restriction. No payment was processed.
-- Real external imports remain blocked by the expired Hetzner browser sign-in. A private server-side Ticketmaster key has not yet been confirmed. Backend importer/guard deployment and provider verification remain pending.
+- Hetzner access was renewed on 2026-11-03. Event/ticketing importer safeguards were deployed after backup and image startup preflights. The server and Vercel have no Ticketmaster key configured; real ingestion and provider verification remain pending.
+
+### Backend release verification — 2026-11-03, Biswajith Gopinathan
+
+- Reviewed application revision `765ae06f2e59512b5b95a04950337ceba2756ad1` is deployed. Only event and ticketing containers were replaced; both are healthy. Existing four-database backup succeeded.
+- Live core API smoke checks passed registration/login, profiles, organizer identity/privacy, event creation/discovery/details, ownership, concurrent capacity, idempotent retry, persistence and missing-event handling. Existing booking identities survived replacement.
+- TalktoFile returned HTTP 200 and its two container start times were unchanged. NewFind used approximately 411 MiB RAM and 1.29% aggregate container CPU in the final sample. No additional service or recurring charge was activated.
+- External listings are still NOT verified live: no Ticketmaster key was found in deployment configuration. No import or refresh timer was activated.
+- Rollback: retag `newfind-event:before-nov3` as `newfind-event:latest` and `newfind-ticketing:before-nov3` as `newfind-ticketing:latest`, then run `docker compose -p newfind up -d --no-deps --no-build --wait event ticketing` in the existing deployment directory. No schema rollback is required for this release.

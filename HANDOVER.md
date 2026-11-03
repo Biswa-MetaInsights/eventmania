@@ -297,12 +297,7 @@ price chip, badge, rail, dialog chassis, form field or empty state already exist
 second version is a bug even when it looks fine on its own. **One control = one component; if it
 must look different somewhere, add a prop — do not fork the file.**
 
-⚠️ **Communities are PARKED for Phase 2 (2026-08-14) — parked, NOT dead.** Every community-shaped
-file is intact and still type-checked, but unreachable at runtime: `/community/*` redirects home.
-**Do not delete any of it as dead code, and do not add a call site back** — the requirement is that
-a user never encounters the word "community" anywhere. The full file list, the `CommunityCarousel`
-trap (its importers are commented out, so tooling reads it as unreferenced) and the restore
-checklist: `COMPONENTS.md` and `TODO.md` §12.
+Communities are active in the professional-QA candidate, with persisted membership/reviews and event linkage. Optional home-carousel code remains parked. Treat STATUS.md as the authority for deployment state and tested boundaries.
 
 ### The shared systems — import these, never re-implement
 

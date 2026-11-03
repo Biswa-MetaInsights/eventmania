@@ -24,21 +24,7 @@
 | NotificationBell | Private persisted notices; query cache must clear when the account changes. |
 | AccountRecovery | One-use token read from URL fragment, then removed from address bar; never log it. |
 
-> ⚠️ **Communities are PARKED for Phase 2 (2026-08-14) — parked, NOT dead. Do not delete any of it.**
-> `CommunityCarousel`, `CommunityJoinCard`, `CommunityEventsRail`, `CommunityReviews` and
-> `SimilarCommunities` — plus `lib/community-server.ts`, `lib/community-events.ts`,
-> `lib/fixtures/communities.ts`, `toCommunityItem` in `lib/card-adapters.ts`, the community sources
-> in `lib/data-source.ts`, and `packages/api/src/communities.ts` + `community.ts` — are all intact
-> and still type-checked, but **unreachable at runtime**: `/community/*` redirects to home.
->
-> Most of them still have live importers (the `app/community/[slug]/*` files were never edited), so
-> the compiler will not flag them. **`CommunityCarousel.tsx` is the exception** — both its page
-> importers are commented out, so its components look unreferenced to tooling. It carries a
-> do-not-delete header of its own; heed it.
->
-> Do not add a call site back either: the requirement is that a user never encounters the word
-> "community" anywhere. Their rows below describe how they behave once restored. Restore checklist:
-> `TODO.md` §12.
+> Communities are active in the professional-QA candidate: directory, detail, membership and reviews use the existing user service. The home carousel and older optional surfaces retain parked code; do not remove shared community components. Production rollout and browser verification remain pending.
 
 ### The shared systems — import these, never re-implement
 

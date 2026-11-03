@@ -13,7 +13,7 @@
 | Priority | State | Remaining work |
 |---|---|---|
 | 1 | Core implementation ready for deployment verification | Production SMTP, off-server encrypted backups and external alert destination; full mobile/security/load release evidence; provider approval/credentials |
-| 2 | Event operations implemented; deployed QA pending | Console large-data search/pagination UX, older chat history UI, scheduled reminders, refund/statement workflows and operator training |
+| 2 | Event operations implemented; deployed QA pending | Console large-data search/pagination UX, scheduled reminders, refund/statement workflows and operator training |
 | 3 | Communities and interest suggestions implemented | Verified Google/Facebook OAuth; paid tiers and Stripe test flow; refunds/settlements; grounded assistant and its approved service credentials |
 
 Implemented in the release candidate: persisted profiles/images and event content, 200 km map discovery, backend live badges, currency-safe comparisons/totals, email recovery/verification transport, attendees/check-ins/audit, event closure, reschedule/cancel notices, persistent chat/notifications, communities/membership/reviews and saved-interest suggestions. See STATUS.md for tested boundaries. Production activation is not implied by implementation.
@@ -50,7 +50,7 @@ that work; this tab cannot light up before it.
 
 ## 2b. Release candidate — Backend badge derivation implemented; recommendation badges apply only to interest matches.
 
-## 3. Release candidate — Persistent event rooms/messages/read cursors implemented; older-history UI remains.
+## 3. Release candidate — Persistent event rooms/messages/read cursors and older-history UI implemented; deployed QA remains.
 
 ## 3b. Release candidate — Durable membership and community reviews implemented; no paid membership.
 

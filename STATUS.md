@@ -2,6 +2,12 @@
 
 Owner: **Biswajith Gopinathan (Biswa-MetaInsights)**. Reviewed 2026-11-03.
 
+## Deployment state
+
+The code candidate is committed at `75e2527151f92c003f93115a73e6052865e3bb8a`; its Vercel preview build is READY. Production frontend remains on `765ae06f2e59512b5b95a04950337ceba2756ad1`.
+
+The guarded server rollout stopped before replacing live APIs: the first preflight found a missing explicit email-validator dependency; the next build found conflicting QR dependency pins. Both corrections are committed and the combined requirements resolve. The browser/terminal execution environment then became unavailable, preventing a corrected rollout, live professional-flow smoke, final metrics and browser/mobile verification. Do not promote the frontend until the corrected backend is healthy and the live smoke passes. No professional-ready claim is made.
+
 ## Release candidate
 
 The professional-QA candidate adds persistent event operations on the existing isolated five-API stack. PostgreSQL and Redis remain private. Kafka and extra service containers are unnecessary for these journeys.
@@ -35,4 +41,4 @@ The professional-QA candidate adds persistent event operations on the existing i
 
 NewFind remains a separate Compose project, network and volumes. The frontend uses its same-origin `/api` proxy to the approved HTTPS backend route. Existing TalktoFile containers, volumes and Caddy configuration must remain untouched.
 
-The release script preserves old API images and four database snapshots before starting new APIs. Additive columns are backward compatible; new lifecycle values may require restoring the protected pre-release snapshot for a full rollback. Never restore over live data without assessing changes since the snapshot.
+The guarded attempts created old API image tags and protected database snapshots with isolated restore verification before reaching their respective failures. Additive columns are backward compatible; new lifecycle values may require restoring the protected pre-release snapshot for a full rollback. Never restore over live data without assessing changes since the snapshot.

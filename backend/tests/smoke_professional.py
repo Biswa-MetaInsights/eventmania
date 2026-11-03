@@ -16,6 +16,7 @@ from uuid import uuid4
 parser=argparse.ArgumentParser();parser.add_argument('--base',default='http://127.0.0.1:18000');parser.add_argument('--state',type=Path,default=Path('.qa-professional.json'));parser.add_argument('--verify',action='store_true');args=parser.parse_args()
 
 def api(method,path,body=None,token=None,expected=200):
+    path=path.rstrip('/') if path!='/' else path
     request=Request(args.base.rstrip('/')+path,data=json.dumps(body).encode() if body is not None else None,headers={'Content-Type':'application/json',**({'Authorization':'Bearer '+token} if token else {})},method=method)
     try:response=urlopen(request,timeout=30)
     except HTTPError as error:response=error

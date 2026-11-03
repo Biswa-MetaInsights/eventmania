@@ -30,8 +30,10 @@ const RADIUS_KM = 200;
 // selected city (matched by name on the Explore side) and the relevant view.
 // PARKED 2026-08-14 (MVP) â€” the param was `view: "events" | "communities"`;
 // narrowed to "events" while communities are deferred to Phase 2.
-function exploreHref(view: "events", cityName: string): string {
-  return `/explore?view=${view}&city=${encodeURIComponent(cityName)}`;
+function exploreHref(view: "events", cityName: string, lat?: number, lng?: number): string {
+  const params=new URLSearchParams({view,city:cityName});
+  if(lat!=null&&lng!=null){params.set("lat",String(lat));params.set("lng",String(lng));}
+  return `/explore?${params}`;
 }
 
 export default function Home() {
@@ -56,7 +58,7 @@ function DiscoveryPage() {
   // 0,0 in real mode, but dummy mode ignores geo entirely, so without this the
   // online events would leak into the city row there.
   const { data: events, isLoading: eventsLoading } = useQuery({
-    queryKey: ["events", q, selectedCity.name],
+    queryKey: ["events", q, selectedCity.name, selectedCity.lat, selectedCity.lng],
     queryFn: () =>
       eventsSource
         .search({
@@ -131,7 +133,7 @@ function DiscoveryPage() {
       <EventsCarousel
         events={carouselEvents}
         location={selectedCity.name}
-        seeAllHref={exploreHref("events", selectedCity.name)}
+        seeAllHref={exploreHref("events", selectedCity.name, selectedCity.lat, selectedCity.lng)}
         onlineSeeAllHref={exploreHref("events", "Online")}
         isLoading={eventsLoading || onlineLoading}
         onBookNow={(id) => router.push(`/event/${id}`)}

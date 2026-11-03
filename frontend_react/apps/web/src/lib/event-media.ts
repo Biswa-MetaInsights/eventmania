@@ -52,13 +52,13 @@ export function priceLabel(event: Pick<Event, "price" | "currency">): string {
 }
 
 /** Human-readable place for an event. */
-export function locationLabel(event: Pick<Event, "location">): string {
+export function locationLabel(event: Pick<Event, "location"> & {event_type?: string}): string {
   const loc = event.location as Record<string, unknown> | undefined;
-  return (
-    (loc?.address as string) ??
-    (loc?.city as string) ??
-    "Online Event"
-  );
+  for (const key of ['address','name','city']) {
+    const value=loc?.[key];
+    if(typeof value==='string'&&value.trim()) return value;
+  }
+  return event.event_type === 'Online' ? 'Online event' : 'Venue to be confirmed';
 }
 
 /** "Fri, Aug 15" style short date for the unfurl meta line. */

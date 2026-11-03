@@ -12,9 +12,9 @@
 
 | Priority | State | Remaining work |
 |---|---|---|
-| 1 | Core implementation ready for deployment verification | Production SMTP, off-server encrypted backups and external alert destination; full mobile/security/load release evidence; provider approval/credentials |
-| 2 | Event operations implemented; deployed QA pending | Console large-data search/pagination UX, scheduled reminders, refund/statement workflows and operator training |
-| 3 | Communities and interest suggestions implemented | Verified Google/Facebook OAuth; paid tiers and Stripe test flow; refunds/settlements; grounded assistant and its approved service credentials |
+| 1 | Core deployed; integration activation and broader QA remain | Production SMTP, off-server encrypted backups and external alert destination; full mobile/security/load release evidence; provider approval/credentials |
+| 2 | Event operations deployed; live API QA passed | Console large-data search/pagination UX, scheduled reminders, refund/statement workflows and operator training |
+| 3 | Communities and interest suggestions deployed | Verified Google/Facebook OAuth; paid tiers and Stripe test flow; refunds/settlements; grounded assistant and its approved service credentials |
 
 Implemented in the release candidate: persisted profiles/images and event content, 200 km map discovery, backend live badges, currency-safe comparisons/totals, email recovery/verification transport, attendees/check-ins/audit, event closure, reschedule/cancel notices, persistent chat/notifications, communities/membership/reviews and saved-interest suggestions. See STATUS.md for tested boundaries. Production activation is not implied by implementation.
 

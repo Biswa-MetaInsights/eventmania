@@ -4,25 +4,29 @@ Owner: **Biswajith Gopinathan (Biswa-MetaInsights)**. Reviewed 2026-11-03.
 
 ## Deployment state
 
-The code candidate is committed at `75e2527151f92c003f93115a73e6052865e3bb8a`; its Vercel preview build is READY. Production frontend remains on `765ae06f2e59512b5b95a04950337ceba2756ad1`.
+The core release is live on 2026-11-03. Backend API images were deployed from application revision `71704073d34e3a1881e61f1f8643d7747bbe7539`; subsequent frontend corrections retain the same backend code. The frontend uses the production Vercel project `newfind` and its same-origin `/api` proxy.
 
-The guarded server rollout stopped before replacing live APIs: the first preflight found a missing explicit email-validator dependency; the next build found conflicting QR dependency pins. Both corrections are committed and the combined requirements resolve. The browser/terminal execution environment then became unavailable, preventing a corrected rollout, live professional-flow smoke, final metrics and browser/mobile verification. Do not promote the frontend until the corrected backend is healthy and the live smoke passes. No professional-ready claim is made.
+Live PostgreSQL tests passed for registration/login, private profiles, event creation/content, cross-border discovery, currency validation, free booking/retry, organizer-only attendee access, private QR, duplicate check-in, chat, communities/reviews and rescheduling notifications. Records survived NewFind-only user/event/ticketing restarts. The same journeys passed through the public HTTPS Vercel API proxy; post-frontend-release persistence verification passed.
 
-## Release candidate
+All seven NewFind containers are healthy. The rollout verified unchanged TalktoFile container start times. NewFind used approximately 363 MiB RAM and 9.24% aggregate Docker CPU during QA. No new paid services were added. Four current databases passed protected backup, isolated restore, checksum and table-row-count verification. Daily backup retention and five-minute local health checks are active; off-server storage and outbound alerting are still pending.
+
+Public browser checks verified international town search (Leuven), the attributed 200 km map and closed-registration event details with persisted agenda. Authenticated browser UI, real-device mobile QA and large-catalogue load testing are not fully verified; API tests do not substitute for those checks. This is a controlled core-feature test release, not completion of every priority 1–3 item.
+
+## Deployed core capabilities
 
 The professional-QA candidate adds persistent event operations on the existing isolated five-API stack. PostgreSQL and Redis remain private. Kafka and extra service containers are unnecessary for these journeys.
 
 | Area | Implemented behavior | Verification |
 |---|---|---|
-| Accounts | Email/password registration/login, private editable profiles, sanitised persistent avatars, recovery and email verification | Isolated service integration; recovery delivered to a local QA SMTP mailbox; one-use links and old-session invalidation checked |
+| Accounts | Email/password registration/login, private editable profiles, sanitised persistent avatars, recovery and email verification | Live registration/login/profile API integration; recovery delivered only to a local QA SMTP mailbox; one-use links and old-session invalidation checked locally |
 | Discovery | International town/city search, manual/GPS centre, map, 1–200 km radius across borders, server filters/badges, currency-scoped comparisons, pagination | Brussels/Maastricht inclusion and Berlin/invalid coordinates exclusion checked; frontend build/type check |
 | Event authoring | Persistent agenda, FAQ, announcements, cover, venue time zone, visibility, organizer ownership and lifecycle validation | API integration and persistence across restart |
-| Tickets | Free booking, PostgreSQL capacity lock, retry identity, private locally rendered QR, persistent bookings | Core integration; live PostgreSQL concurrency requires release smoke |
+| Tickets | Free booking, PostgreSQL capacity lock, retry identity, private locally rendered QR, persistent bookings | Live PostgreSQL booking, retries, access controls and restart persistence; concurrent-capacity test from the earlier release remains separate evidence |
 | Organizer operations | Real attendees, contacts scoped to owner, check-in/undo with audit, inventory including used tickets, overview and revenue split by currency | API integration and restart persistence |
 | Collaboration | Ticket-holder/organizer rooms, persistent messages/read cursors, polling, event-change notifications, durable email outbox | API permissions, message persistence and notification read state checked |
-| Communities | Directory/detail, owner-scoped creation, durable join/leave/reviews, linked events and member event notifications | API integration including restart; public UI requires deployed browser pass |
+| Communities | Directory/detail, owner-scoped creation, durable join/leave/reviews, linked events and member event notifications | Live API integration including restart; full authenticated browser membership/review QA remains |
 | Suggestions | Saved-interest/category/tag matching within selected radius, with nearby fallback | API integration; no paid AI service |
-| Operations | Guarded sequential build, backup and isolated restore before rollout, rollback image manifests, retention and local health timer | Deployment must run the guarded release script |
+| Operations | Guarded sequential build, backup and isolated restore before rollout, rollback image manifests, retention and local health timer | Guarded live rollout, protected backup and isolated restore passed |
 
 ## External activation and remaining QA
 

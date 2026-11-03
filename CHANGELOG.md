@@ -10,6 +10,8 @@
 ---
 
 ## 2026-11-03
+- **Biswajith Gopinathan** — deploy isolated core APIs and frontend; verify PostgreSQL operations through the public HTTPS proxy, restart persistence and protected database restores; load 236,907 GeoNames towns/cities and enable local health monitoring.
+- **Biswajith Gopinathan** — preserve international search coordinates in links and correct physical venue labels and venue-zone event time display following browser QA.
 - **Biswajith Gopinathan** — add persistent organizer event content, attendee/check-in audit, chat, notifications, profiles/assets, communities and interest suggestions; implement locally verified account recovery and verification with durable delivery.
 - **Biswajith Gopinathan** — add cross-border 200 km map discovery and offline international town search; enforce currency-safe comparisons and totals; update vulnerable runtime dependencies and guard the isolated rollout with backups and rollback images.
 

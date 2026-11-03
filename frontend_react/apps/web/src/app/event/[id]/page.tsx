@@ -58,7 +58,7 @@ import {
 import { ReviewsSection } from "@/components/Reviews";
 import { SimilarEvents } from "@/components/SimilarEvents";
 import { toCarouselEvent } from "@/lib/card-adapters";
-import { eventImageUrl, HERO_SCRIM } from "@/lib/event-media";
+import { eventImageUrl, locationLabel, HERO_SCRIM } from "@/lib/event-media";
 import { heroTitleSize } from "@/lib/hero-title";
 import { GUTTERS } from "@/lib/layout";
 import { isExternalEvent, externalTicketUrl } from "@/lib/external-events";
@@ -70,8 +70,8 @@ function fmt(iso: string, opts: Intl.DateTimeFormatOptions) {
   return new Date(iso).toLocaleDateString("en-US", opts);
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+function fmtTime(iso: string, timeZone: string) {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone, timeZoneName: "short" });
 }
 
 export default function EventDetailPage({
@@ -206,10 +206,7 @@ export default function EventDetailPage({
   // The shared card controls speak CarouselEvent, so a wishlist save from here is
   // byte-identical to one from a card and renders the same in /dashboard.
   const card = toCarouselEvent(event);
-  const location =
-    (event.location?.address as string) ??
-    (event.location?.city as string) ??
-    "Online Event";
+  const location = locationLabel(event);
 
   function handleBookNow() {
     if (!bookable) return;
@@ -482,8 +479,8 @@ export default function EventDetailPage({
                 unlimited={event.capacity === 0}
                 cancelled={cancelled}
                 registrationClosed={registrationClosed}
-                dateLabel={fmt(event.start_date, { weekday: "long", month: "short", day: "numeric" })}
-                timeLabel={fmtTime(event.start_date)}
+                dateLabel={fmt(event.start_date, { weekday: "long", month: "short", day: "numeric", timeZone: event.timezone || "UTC" })}
+                timeLabel={fmtTime(event.start_date,event.timezone || "UTC")}
                 location={location}
                 organizer={organizerName}
                 verified={organizerVerified}

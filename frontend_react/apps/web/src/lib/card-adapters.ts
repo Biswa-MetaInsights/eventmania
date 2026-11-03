@@ -37,18 +37,18 @@ function isThisWeek(startDate: Date): boolean {
  * card fields) on the same card, and its date row must read like every other
  * card's. Never format a card date by hand elsewhere.
  */
-export function cardDateTime(iso: string): { date: string; time: string } {
+export function cardDateTime(iso: string, timeZone?: string): { date: string; time: string } {
   const start = new Date(iso);
   return {
-    date: start.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
-    time: start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+    date: start.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone }),
+    time: start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone }),
   };
 }
 
 // Adapts an API Event into the home-page CarouselEvent card shape.
 export function toCarouselEvent(event: Event): CarouselEvent {
   const start = new Date(event.start_date);
-  const { date, time } = cardDateTime(event.start_date);
+  const { date, time } = cardDateTime(event.start_date,event.timezone || "UTC");
   const venue = (event.location as Record<string, string>)?.name ?? "Venue TBC";
   const price = Number(event.price);
   const external = isExternalEvent(event);

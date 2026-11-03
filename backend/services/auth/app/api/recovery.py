@@ -40,7 +40,7 @@ class AccountMail(Base):
     state = Column(String(20), default='pending', nullable=False)
 
 
-from backend.shared.mail import ready as mail_ready, send
+from backend.shared.mail import ready as mail_ready, send, deliverable
 from threading import Lock
 _mail_lock = Lock()
 
@@ -51,6 +51,10 @@ def send_pending():
         with SessionLocal() as db:
             rows = db.query(AccountMail).filter(AccountMail.sent_at.is_(None), AccountMail.state == 'pending').order_by(AccountMail.created_at).limit(20).all()
             for row in rows:
+                if not deliverable(row.recipient):
+                    row.state, row.body = 'suppressed', 'Reserved test recipient; delivery suppressed.'
+                    db.commit()
+                    continue
                 if row.created_at < datetime.utcnow()-timedelta(minutes=30):
                     row.state, row.body = 'expired', 'Expired account message; token removed.'
                     db.commit()

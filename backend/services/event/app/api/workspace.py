@@ -247,7 +247,7 @@ def announcement(event_id: UUID, data: AnnouncementInput, claims=Depends(identit
 
 
 def send_event_mail():
-    from backend.shared.mail import ready, send
+    from backend.shared.mail import ready, send, deliverable
     from app.db.session import SessionLocal
     if not ready(): return
     with SessionLocal() as db:
@@ -256,6 +256,10 @@ def send_event_mail():
             try:
                 notice=db.get(Notice,row.notice_id)
                 person=service_get('USER','/users/internal/attendee/'+str(row.user_id))
+                if not deliverable(person['email']):
+                    row.status='suppressed'
+                    db.commit()
+                    continue
                 link=os.environ['APP_PUBLIC_URL'].rstrip('/')+'/event/'+str(notice.event_id)
                 send(person['email'],'NewFind: '+notice.title,notice.body+'\n\n'+link)
                 row.status,row.sent_at='sent',datetime.utcnow()

@@ -229,6 +229,10 @@ def search_events(
     if price_max is not None:
         query = query.filter(Event.price <= price_max)
         if price_max == 0: query = query.filter(Event.source == 'native')
+    # Ordinary date/price pages need inventory only for the requested rows.
+    if lat is None and not tag and sort in ('date','price'):
+        ordering=(Event.price,Event.start_date,Event.id) if sort=='price' else (Event.start_date,Event.id)
+        return with_inventory(query.order_by(*ordering).offset(offset).limit(limit).all())
     # Filter coordinates before pagination. Missing/invalid coordinates never match a radius.
     candidates = []
     for event in query.order_by(Event.start_date, Event.id).yield_per(200):
@@ -246,6 +250,13 @@ def search_events(
         row = EventOut.model_validate(event).model_dump(mode='json')
         row['distance_km'] = round(distance, 2) if distance is not None else None
         candidates.append(row)
+    # Geographic filtering still precedes pagination, but avoid inventory calls
+    # for thousands of rows when neither sorting nor filtering needs inventory.
+    if not tag and sort!='popularity':
+        if sort=='distance':candidates.sort(key=lambda row:(row['distance_km'] is None,row['distance_km'] or 0,row['start_date']))
+        elif sort=='price':candidates.sort(key=lambda row:(float(row['price']),row['start_date']))
+        elif sort=='name':candidates.sort(key=lambda row:row['title'].casefold())
+        return with_inventory(candidates[offset:offset+limit])
     data = []
     for index in range(0, len(candidates), 200):
         data.extend(with_inventory(candidates[index:index+200]))

@@ -54,3 +54,10 @@ apply-proxy.log
 
 # Generated disposable QA account credentials
 .qa-*.json
+
+# Private operational delivery state and isolated restore working directories
+.ops-state/
+newfind-offsite-restore-*/
+
+# Backup encryption passwords (retain a separate recovery copy)
+.secrets/

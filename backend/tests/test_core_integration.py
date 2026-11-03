@@ -68,6 +68,7 @@ def core(tmp_path_factory):
         for name in names:
             start(name)
         with httpx.Client(base_url=urls["gateway"], timeout=10, trust_env=False) as client:
+            client.qa_database_root = state
             client.event_internal_url = urls["event"]
             client.internal_api_key = env["INTERNAL_API_KEY"]
             yield client, restart

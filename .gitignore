@@ -51,3 +51,6 @@ apply-proxy.log
 
 # Host-private release state and rollback manifests
 .releases/
+
+# Generated disposable QA account credentials
+.qa-*.json

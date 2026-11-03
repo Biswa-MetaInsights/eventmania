@@ -53,6 +53,9 @@ export function Footer() {
               {/* PARKED 2026-08-14 (MVP) — was "…find events, communities, and experiences near you." */}
               Find events and experiences near you.
             </p>
+            <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "rgba(242,239,234,0.75)" }}>
+              Developed and powered by MetaInsights BV.
+            </p>
           </div>
 
           {/* Link columns */}
@@ -78,7 +81,7 @@ export function Footer() {
           style={{ borderTop: "1px solid rgba(242,239,234,0.18)" }}
         >
           <p className="text-sm" style={{ color: "rgba(242,239,234,0.7)" }}>
-            © {new Date().getFullYear()} NewFind. All rights reserved.
+            © {new Date().getFullYear()} MetaInsights BV. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             {/* Social icons */}

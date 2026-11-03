@@ -1,16 +1,18 @@
 # NewFind — Current State
 
-Owner: **Biswajith Gopinathan (Biswa-MetaInsights)**. Reviewed 2026-11-03.
+Owner: **Biswajith Gopinathan (Biswa-MetaInsights)**. Reviewed 2026-11-04.
 
 ## Deployment state
 
-The core release is live on 2026-11-03. Backend API images were deployed from application revision `71704073d34e3a1881e61f1f8643d7747bbe7539`; subsequent frontend corrections retain the same backend code. The frontend uses the production Vercel project `newfind` and its same-origin `/api` proxy.
+The core release is live on 2026-11-03. Backend API images were updated to application revision `b4c4849d14ff799ab17cb732b14729b8ebc8682b`; post-rollout health and persisted core workflows passed, with unchanged TalktoFile container start times. The frontend uses the production Vercel project `newfind` and its same-origin `/api` proxy.
 
 Live PostgreSQL tests passed for registration/login, private profiles, event creation/content, cross-border discovery, currency validation, free booking/retry, organizer-only attendee access, private QR, duplicate check-in, chat, communities/reviews and rescheduling notifications. Records survived NewFind-only user/event/ticketing restarts. The same journeys passed through the public HTTPS Vercel API proxy; post-frontend-release persistence verification passed.
 
 All seven NewFind containers are healthy. The rollout verified unchanged TalktoFile container start times. NewFind used approximately 363 MiB RAM and 9.24% aggregate Docker CPU during QA. No new paid services were added. Four current databases passed protected backup, isolated restore, checksum and table-row-count verification. Daily backup retention and five-minute local health checks are active. Encrypted off-server transfer/restore, alert retry/cooldown/recovery and SMTP preflight tools are prepared and tested; activation still requires an approved external destination, sender credentials and alert recipient. No remote provider transfer or real inbox receipt is claimed.
 
 Public browser checks verified international town search (Leuven), the attributed 200 km map and closed-registration event details with persisted agenda. Authenticated browser UI, real-device mobile QA and production concurrent-load testing are not fully verified; API tests do not substitute for those checks. This is a controlled core-feature test release, not completion of every priority 1–3 item.
+
+The shared frontend footer now identifies MetaInsights BV as developer and platform provider in source; production deployment of that branding is pending verification.
 
 ## Deployed core capabilities
 
@@ -33,11 +35,11 @@ The professional-QA candidate adds persistent event operations on the existing i
 **This candidate is not a claim that all priorities 1–3 are complete.**
 
 - Provider event catalogue: Ticketmaster/publiq/OpenAgenda approval and credentials pending. No live import is activated. Native QA events are not a complete real-world catalogue.
-- SMTP: production sender credentials absent. TLS/authentication preflight is implemented; reserved synthetic QA recipients are suppressed on production transports. Recovery/verification and event email transport are implemented and locally tested; live email delivery remains disabled. In-app notifications operate independently.
+- SMTP: the owner selected `metainsights.bv@gmail.com` on 2026-11-04. Production sender credentials are still absent; the public, secret-free Gmail configuration template is `backend/gmail.env.example`. TLS/authentication preflight is implemented; reserved synthetic QA recipients are suppressed on production transports. Recovery/verification and event email transport are implemented and locally tested; live email delivery remains disabled. In-app notifications operate independently.
 - Google/Facebook: disabled; verified OAuth implementation, app credentials and callback approval remain.
 - Paid ticket tiers, Stripe test checkout/webhooks, refunds and settlement statements: not released. Paid bookings fail closed; no real payments.
 - AI assistant: not released; paid inference is not activated.
-- Off-server encrypted backup destination and outbound monitoring alerts require approved destination credentials. The restic workflow reads back the exact uploaded snapshot and verifies hashes; it never restores over production. Local encryption/restore, wrong-password/corrupt-data rejection and alert failure/recovery tests passed. Local backups/health checks do not cover host loss or notify an operator externally.
+- Paid off-server backup storage is explicitly deferred by the owner until testing goes well (2026-11-04); do not purchase or activate it during this testing phase. Outbound monitoring alerts still require an approved destination. The restic workflow reads back the exact uploaded snapshot and verifies hashes; it never restores over production. Local encryption/restore, wrong-password/corrupt-data rejection and alert failure/recovery tests passed. Local backups/health checks do not cover host loss or notify an operator externally.
 - Full mobile/browser/accessibility, production concurrent load, cross-device organizer door operation and deployed community sharing need evidence before professional handover. An isolated 10,000-listing geographic pagination regression passed, with one inventory lookup per page; date/price discovery pages no longer fetch inventory for the entire catalogue. The current browser is signed out and its phone-width emulation attempt was blocked, so those UI checks remain pending.
 - A dedicated NewFind domain and GitHub repository rename remain separate account/domain operations.
 

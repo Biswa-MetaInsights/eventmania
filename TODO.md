@@ -12,7 +12,7 @@
 
 | Priority | State | Remaining work |
 |---|---|---|
-| 1 | Core deployed; integration activation and broader QA remain | Activate tested SMTP/off-server-backup/alert tools with approved destinations and credentials; authenticated/mobile/accessibility and production-load evidence; provider approval/credentials |
+| 1 | Core deployed; integration activation and broader QA remain | Configure the selected Gmail sender and approved alert destination; paid off-server backups deferred by owner until testing succeeds; authenticated/mobile/accessibility and production-load evidence; provider approval/credentials |
 | 2 | Event operations deployed; live API QA passed | Console large-data search/pagination UX, scheduled reminders, refund/statement workflows and operator training |
 | 3 | Communities and interest suggestions deployed | Verified Google/Facebook OAuth; paid tiers and Stripe test flow; refunds/settlements; grounded assistant and its approved service credentials |
 
@@ -736,10 +736,10 @@ The user service persists and returns contact_email on the private organizer pro
 
 ## 27. Launch operations and verification — owner: Biswajith Gopinathan
 
-- Daily protected local PostgreSQL backups are installed. Four core databases passed isolated restoration, checksums and public-table row-count checks. Off-server storage and retention/disk monitoring remain pending; local snapshots cannot recover a lost server.
+- Daily protected local PostgreSQL backups are installed. Four core databases passed isolated restoration, checksums and public-table row-count checks. Paid off-server storage is deferred by the owner until testing goes well (2026-11-04); local snapshots cannot recover a lost server.
 - Complete mobile/device verification and the organizer publish/edit/participant-booking browser checks. Organizer onboarding and draft creation passed; draft console visibility was identified and fixed in code.
 - Add health/error monitoring, review security/rate limits and run basic load tests.
-- Configure password recovery/email verification and transactional email with the required provider configuration.
+- Configure password recovery/email verification and transactional email using the selected sender metainsights.bv@gmail.com; an app password must be entered privately on the host, then TLS/login and actual inbox delivery verified.
 - Connect a dedicated NewFind domain; new paid services require explicit approval.
 - Rename the GitHub repository to newfind once authenticated settings access is available, then validate server remotes and Vercel connectivity.
 

@@ -46,7 +46,8 @@ def main():
         run(COMPOSE+['build',service])
     # Import/schema checks happen on the private network before replacing live APIs.
     for service in ('user','auth','event','ticketing'):
-        run(COMPOSE+['run','--rm','--no-deps',service,'python','-c','import main; print("PASS schema/startup preflight")'])
+        extra={'user':'import PIL, email_validator;','auth':'import bcrypt, email_validator;','event':'import openai;','ticketing':'import qrcode, qrcode.image.svg;'}[service]
+        run(COMPOSE+['run','--rm','--no-deps',service,'python','-c',extra+' import main; print("PASS schema/startup preflight")'])
     run(COMPOSE+['up','-d','--no-deps','--wait','--wait-timeout','180',*SERVICES])
     for name,start in starts.items():
         if output(['docker','inspect','-f','{{.State.StartedAt}}',name])!=start:

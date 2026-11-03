@@ -36,7 +36,7 @@ export const collaboration = {
   read: (id: string) => apiClient.post(`/event/notifications/${id}/read`),
   readAll: () => apiClient.post('/event/notifications/read'),
   rooms: () => apiClient.get<Room[]>('/event/rooms'),
-  messages: (id: string) => apiClient.get<RoomMessage[]>(`/event/${id}/messages`),
+  messages: (id: string, before?:string) => apiClient.get<RoomMessage[]>(`/event/${id}/messages`,{params:{before}}),
   post: (id: string, content: string, request_id: string) => apiClient.post(`/event/${id}/messages`, {content, request_id}),
   readRoom: (id: string) => apiClient.post(`/event/${id}/messages/read`),
 };

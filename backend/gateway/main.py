@@ -1,4 +1,4 @@
-from access import authorize, principal
+from access import authorize, principal, verified_principal
 from uuid import UUID
 import httpx
 import logging
@@ -105,8 +105,9 @@ async def gateway_proxy(request: Request, service_name: str, path: str = ""):
                 pass
             else:
                 event = response.json()
-                if (event.get("status") == "draft" or event.get("visibility") == "private") and event.get("organizer_id") != principal(request)["sub"]:
-                    raise HTTPException(403, "Private event")
+                if event.get("status") == "draft" or event.get("visibility") == "private":
+                    viewer=await verified_principal(request,client)
+                    if event.get("organizer_id")!=viewer['sub']:raise HTTPException(403,"Private event")
 
         # Return matched response to the client
         return Response(

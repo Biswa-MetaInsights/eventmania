@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@eventmind/store';
 import { collaboration, currentUserId } from '@/lib/operations';
 import { Navbar } from '@/components/navbar/Navbar';
@@ -19,8 +19,9 @@ export function EventRooms({roomId}: {roomId?: string}) {
   const userId = currentUserId();
   useEffect(()=>{if (ready && !authenticated) router.replace('/auth');},[ready, authenticated, router]);
   const rooms = useQuery({queryKey:['event-rooms',userId],queryFn:()=>collaboration.rooms().then(r=>r.data),enabled:ready&&authenticated,refetchInterval:15000});
-  const messages = useQuery({queryKey:['event-messages',roomId,userId],queryFn:()=>collaboration.messages(roomId!).then(r=>r.data),enabled:ready&&authenticated&&!!roomId,refetchInterval:5000});
-  const latest = messages.data?.at(-1)?.id;
+  const messages = useInfiniteQuery({queryKey:['event-messages',roomId,userId],initialPageParam:undefined as string|undefined,queryFn:({pageParam})=>collaboration.messages(roomId!,pageParam).then(r=>r.data),getNextPageParam:last=>last.length===50?last[0].created_at:undefined,enabled:ready&&authenticated&&!!roomId,refetchInterval:5000});
+  const history=messages.data?.pages.slice().reverse().flat();
+  const latest = messages.data?.pages[0]?.at(-1)?.id;
   useEffect(()=>{if(roomId && latest) void collaboration.readRoom(roomId).then(()=>client.invalidateQueries({queryKey:['event-rooms',userId]})).catch(()=>{});},[roomId,latest,client,userId]);
   const post = useMutation({mutationFn:()=> {
     if(request.current.text!==text || !request.current.id) request.current={id:crypto.randomUUID(),text};
@@ -40,10 +41,11 @@ export function EventRooms({roomId}: {roomId?: string}) {
           <p className="my-3">Only ticket holders and the organiser can read or post here.</p>
           {messages.isPending?<p>Loading messages…</p>:messages.isError?<p role="alert">This conversation is unavailable. You need a ticket or organiser access.</p>:<>
             <div className="space-y-4 max-h-[55dvh] overflow-y-auto py-4" aria-label="Messages" aria-live="polite">
-              {!messages.data?.length&&<p>No messages yet. Start the conversation.</p>}
-              {messages.data?.map(message=><article key={message.id} className="rounded-lg border border-[var(--brand-border)] p-4 break-words">
+              {messages.hasNextPage&&<button className="underline p-3" disabled={messages.isFetchingNextPage} onClick={()=>void messages.fetchNextPage()}>{messages.isFetchingNextPage?'Loading…':'Load older messages'}</button>}
+              {!history?.length&&<p>No messages yet. Start the conversation.</p>}
+              {history?.map(message=><article key={message.id} className="rounded-lg border border-[var(--brand-border)] p-4 break-words">
                 <p className="font-bold">{message.name}{message.is_organizer?' · Organiser':''}</p>
-                <time className="text-[15px]" dateTime={message.created_at}>{new Date(message.created_at+'Z').toLocaleString()}</time>
+                <time className="text-[15px]" dateTime={message.created_at}>{new Date(message.created_at.endsWith('Z')?message.created_at:message.created_at+'Z').toLocaleString()}</time>
                 <p className="mt-2 whitespace-pre-wrap text-[18px]">{message.content}</p>
               </article>)}
             </div>

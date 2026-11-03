@@ -25,6 +25,18 @@
 
 ---
 
+## Professional-QA release components (Biswajith Gopinathan, 2026-11-03)
+
+| Component | Integration constraint |
+|---|---|
+| ParticipantProfile | Real profile mutations; avatar reads require the authenticated blob helper. |
+| LocationSelector | Explicit town search, GeoNames attribution, permission-based rounded GPS centre; no postcode guarantee. |
+| EventMap | Lazy Leaflet map; OSM attribution, no tile prefetch; list remains usable on tile failure. |
+| EventRooms | Polling on existing event service; server enforces ticket-holder/organizer membership. |
+| NotificationBell | Private persisted notices; query cache must clear when the account changes. |
+| AccountRecovery | One-use token read from URL fragment, then removed from address bar; never log it. |
+
+
 ## Repository Layout
 
 ```

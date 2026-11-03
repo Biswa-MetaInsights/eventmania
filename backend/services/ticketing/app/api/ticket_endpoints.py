@@ -15,6 +15,7 @@ from datetime import datetime
 import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy import text, func
+from backend.shared.security import identity
 
 router = APIRouter(prefix="/tickets", tags=["Ticketing"])
 
@@ -34,17 +35,24 @@ def booking_counts(event_id: List[UUID] = Query([]), db: Session = Depends(get_d
     if len(event_id) > 200:
         raise HTTPException(422, "At most 200 events per request")
     rows = db.query(Ticket.event_id, func.count(Ticket.id)).filter(
-        Ticket.event_id.in_(event_id), Ticket.status == TicketStatus.VALID
+        Ticket.event_id.in_(event_id), Ticket.status.in_([TicketStatus.VALID, TicketStatus.USED])
     ).group_by(Ticket.event_id).all()
     return {str(event): count for event, count in rows}
 
 @router.post("/book", response_model=List[TicketOut], status_code=201)
-def book_free_event(data: BookingCreate, db: Session = Depends(get_db)):
+def book_free_event(data: BookingCreate, claims=Depends(identity), db: Session = Depends(get_db)):
+    if str(data.user_id) != claims['sub']:
+        raise HTTPException(403, 'Booking identity mismatch')
     # Serialize inventory checks across all workers for this event. The lock is
     # transaction-scoped, so errors and process exits release it automatically.
     if db.bind.dialect.name == "postgresql":
         lock = int.from_bytes(hashlib.sha256(data.event_id.bytes).digest()[:8], "big", signed=True)
         db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock})
+    prior = db.query(Ticket).filter(Ticket.validation_key == str(data.request_id)).all()
+    if prior:
+        if len(prior) != data.quantity or any(t.user_id != data.user_id or t.event_id != data.event_id for t in prior):
+            raise HTTPException(409, "Booking request already used")
+        return prior
     try:
         result = httpx.get(os.environ["EVENT_SERVICE_URL"] + f"/events/internal/{data.event_id}",
                            headers={"X-Internal-Key": os.environ["INTERNAL_API_KEY"]}, timeout=5)
@@ -56,18 +64,15 @@ def book_free_event(data: BookingCreate, db: Session = Depends(get_db)):
         raise HTTPException(503, "Event service unavailable")
     if event.get("source", "native") != "native":
         raise HTTPException(409, "Book this external event with its original ticket provider")
+    if event.get("visibility") == "private":
+        raise HTTPException(403, "Private event registration is not open")
     if event["status"] != "published" or datetime.fromisoformat(event["start_date"]).replace(tzinfo=None) <= datetime.utcnow():
         raise HTTPException(409, "Event is not open for booking")
     if float(event["price"]) != 0:
         raise HTTPException(503, "Paid bookings are disabled until test payments are configured")
     if event["organizer_id"] == str(data.user_id):
         raise HTTPException(403, "You cannot book your own event")
-    prior = db.query(Ticket).filter(Ticket.validation_key == str(data.request_id)).all()
-    if prior:
-        if any(t.user_id != data.user_id or t.event_id != data.event_id for t in prior):
-            raise HTTPException(409, "Booking request already used")
-        return prior
-    sold = db.query(Ticket).filter(Ticket.event_id == data.event_id, Ticket.status == TicketStatus.VALID).count()
+    sold = db.query(Ticket).filter(Ticket.event_id == data.event_id, Ticket.status.in_([TicketStatus.VALID, TicketStatus.USED])).count()
     if event["capacity"] > 0 and sold + data.quantity > event["capacity"]:
         raise HTTPException(409, "Not enough tickets remaining")
     tickets = [Ticket(event_id=data.event_id, user_id=data.user_id,
@@ -121,8 +126,10 @@ def join_waitlist(join_in: WaitlistJoin, db: Session = Depends(get_db)):
     return WaitlistOut(event_id=join_in.event_id, user_id=join_in.user_id, position=position)
 
 @router.get("/user/{user_id}", response_model=List[TicketOut])
-def get_user_tickets(user_id: UUID, db: Session = Depends(get_db)):
+def get_user_tickets(user_id: UUID, claims=Depends(identity), db: Session = Depends(get_db)):
+    if str(user_id) != claims['sub']:
+        raise HTTPException(403, 'Booking identity mismatch')
     """
     Fetch all valid tickets for a specific user.
     """
-    return db.query(Ticket).filter(Ticket.user_id == user_id, Ticket.status == TicketStatus.VALID).all()
+    return db.query(Ticket).filter(Ticket.user_id == user_id, Ticket.status.in_([TicketStatus.VALID, TicketStatus.USED])).all()

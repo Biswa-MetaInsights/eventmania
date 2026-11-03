@@ -36,7 +36,7 @@ function memberLabel(count: number): string {
 // an early 404; everything below it is intact and still type-checked.
 //
 // PHASE 2 RESTORE: set PARKED to false, or delete it and the `if` below.
-const PARKED: boolean = true;
+const PARKED: boolean = false;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   if (PARKED) return new Response(null, { status: 404 }); // see PARKED note above

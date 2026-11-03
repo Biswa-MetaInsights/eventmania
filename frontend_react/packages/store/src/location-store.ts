@@ -6,6 +6,7 @@ export interface City {
   country: string;
   lat: number;
   lng: number;
+  timezone?: string;
 }
 
 export const CITIES: City[] = [

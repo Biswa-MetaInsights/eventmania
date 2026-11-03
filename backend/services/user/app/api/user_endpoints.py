@@ -27,6 +27,20 @@ def initialize_profile(data: ProfileCreate, x_internal_key: str = Header(""), db
         db.commit()
     return {"id": str(profile.id)}
 
+@router.get('/internal/attendee/{user_id}')
+def attendee_identity(user_id: UUID, x_internal_key: str = Header(''), db: Session = Depends(get_db)):
+    from backend.shared.security import internal
+    internal(x_internal_key)
+    profile = db.get(UserProfile, user_id)
+    if not profile: raise HTTPException(404, 'Profile not found')
+    import httpx
+    try:
+        response = httpx.get(os.getenv('AUTH_SERVICE_URL', 'http://auth:8001') + '/auth/internal/identity/' + str(user_id), headers={'X-Internal-Key': x_internal_key}, timeout=5)
+        response.raise_for_status()
+    except httpx.HTTPError:
+        raise HTTPException(503, 'Identity service is temporarily unavailable')
+    return {'id': str(profile.id), 'full_name': profile.full_name, 'email': response.json()['email']}
+
 @router.get("/{user_id}", response_model=UserProfileOut)
 def get_user_profile(user_id: UUID, db: Session = Depends(get_db)):
     profile = db.query(UserProfile).filter(UserProfile.id == user_id).first()

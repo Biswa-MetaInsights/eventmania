@@ -1,5 +1,6 @@
 import bcrypt as _bcrypt
-from jose import jwt, JWTError
+import jwt
+from jwt import InvalidTokenError as JWTError
 from datetime import datetime, timedelta
 from app.core.config import settings
 from typing import Optional, Union

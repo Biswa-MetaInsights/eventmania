@@ -48,3 +48,6 @@ apply-proxy.log
 
 # Private NewFind database backup snapshots
 .backups/
+
+# Host-private release state and rollback manifests
+.releases/

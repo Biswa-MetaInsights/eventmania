@@ -29,13 +29,14 @@ def core(tmp_path_factory):
             ports[name] = sock.getsockname()[1]
     urls = {name: f"http://127.0.0.1:{port}" for name, port in ports.items()}
     env = dict(os.environ, PYTHONPATH=str(ROOT), JWT_SECRET=secrets.token_hex(32),
-               INTERNAL_API_KEY=secrets.token_hex(32), KAFKA_ENABLED="false", DEBUG="false",
-               USER_SERVICE_URL=urls["user"], EVENT_SERVICE_URL=urls["event"],
+               API_RATE_LIMIT="10000/minute", INTERNAL_API_KEY=secrets.token_hex(32), KAFKA_ENABLED="false", DEBUG="false",
+               USER_SERVICE_URL=urls["user"], AUTH_SERVICE_URL=urls["auth"], EVENT_SERVICE_URL=urls["event"],
                TICKETING_SERVICE_URL=urls["ticketing"], CORS_ALLOWED_ORIGINS="https://newfind.example")
     env = {key: value for key, value in env.items() if key.lower() not in {"all_proxy", "http_proxy", "https_proxy"}}
     for name, prefix in [("auth", "auth"), ("user", "users"), ("event", "events"),
                          ("ticket", "tickets"), ("ticketing", "tickets")]:
         env[f"BACKEND_{name.upper()}_URL"] = urls["ticketing" if name == "ticket" else name] + "/" + prefix
+    env['BACKEND_COMMUNITY_URL'] = urls['user'] + '/users/communities'
     processes, logs = {}, {}
 
     def start(name):
@@ -105,7 +106,7 @@ def test_core_user_journeys_and_security(core):
     attendee, attendee_headers = account("attendee")
     assert client.get(f"/user/{organizer}", headers=attendee_headers).status_code == 403
     assert client.get(f"/user/{organizer}").status_code == 401
-    assert client.post("/auth/social-login", json={}).status_code in (401, 403)
+    assert client.post("/auth/social-login", json={"email":"attendee@example.org", "provider":"google", "provider_id":"untrusted", "id_token":"invalid"}).status_code == 503
     assert client.post("/auth/register", json={"email":"admin@example.org", "password":"longpassword", "full_name":"admin", "role":"admin"}).status_code == 403
     data = {"full_name":"Test Organizer", "company_name":"QA", "company_address":"QA address",
             "company_email":"qa@example.org", "contact_email":"contact@example.org", "country":"Belgium", "registration_number":"TEST",
@@ -196,3 +197,95 @@ def test_external_listings_are_private_to_import_and_cannot_issue_tickets(core):
     assert client.get(f"/ticket/user/{user}", headers=headers).json() == []
     free = client.get("/event/search", params={"price_max": 0}).json()
     assert all(e["id"] != event_id for e in free)
+
+
+def test_professional_event_operations_and_cross_border_discovery(core):
+    client, restart = core
+    def new_account(label):
+        payload = {'email': f'{label}@example.org', 'password': secrets.token_urlsafe(20), 'full_name': label}
+        assert client.post('/auth/register', json=payload).status_code == 201
+        token = client.post('/auth/login', json=payload).json()['access_token']
+        headers = {'Authorization': 'Bearer ' + token}
+        return client.get('/auth/me', headers=headers).json()['id'], headers
+    owner, oh = new_account('professional-organizer')
+    guest, gh = new_account('professional-attendee')
+    stranger, sh = new_account('professional-outsider')
+    profile = {'full_name': 'Professional QA', 'company_name': 'SYNTHETIC QA ONLY', 'company_address': 'QA ONLY',
+               'company_email': 'qa@example.org', 'contact_email': 'qa@example.org', 'country': 'Belgium',
+               'registration_number': 'TEST', 'bank_name': 'TEST', 'bank_account_number': 'TEST'}
+    assert client.post(f'/user/{owner}/organizer', headers=oh, json=profile).status_code == 201
+    base = {'organizer_id': owner, 'title': 'Cross-border operations QA', 'description': 'Isolated professional QA fixture',
+            'start_date': '2031-05-01T12:00:00Z', 'end_date': '2031-05-01T15:00:00Z', 'price': 0,
+            'currency': 'EUR', 'capacity': 20, 'status': 'published', 'timezone': 'Europe/Brussels',
+            'agenda': [{'id': 'one', 'title': 'Welcome', 'time': '14:00'}],
+            'faq': [{'id': 'one', 'question': 'Is this a test?', 'answer': 'Yes'}],
+            'organization_name': 'SYNTHETIC QA ONLY'}
+    events = []
+    for name, location in [('Brussels', {'latitude': 50.85, 'longitude': 4.35}),
+                           ('Maastricht', {'latitude': 50.85, 'longitude': 5.69}),
+                           ('Berlin', {'latitude': 52.52, 'longitude': 13.40}), ('Unknown', {})]:
+        response = client.post('/event', headers=oh, json={**base, 'title': base['title'] + ' ' + name, 'location': location})
+        assert response.status_code == 201, response.text
+        events.append(response.json())
+    eid = events[0]['id']
+    nearby = client.get('/event/search', params={'q': 'Cross-border operations QA', 'lat': 50.85, 'lng': 4.35, 'radius': 200})
+    assert nearby.status_code == 200, nearby.text
+    assert {e['id'] for e in nearby.json()} == {events[0]['id'], events[1]['id']}
+    assert all(e['distance_km'] <= 200 for e in nearby.json())
+    assert client.get('/event/search', params={'lat': 91, 'lng': 4}).status_code == 422
+    assert client.get('/event/search', params={'price_max': 100}).status_code == 422
+    assert client.get('/event/search', params={'price_max': 100, 'currency': 'EUR'}).status_code == 200
+    edited = client.patch(f'/event/{eid}', headers=oh, json={'faq': [{'id': 'two', 'question': 'Saved?', 'answer': 'Yes'}], 'offer_name': 'QA admission'})
+    assert edited.status_code == 200, edited.text
+    restart('event')
+    persisted = client.get(f'/event/{eid}').json()
+    assert persisted['agenda'][0]['title'] == 'Welcome' and persisted['faq'][0]['question'] == 'Saved?'
+    assert client.patch(f'/event/{eid}', headers=oh, json={'end_date': '2020-01-01T00:00:00'}).status_code == 422
+    assert client.patch(f'/event/{eid}', headers=oh, json={'currency': 'USD'}).status_code == 409
+    ticket = client.post('/ticket/book', headers=gh, json={'event_id': eid, 'user_id': guest, 'quantity': 1, 'request_id': str(uuid4())})
+    assert ticket.status_code == 201, ticket.text
+    ticket = ticket.json()[0]
+    assert client.get(f'/ticket/organizer/{owner}/attendees', headers=sh).status_code == 403
+    people = client.get(f'/ticket/organizer/{owner}/attendees', headers=oh)
+    assert people.status_code == 200, people.text
+    assert people.json()[0]['email'] == 'professional-attendee@example.org'
+    assert client.get(f'/event/{eid}/messages', headers=sh).status_code == 403
+    assert client.post(f'/event/{eid}/messages', headers=gh, json={'content': 'Participant question'}).status_code == 201
+    assert client.post(f'/event/{eid}/messages', headers=oh, json={'content': 'Organizer answer'}).status_code == 201
+    restart('event')
+    messages = client.get(f'/event/{eid}/messages', headers=gh)
+    assert len(messages.json()) == 2 and messages.json()[1]['is_organizer'] is True
+    assert messages.json()[0]['name'] == 'professional-attendee'
+    rooms = client.get('/event/rooms', headers=gh)
+    assert rooms.status_code == 200 and rooms.json()[0]['unread_count'] == 1
+    assert client.post(f'/event/{eid}/messages/read', headers=gh).status_code == 200
+    assert client.get('/event/rooms', headers=gh).json()[0]['unread_count'] == 0
+    assert client.post(f'/ticket/check-in/{eid}', headers=sh, json={'qr_code_hash': ticket['qr_code_hash']}).status_code == 403
+    checked = client.post(f'/ticket/check-in/{eid}', headers=oh, json={'qr_code_hash': ticket['qr_code_hash']})
+    assert checked.status_code == 200 and checked.json()['already_checked_in'] is False
+    assert client.post(f'/ticket/check-in/{eid}', headers=oh, json={'qr_code_hash': ticket['qr_code_hash']}).json()['already_checked_in'] is True
+    restart('ticketing')
+    assert client.get(f'/event/{eid}').json()['tickets_sold'] == 1
+    assert client.get(f'/ticket/user/{guest}', headers=gh).json()[0]['checked_in_at'] is not None
+    closed = client.patch(f'/event/{eid}', headers=oh, json={'status': 'registration_closed'})
+    assert closed.status_code == 200, closed.text
+    assert any(e['id'] == eid for e in client.get('/event/search').json())
+    assert client.post('/ticket/book', headers=gh, json={'event_id': eid, 'user_id': guest, 'quantity': 1, 'request_id': str(uuid4())}).status_code == 409
+    moved = client.patch(f'/event/{eid}', headers=oh, json={'start_date': '2031-05-02T12:00:00Z', 'end_date': '2031-05-02T15:00:00Z'})
+    assert moved.status_code == 200, moved.text
+    notices = client.get('/event/notifications', headers=gh)
+    assert notices.status_code == 200, notices.text
+    assert notices.json()['unread_count'] == 2
+    assert {n['kind'] for n in notices.json()['items']} == {'ticket_issued','rescheduled'}
+    notice = next(n['id'] for n in notices.json()['items'] if n['kind']=='rescheduled')
+    assert client.post(f'/event/notifications/{notice}/read', headers=sh).status_code == 404
+    assert client.post(f'/event/notifications/{notice}/read', headers=gh).status_code == 200
+    restart('event')
+    assert client.get('/event/notifications', headers=gh).json()['unread_count'] == 1
+    assert client.post('/event/notifications/read',headers=gh).status_code==200
+    assert client.get('/event/notifications',headers=gh).json()['unread_count']==0
+    stats = client.get(f'/ticket/organizer/{owner}/overview', headers=oh)
+    assert stats.status_code == 200, stats.text
+    assert stats.json()['portfolio']['ticketsSold'] == 1 and stats.json()['portfolio']['checkedIn'] == 1
+    assert client.get(f'/ticket/qr/{ticket["id"]}', headers=sh).status_code == 404
+    assert client.get(f'/ticket/qr/{ticket["id"]}', headers=gh).status_code == 200

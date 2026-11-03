@@ -37,6 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const current = document.documentElement.getAttribute("data-theme");
     if (current === "dark" || current === "light") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronise the pre-hydration theme script with the React provider.
       setThemeState(current);
     }
   }, []);

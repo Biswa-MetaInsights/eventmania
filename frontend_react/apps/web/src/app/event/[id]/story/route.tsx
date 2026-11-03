@@ -103,7 +103,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           {/* Bottom block: invite */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", fontSize: 34, fontWeight: 700, letterSpacing: 6, color: "#C9D6D2" }}>
-              YOU'RE INVITED
+              YOU&apos;RE INVITED
             </div>
             <div style={{ display: "flex", marginTop: 24, fontSize: 110, fontWeight: 800, lineHeight: 1.02, color: "#FFFFFF" }}>
               {title}

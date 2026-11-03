@@ -1,13 +1,15 @@
 "use client";
 
-import { Suspense, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, Suspense, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 // PARKED 2026-08-14 (MVP) — `communitiesSource` dropped from this import.
 import { eventsSource } from "@/lib/data-source";
+import { EventMap } from "@/components/EventMap";
+import { LocationSelector } from "@/components/LocationSelector";
 import { useLocationStore, DEFAULT_CITY, CITIES, isOnlineCity } from "@eventmind/store";
 import type { City } from "@eventmind/store";
-import { EVENT_FORMATS, DEFAULT_CURRENCY, type Event, type Community } from "@eventmind/types";
+import { EVENT_FORMATS, type Event, type Community } from "@eventmind/types";
 import { formatPrice, currencySymbol } from "@/lib/currency";
 import { Navbar } from "@/components/navbar/Navbar";
 import { EventCardItem } from "@/components/EventsCarousel";
@@ -31,11 +33,9 @@ const CATEGORIES = [
 // ever narrow the list to hybrid-only — which is not a thing anyone browses for.
 const EVENT_TYPES = ["All", "In-Person", "Online"];
 
-// Search radius, in km, around the selected city. 25 keeps results genuinely
-// local — the old 200 reached well past the chosen city into other towns, which
-// is not what picking a city means. 200 is still one chip away.
+// International discovery includes events across borders within 200 km.
 const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 200];
-const DEFAULT_RADIUS = 25;
+const DEFAULT_RADIUS = 200;
 
 // ─── Price range ─────────────────────────────────────────────────────────────
 // ⚠️ The amounts here are compared as BARE NUMBERS against `Event.price`,
@@ -45,10 +45,10 @@ const DEFAULT_RADIUS = 25;
 // honest needs an FX layer, which is TODO.md §25 — do NOT fake a conversion
 // here, and do not "fix" the labels to a currency-neutral "Min"/"Max" without
 // asking: the symbol is a deliberate launch-market choice, not an oversight.
-const PRICE_CURRENCY = DEFAULT_CURRENCY;
+const PRICE_CURRENCY = "EUR";
 
 /** "₹0", "₹2,000" — a filter bound, so 0 formats as an amount, not "Free". */
-const money = (n: number) => formatPrice(n, PRICE_CURRENCY, { freeLabel: null });
+const money = (n: number, currency: string = PRICE_CURRENCY) => formatPrice(n, currency, { freeLabel: null });
 
 // The slider's right-hand stop. It is a CAP, not a maximum price: parked at the
 // far right the handle means "no upper bound" (and reads "₹10,000+"), so an
@@ -83,15 +83,15 @@ function parsePrice(raw: string | null): number | null {
  *  ⚠️ It must handle the both-null case, even though the chip only renders when
  *  a range is set: it is computed on every render, and the first version reached
  *  for `money(max!)` with nothing set and took the page down with it. */
-function priceRangeLabel(min: number | null, max: number | null): string {
+function priceRangeLabel(min: number | null, max: number | null, currency: string = PRICE_CURRENCY): string {
   if (min === 0 && max === 0) return "Free";
   // A floor of zero constrains nothing, so it is not worth saying — "₹0 →
   // ₹4,000" is "Up to ₹4,000" with extra words. It arises for real: pick Free,
   // then drag the upper handle out.
   if (min === 0) min = null;
-  if (min !== null && max !== null) return `${money(min)} → ${money(max)}`;
-  if (min !== null) return `${money(min)}+`;
-  if (max !== null) return `Up to ${money(max)}`;
+  if (min !== null && max !== null) return `${money(min, currency)} → ${money(max, currency)}`;
+  if (min !== null) return `${money(min, currency)}+`;
+  if (max !== null) return `Up to ${money(max, currency)}`;
   return "Any price"; // unreachable via the chip, which renders only for a set range
 }
 
@@ -293,9 +293,12 @@ function ExploreContent() {
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState(searchParams.get("category") ?? "All");
   const [eventType, setEventType] = useState(searchParams.get("event_type") ?? "All");
-  const [city, setCity] = useState<City>(
-    CITIES.find((c) => c.name === searchParams.get("city")) ?? selectedCity
-  );
+  const [city, setCity] = useState<City>(() => {
+    const lat=Number(searchParams.get('lat')), lng=Number(searchParams.get('lng'));
+    if(searchParams.has('lat')&&searchParams.has('lng')&&Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180)
+      return {name:searchParams.get('city')||'Chosen location',country:'',lat,lng};
+    return CITIES.find(c=>c.name===searchParams.get('city'))??selectedCity;
+  });
   // Either end may be null, which means "unbounded that way" — not 0, and not
   // PRICE_SLIDER_MAX. Both are read from the URL so a filtered search is
   // shareable, exactly like ?category= above.
@@ -309,8 +312,10 @@ function ExploreContent() {
   const [priceMax, setPriceMax] = useState<number | null>(() =>
     searchParams.get("free") === "true" ? 0 : parsePrice(searchParams.get("price_max"))
   );
+  const [priceCurrency, setPriceCurrency] = useState(searchParams.get('currency') || 'EUR');
+  const [mapOpen, setMapOpen] = useState(false);
   const [sellingFast, setSellingFast] = useState(searchParams.get("selling_fast") === "true");
-  const [radius, setRadius] = useState(Number(searchParams.get("radius")) || DEFAULT_RADIUS);
+  const [radius, setRadius] = useState(Math.min(200,Math.max(1,Number(searchParams.get("radius")) || DEFAULT_RADIUS)));
   // Lazy initialiser so presetRange() runs once, not on every render. A URL that
   // carries either date wins outright — including a deliberately empty one, so a
   // shared "All events" link doesn't silently snap back to this week.
@@ -321,6 +326,11 @@ function ExploreContent() {
     () => searchParams.get("date_to") ?? (searchParams.has("date_from") ? "" : presetRange(DEFAULT_PRESET)[1])
   );
 
+  useEffect(()=>{
+    const params=new URLSearchParams({city:city.name,lat:String(city.lat),lng:String(city.lng),radius:String(radius),sort,q,category,event_type:eventType,currency:priceCurrency,date_from:dateFrom,date_to:dateTo,selling_fast:String(sellingFast)});
+    if(priceMin!=null)params.set('price_min',String(priceMin));if(priceMax!=null)params.set('price_max',String(priceMax));
+    window.history.replaceState(null,'',`/explore?${params}`);
+  },[city,radius,sort,q,category,eventType,priceCurrency,dateFrom,dateTo,sellingFast,priceMin,priceMax]);
   const online = isOnlineCity(city);
   const showEvents = view !== "communities";
   // PARKED 2026-08-14 (MVP) — its only reader was the community query's `enabled`.
@@ -365,6 +375,10 @@ function ExploreContent() {
         q: q || undefined,
         category: category !== "All" ? category : undefined,
         event_type: EVENT_FORMATS.online,
+        currency: (priceMin != null || (priceMax != null && priceMax > 0) || sort === "price") ? priceCurrency as import("@eventmind/types").CurrencyCode : undefined,
+        tag: sellingFast ? "selling-fast" : undefined,
+        sort: sort === "relevance" ? "distance" as const : sort === "name" ? "name" as const : sort === "price" ? "price" as const : sort === "popularity" ? "popularity" as const : "date" as const,
+        limit: 200,
         price_min: priceMin ?? undefined,
         price_max: priceMax ?? undefined,
         date_from: dateFrom || undefined,
@@ -379,12 +393,16 @@ function ExploreContent() {
       lng: city.lng,
       radius,
       // Free is the range 0 → 0, so it needs no parameter of its own.
-      price_min: priceMin ?? undefined,
+      currency: (priceMin != null || (priceMax != null && priceMax > 0) || sort === "price") ? priceCurrency as import("@eventmind/types").CurrencyCode : undefined,
+        tag: sellingFast ? "selling-fast" : undefined,
+        sort: sort === "relevance" ? "distance" as const : sort === "name" ? "name" as const : sort === "price" ? "price" as const : sort === "popularity" ? "popularity" as const : "date" as const,
+        limit: 200,
+        price_min: priceMin ?? undefined,
       price_max: priceMax ?? undefined,
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
     };
-  }, [online, q, category, eventType, city, priceMin, priceMax, dateFrom, dateTo, radius]);
+  }, [online, q, category, eventType, city, priceMin, priceMax, dateFrom, dateTo, radius, priceCurrency, sellingFast, sort]);
 
   /* PARKED 2026-08-14 (MVP) — community query params. Communities have no format
      filter, so "online" is expressed as a category here (the documented exception
@@ -401,9 +419,11 @@ function ExploreContent() {
 
   */
 
-  const { data: events, isLoading: eventsLoading } = useQuery({
-    queryKey: ["explore-events", online, q, category, eventType, city.name, priceMin, priceMax, dateFrom, dateTo, radius],
-    queryFn: () => eventsSource.search(buildEventParams()).then((r) => r.data),
+  const eventQuery = useInfiniteQuery({
+    queryKey: ["explore-events", online, q, category, eventType, city.name, priceMin, priceMax, dateFrom, dateTo, radius, city.lat, city.lng, priceCurrency, sellingFast, sort],
+    initialPageParam: 0,
+    queryFn: ({pageParam}) => eventsSource.search({...buildEventParams(),offset:pageParam}).then((r) => r.data),
+    getNextPageParam: (last, pages) => last.length===200?pages.length*200:undefined,
     enabled: showEvents,
   });
 
@@ -417,6 +437,10 @@ function ExploreContent() {
   });
 
   */
+
+  const events = useMemo(()=>eventQuery.data?.pages.flat(),[eventQuery.data]);
+  const eventsLoading = eventQuery.isPending;
+  const eventsError = eventQuery.isError;
 
   // Build the (sorted) unified list. In "both" view events + communities are mixed
   // into a single bunch — no separate sections.
@@ -542,7 +566,7 @@ function ExploreContent() {
         : `Until ${shortDate(dateTo)}`;
 
   // A price range is ONE filter, not two, for the same reason a date range is.
-  const priceChipLabel = pricePreset ?? priceRangeLabel(priceMin, priceMax);
+  const priceChipLabel = priceRangeLabel(priceMin, priceMax, priceCurrency);
 
   const noun = view === "events" ? "event" : view === "communities" ? "community" : "result";
   const countLabel = (n: number) =>
@@ -589,18 +613,7 @@ function ExploreContent() {
           </div>
 
           {/* City picker */}
-          <select
-            value={city.name}
-            onChange={(e) => setCity(CITIES.find((c) => c.name === e.target.value) ?? selectedCity)}
-            className="px-4 py-3 rounded-lg text-sm focus:outline-none"
-            style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)", color: "var(--brand-text)" }}
-          >
-            {CITIES.map((c) => (
-              <option key={c.name} value={c.name}>
-                {c.country ? `${c.name}, ${c.country}` : c.name}
-              </option>
-            ))}
-          </select>
+          <details className="min-w-0"><summary className="cursor-pointer py-3">Location: {city.name}</summary><div className="py-3"><LocationSelector value={city} onChange={setCity}/></div></details>
 
           {/* Sort by */}
           <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm"
@@ -835,16 +848,17 @@ function ExploreContent() {
                       cannot hit. There is no "Any price" chip — the range starts
                       cleared, and the Active chip's × or Clear all removes it. */}
                   <FilterSection label="Price">
-                    <PriceSlider min={priceMin} max={priceMax} onChange={setPriceRange} />
+<label className="block mb-3">Compare prices in<select aria-label="Price currency" value={priceCurrency} onChange={e=>setPriceCurrency(e.target.value)} className="block w-full rounded-lg border p-2 mt-2">{['EUR','GBP','USD','INR','CHF','CAD','AUD','JPY','AED','SGD'].map(code=><option key={code}>{code}</option>)}</select></label>
+                    <PriceSlider currency={priceCurrency} min={priceMin} max={priceMax} onChange={setPriceRange} />
 
                     <div className="flex items-center gap-2 mt-4">
-                      <PriceField
+                      <PriceField currency={priceCurrency}
                         value={priceMin}
                         onChange={(v) => setPriceRange(v, priceMax)}
                         placeholder="Min"
                       />
                       <span className="text-sm shrink-0" style={{ color: "var(--brand-hint)" }}>→</span>
-                      <PriceField
+                      <PriceField currency={priceCurrency}
                         value={priceMax}
                         onChange={(v) => setPriceRange(priceMin, v)}
                         placeholder="Max"
@@ -858,7 +872,7 @@ function ExploreContent() {
                           active={pricePreset === p.label}
                           onClick={() => selectPricePreset(p)}
                         >
-                          {p.label}
+                          {priceRangeLabel(p.min, p.max, priceCurrency)}
                         </Chip>
                       ))}
                     </div>
@@ -901,7 +915,8 @@ function ExploreContent() {
         <div className="flex-1 min-w-0 w-full">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-sm font-semibold" style={{ color: "var(--brand-hint)" }}>
-            {isLoading ? "Searching…" : `${countLabel(items.length)} found`}
+            <div className="mb-5 space-y-4">{!online&&<button type="button" className="px-4 py-3 rounded-lg border-2 border-[var(--brand-control-border)] font-semibold" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?'Hide map':'Show map'}</button>}{mapOpen&&!online&&<EventMap events={events??[]} center={city} radius={radius} onPick={setCity}/>}</div>
+                {isLoading ? "Searching…" : `${countLabel(items.length)} found`}
           </span>
           {q && (
             <span className="text-sm" style={{ color: "var(--brand-hint)" }}>
@@ -910,7 +925,7 @@ function ExploreContent() {
           )}
         </div>
 
-        {isLoading ? (
+        {eventsError ? <p role="alert">Events could not be loaded. Check your filters and try again.</p> : isLoading ? (
           <div className="flex justify-center py-24">
             <div className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
               style={{ borderColor: `${GREEN} transparent transparent transparent` }} />
@@ -934,6 +949,7 @@ function ExploreContent() {
           </div>
         ) : (
           <div className={resultGridCls}>
+            {eventQuery.hasNextPage&&<button disabled={eventQuery.isFetchingNextPage} onClick={()=>void eventQuery.fetchNextPage()} className="col-span-full px-5 py-3 rounded-lg border-2 border-[var(--brand-border)]">{eventQuery.isFetchingNextPage?'Loading…':'Load more events'}</button>}
             {items.map((item) =>
               item.kind === "event" ? (
                 <EventCardItem
@@ -1047,10 +1063,12 @@ function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }
  *  browser considers invalid, none of which a filter bound wants. Non-digits are
  *  stripped as you type, so the field can only ever hold a valid amount. */
 function PriceField({
+  currency,
   value,
   onChange,
   placeholder,
 }: {
+  currency: string;
   value: number | null;
   onChange: (v: number | null) => void;
   placeholder: string;
@@ -1061,7 +1079,7 @@ function PriceField({
         className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold pointer-events-none"
         style={{ color: "var(--brand-hint)" }}
       >
-        {currencySymbol(PRICE_CURRENCY)}
+        {currencySymbol(currency)}
       </span>
       <input
         type="text"
@@ -1092,14 +1110,17 @@ function PriceField({
  *  button-with-a-label), but it IS an addition to that list — flagged to
  *  Gautham, 2026-09-08. */
 function PriceSlider({
+  currency,
   min,
   max,
   onChange,
 }: {
+  currency: string;
   min: number | null;
   max: number | null;
   onChange: (min: number | null, max: number | null) => void;
 }) {
+  const money = (n: number) => formatPrice(n, currency, {freeLabel: null});
   // null → the ends of the track. A typed value above the cap (option A can set
   // one) clamps for DISPLAY only; the filter itself keeps the real number.
   const lo = Math.min(min ?? 0, PRICE_SLIDER_MAX);

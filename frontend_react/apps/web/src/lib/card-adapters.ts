@@ -2,6 +2,7 @@ import type { Event, Community } from "@eventmind/types";
 import { isExternalEvent } from "@/lib/external-events";
 import { formatPrice } from "@/lib/currency";
 import { eventImageUrl } from "@/lib/event-media";
+import type { BadgeType } from "@/components/EventBadges";
 import type { CarouselEvent } from "@/components/EventsCarousel";
 import type { CommunityItem } from "@/components/CommunityCarousel";
 
@@ -57,13 +58,16 @@ export function toCarouselEvent(event: Event): CarouselEvent {
   const thisWeek = !isSoldOut && isThisWeek(start);
 
   // sold-out is exclusive; all other applicable badges accumulate
-  const badgeTypes = isSoldOut
+  const fallbackBadges = isSoldOut
     ? (["sold-out" as const])
     : [
         ...(sellingFast ? ["selling-fast" as const] : []),
         ...(thisWeek    ? ["this-week"    as const] : []),
         ...(isFree      ? ["free"         as const] : []),
       ];
+
+  const knownBadges = new Set<BadgeType>(['free', 'selling-fast', 'today', 'sold-out', 'this-week', 'recommended']);
+  const badgeTypes = event.badge_types ? event.badge_types.filter((b): b is BadgeType => knownBadges.has(b as BadgeType)) : fallbackBadges;
 
   const LABELS: Record<string, string> = { "sold-out": "Sold Out", "selling-fast": "Selling Fast", "this-week": "This Week", "free": "Free" };
 
@@ -108,6 +112,7 @@ export function toCommunityItem(community: Community): CommunityItem {
 
   return {
     id: String(community.id),
+    slug: community.slug,
     title: community.name,
     date,
     time,

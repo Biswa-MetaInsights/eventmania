@@ -92,6 +92,10 @@ export interface Event {
   end_date: string;
   capacity: number;
   tickets_sold: number;
+  badge_types?: string[];
+  distance_km?: number | null;
+  timezone?: string;
+  visibility?: "public" | "unlisted" | "private";
   price: number;
   /** ISO 4217 code the organiser priced in. Absent on rows written before the
    *  column existed — treat a missing value as DEFAULT_CURRENCY, never as USD. */

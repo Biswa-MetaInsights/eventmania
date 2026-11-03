@@ -12,6 +12,18 @@
 > you write**; **correct in place, never append.**
 
 ---
+
+## Professional-QA release components (Biswajith Gopinathan, 2026-11-03)
+
+| Component | Integration constraint |
+|---|---|
+| ParticipantProfile | Real profile mutations; avatar reads require the authenticated blob helper. |
+| LocationSelector | Explicit town search, GeoNames attribution, permission-based rounded GPS centre; no postcode guarantee. |
+| EventMap | Lazy Leaflet map; OSM attribution, no tile prefetch; list remains usable on tile failure. |
+| EventRooms | Polling on existing event service; server enforces ticket-holder/organizer membership. |
+| NotificationBell | Private persisted notices; query cache must clear when the account changes. |
+| AccountRecovery | One-use token read from URL fragment, then removed from address bar; never log it. |
+
 > ⚠️ **Communities are PARKED for Phase 2 (2026-08-14) — parked, NOT dead. Do not delete any of it.**
 > `CommunityCarousel`, `CommunityJoinCard`, `CommunityEventsRail`, `CommunityReviews` and
 > `SimilarCommunities` — plus `lib/community-server.ts`, `lib/community-events.ts`,

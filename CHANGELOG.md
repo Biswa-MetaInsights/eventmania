@@ -9,6 +9,10 @@
 
 ---
 
+## 2026-11-03
+- **Biswajith Gopinathan** — add persistent organizer event content, attendee/check-in audit, chat, notifications, profiles/assets, communities and interest suggestions; implement locally verified account recovery and verification with durable delivery.
+- **Biswajith Gopinathan** — add cross-border 200 km map discovery and offline international town search; enforce currency-safe comparisons and totals; update vulnerable runtime dependencies and guard the isolated rollout with backups and rollback images.
+
 ## 2026-11-02
 - **Biswajith Gopinathan** — fix owner draft visibility; prepare bounded Ticketmaster sync and external-ticket safeguards; remove fictional-event fallback from discovery.
 - **Biswajith Gopinathan** — implement safe public organizer identity, contact-email persistence/migration, core auth hydration guards and verified daily local database backups; hide unsupported real-mode features and replace unimplemented marketing claims.

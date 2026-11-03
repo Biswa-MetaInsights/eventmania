@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -6,6 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 // PARKED 2026-08-14 (MVP) â€” `communitiesSource` dropped from this import.
 import { eventsSource } from "@/lib/data-source";
 import { useLocationStore, DEFAULT_CITY } from "@eventmind/store";
+import { apiClient } from "@eventmind/api";
+import { useAuthStore } from "@eventmind/store";
+import type { Event } from "@eventmind/types";
 import { EVENT_FORMATS } from "@eventmind/types";
 import { Navbar } from "@/components/navbar/Navbar";
 import { HeroCarousel } from "@/components/HeroCarousel";
@@ -18,7 +21,7 @@ import { Footer } from "@/components/Footer";
 // PARKED 2026-08-14 (MVP) â€” `toCommunityItem` dropped from this import.
 import { toCarouselEvent } from "@/lib/card-adapters";
 
-const RADIUS_KM = 100;
+const RADIUS_KM = 200;
 
 // The private server sync populates external listings. Discovery only reads saved
 // provider/native events; it never generates fictional events when a city is empty.
@@ -97,6 +100,8 @@ function DiscoveryPage() {
 
   */
 
+  const signedIn=useAuthStore(s=>s.isAuthenticated);
+  const recommendations=useQuery({queryKey:['recommendations',selectedCity.lat,selectedCity.lng],queryFn:()=>apiClient.get<Event[]>('/event/recommendations',{params:{lat:selectedCity.lat,lng:selectedCity.lng,radius:200}}).then(r=>r.data),enabled:hasHydrated&&signedIn});
   const carouselEvents = [
     ...(events ?? []).map(toCarouselEvent),
     ...(onlineEvents ?? []).map(toCarouselEvent),
@@ -152,6 +157,7 @@ function DiscoveryPage() {
 
       */}
 
+      {signedIn&&!!recommendations.data?.length&&<section aria-label="Suggestions based on your interests"><h2 className="px-5 sm:px-10 text-[26px] font-bold">Suggested for you</h2><EventsCarousel events={recommendations.data.map(toCarouselEvent)} location={selectedCity.name} seeAllHref="/explore" onlineSeeAllHref="/explore?city=Online" isLoading={recommendations.isPending} onBookNow={id=>router.push(`/event/${id}`)}/></section>}
       <FeatureBand />
 
       <CategoryGrid />

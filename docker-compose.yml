@@ -119,6 +119,16 @@ services:
         condition: service_healthy
     environment:
       APP_PORT: '8001'
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-https://newfind-khaki.vercel.app}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/auth_db
       REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
@@ -163,6 +173,8 @@ services:
         condition: service_healthy
     environment:
       APP_PORT: '8002'
+      AUTH_SERVICE_URL: http://auth:8001
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/user_db
       REDIS_HOST: redis
       DEBUG: 'false'
@@ -196,6 +208,8 @@ services:
       dockerfile: backend/Dockerfile
       args:
         SERVICE: event
+    volumes:
+    - newfind_places:/app/data
     restart: unless-stopped
     depends_on:
       postgres:
@@ -204,6 +218,14 @@ services:
         condition: service_healthy
     environment:
       APP_PORT: '8003'
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-https://newfind-khaki.vercel.app}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      USER_SERVICE_URL: http://user:8002
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/event_db
       REDIS_HOST: redis
       DEBUG: 'false'
@@ -246,6 +268,8 @@ services:
         condition: service_healthy
     environment:
       APP_PORT: '8004'
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      USER_SERVICE_URL: http://user:8002
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ticketing_db
       REDIS_HOST: redis
       DEBUG: 'false'
@@ -275,6 +299,7 @@ services:
     security_opt:
     - no-new-privileges:true
 volumes:
+  newfind_places:
   pgdata: null
   redisdata: null
 name: newfind

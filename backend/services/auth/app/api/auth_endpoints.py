@@ -4,6 +4,7 @@ import httpx
 import os
 from uuid import UUID
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.db.session import get_db
 from app.models.user_credentials import UserCredentials, UserRole
 from app.schemas.auth_schemas import UserRegister, UserLogin, Token, AuthResponse, UserMinOut, SocialLogin
@@ -27,13 +28,13 @@ def register_user(user_in: UserRegister, background_tasks: BackgroundTasks, db: 
     if user_in.role.value == "admin":
         raise HTTPException(status_code=403, detail="Administrator registration is disabled")
     # 1. Check if user already exists
-    existing_user = db.query(UserCredentials).filter(UserCredentials.email == user_in.email).first()
+    existing_user = db.query(UserCredentials).filter(func.lower(UserCredentials.email) == user_in.email.lower()).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User with this email already exists")
 
     # 2. Hash password and create user credentials
     new_user = UserCredentials(
-        email=user_in.email,
+        email=user_in.email.lower(),
         hashed_password=AuthService.get_password_hash(user_in.password),
         role=user_in.role
     )
@@ -73,8 +74,8 @@ def register_user(user_in: UserRegister, background_tasks: BackgroundTasks, db: 
 @router.post("/login", response_model=Token)
 def login_user(form_data: UserLogin, db: Session = Depends(get_db)):
     # 1. Fetch user by email
-    user = db.query(UserCredentials).filter(UserCredentials.email == form_data.email).first()
-    if not user:
+    user = db.query(UserCredentials).filter(func.lower(UserCredentials.email) == form_data.email.lower()).first()
+    if not user or not user.is_active:
         # Distinct marker so the frontend can offer a "sign up instead" flow.
         # (Trade-off: this reveals whether an email is registered — acceptable
         # for this product's UX; revisit if account enumeration becomes a concern.)
@@ -94,10 +95,10 @@ def login_user(form_data: UserLogin, db: Session = Depends(get_db)):
 
     # 3. Create tokens
     access_token = AuthService.create_access_token(
-        data={"sub": str(user.id), "email": user.email, "role": user.role.value}
+        data={"sub": str(user.id), "email": user.email, "role": user.role.value, "ver": user.token_version}
     )
     refresh_token = AuthService.create_refresh_token(
-        data={"sub": str(user.id)}
+        data={"sub": str(user.id), "ver": user.token_version}
     )
 
     return Token(access_token=access_token, refresh_token=refresh_token)
@@ -120,4 +121,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBea
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    if not user.is_active or payload.get('ver', 0) != user.token_version:
+        raise HTTPException(401, 'Please sign in again')
     return user

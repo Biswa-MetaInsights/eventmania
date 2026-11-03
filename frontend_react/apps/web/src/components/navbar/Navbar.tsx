@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { organizerApi } from "@eventmind/api";
 import { avatarFor, useAuthStore, useChatUnreadStore, useProfileStore } from "@eventmind/store";
 import { CityPicker } from "@/components/CityPicker";
+import { NotificationBell } from "@/components/NotificationBell";
+import { collaboration, loadProfile, privateImage } from "@/lib/operations";
 import { isDummyMode } from "@/lib/data-source";
 import { BrandLogo } from "@/components/brand";
 import { ChatIcon } from "@/components/organizer/ConsoleIcons";
@@ -235,32 +237,7 @@ function LogoutItem({ onLogout }: { onLogout: () => void }) {
 }
 
 // ── Bell button ───────────────────────────────────────────────────────────────
-function BellButton() {
-  const hover = useHoverStyle();
-  return (
-    <button
-      className="p-2 rounded-lg"
-      style={hover.style}
-      onMouseEnter={hover.onMouseEnter}
-      onMouseLeave={hover.onMouseLeave}
-      title="Notifications"
-    >
-      <svg
-        className="w-[21px] h-[21px]"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={1.8}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
-        />
-      </svg>
-    </button>
-  );
-}
+function BellButton() { return <NotificationBell />; }
 
 // ── Chat button ───────────────────────────────────────────────────────────────
 // Sits beside the bell. Turns green + shows a terracotta dot whenever any chat
@@ -377,7 +354,10 @@ export function Navbar() {
   const isOrganizer = isDummyMode || !!organizerProfile;
 
   const unreadRooms = useChatUnreadStore((s) => s.unreadRooms);
-  const hasUnread = Object.keys(unreadRooms).length > 0;
+  const roomsQuery = useQuery({queryKey: ['event-rooms', userId], queryFn: () => collaboration.rooms().then(r=>r.data), enabled: isAuthenticated && !!userId && !isDummyMode, refetchInterval: 30000});
+  const persistedProfile = useQuery({queryKey: ['participant-profile', userId], queryFn: loadProfile, enabled: isAuthenticated && !!userId && !isDummyMode});
+  const privateAvatar = useQuery({queryKey: ['participant-avatar', persistedProfile.data?.avatar_url], queryFn: () => privateImage(persistedProfile.data!.avatar_url!), enabled: isAuthenticated && !!persistedProfile.data?.avatar_url?.startsWith('/api/')});
+  const hasUnread = isDummyMode ? Object.keys(unreadRooms).length > 0 : !!roomsQuery.data?.some(room=>room.unread_count>0);
 
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -437,6 +417,7 @@ export function Navbar() {
   // hide half the product's story. Items behind a login route to /auth rather
   // than to a page that bounces.
   const participantItems: NavItem[] = [
+    { emoji: "👥", label: "Communities", onTap: () => { closeAll(); router.push("/communities"); } },
     { emoji: "🔍", label: "Explore Events", onTap: () => { closeAll(); router.push("/explore?view=events"); } },
     { emoji: "🎟️", label: "My Tickets",     onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard?tab=tickets" : "/auth"); } },
     { emoji: "❤️", label: "My Wishlist",    onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard?tab=wishlist" : "/auth"); } },
@@ -597,7 +578,7 @@ export function Navbar() {
               <ThemeToggle />
             </div>
 
-            {isAuthenticated && isDummyMode && (
+            {isAuthenticated && (
               <>
                 <div className="w-2" />
                 <div onMouseEnter={closeOnHover}>
@@ -619,7 +600,7 @@ export function Navbar() {
             ) : (
               <AvatarMenu
                 name={displayName(userEmail)}
-                photo={avatarFor(avatars, userEmail)}
+                photo={isDummyMode ? avatarFor(avatars, userEmail) : privateAvatar.data ?? ""}
                 isOpen={activeMenu === "avatar"}
                 onOpen={() => setActiveMenu("avatar")}
                 onClose={closeAll}
@@ -713,7 +694,8 @@ export function Navbar() {
               </Link>
             ) : (
               <div className="flex flex-col">
-                {isDummyMode && <MobileNavButton emoji="💬" label="Messages" showDot={hasUnread} onTap={() => { setMobileOpen(false); router.push("/chat"); }} />}
+                {<MobileNavButton emoji="💬" label="Messages" showDot={hasUnread} onTap={() => { setMobileOpen(false); router.push("/chat"); }} />}
+                <MobileNavButton emoji="🔔" label="Notifications" onTap={() => {setMobileOpen(false);router.push("/notifications");}} />
                 {/* Mirrors AvatarMenu — wishlist and the organiser dashboard
                     live in the two sections above, not here. */}
                 <MobileNavButton emoji="🎟️" label="My Dashboard" onTap={() => { setMobileOpen(false); router.push("/dashboard"); }} />

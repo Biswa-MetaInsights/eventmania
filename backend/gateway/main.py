@@ -15,7 +15,13 @@ from typing import Dict
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-limiter = Limiter(key_func=get_remote_address)
+def rate_key(request: Request):
+    try:
+        return 'user:' + principal(request)['sub']
+    except HTTPException:
+        return 'ip:' + get_remote_address(request)
+
+limiter = Limiter(key_func=rate_key)
 app = FastAPI(title="NewFind API Gateway", version="1.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -41,7 +47,7 @@ SERVICE_MAP: Dict[str, str] = {
     "chat": "http://chat:8007/chat",
     "recommendation": "http://recommendation:8008/recommendations",
     "review": "http://review:8009/reviews",
-    "community": "http://community:8011/communities",
+    "community": "http://user:8002/users/communities",
 }
 
 # Allow isolated test endpoints without changing production defaults.
@@ -56,7 +62,7 @@ async def shutdown_event():
 
 @app.api_route("/{service_name}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @app.api_route("/{service_name}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-@limiter.limit("60/minute") # Global Rate Limit
+@limiter.limit(os.getenv("API_RATE_LIMIT", "120/minute")) # Global Rate Limit
 async def gateway_proxy(request: Request, service_name: str, path: str = ""):
     """
     Standardized Proxy Gateway.
@@ -99,7 +105,7 @@ async def gateway_proxy(request: Request, service_name: str, path: str = ""):
                 pass
             else:
                 event = response.json()
-                if event.get("status") != "published" and event.get("organizer_id") != principal(request)["sub"]:
+                if (event.get("status") == "draft" or event.get("visibility") == "private") and event.get("organizer_id") != principal(request)["sub"]:
                     raise HTTPException(403, "Private event")
 
         # Return matched response to the client

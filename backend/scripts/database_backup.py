@@ -76,6 +76,15 @@ def backup():
         manifest['databases'][database] = {'sha256': hashlib.sha256(output.read_bytes()).hexdigest(), 'rows': after}
     (destination / 'manifest.json').write_text(json.dumps(manifest))
     os.chmod(destination / 'manifest.json', 0o600)
+    # Keep at least 14 complete snapshots and every snapshot newer than 30 days.
+    # Only this script's timestamped directories with manifests are eligible.
+    from datetime import timedelta
+    complete=sorted(p.parent for p in BACKUPS.glob('*/manifest.json'))
+    cutoff=datetime.now(timezone.utc)-timedelta(days=30)
+    for old in complete[:-14]:
+        try: created=datetime.fromisoformat(json.loads((old/'manifest.json').read_text())['created_at'])
+        except (ValueError,KeyError): continue
+        if created<cutoff and old.resolve().parent==BACKUPS.resolve() and not old.is_symlink(): shutil.rmtree(old)
     print('PASS protected backup of four NewFind core databases', flush=True)
     return destination
 

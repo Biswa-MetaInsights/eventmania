@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.ticket_endpoints import router as ticket_router
+from app.api.management import router as management_router
 from app.db.session import engine
 from app.models.ticket import Base
 from app.core.config import settings
@@ -26,6 +27,7 @@ app.add_middleware(
 )
 
 # Include Ticketing Router
+app.include_router(management_router)
 app.include_router(ticket_router)
 
 @app.get("/")

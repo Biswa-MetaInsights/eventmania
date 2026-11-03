@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authApi } from "@eventmind/api";
@@ -61,7 +62,7 @@ export default function AuthPage() {
           focusNameOnSignup.current = true;
           setError("This email isn't registered with us. Please sign up to continue.");
         } else {
-          setError(err.response.data?.detail ?? `Error ${err.response.status}`);
+          setError(typeof err.response.data?.detail === "string" ? err.response.data.detail : "Please check the form and try again.");
         }
       } else {
         setError(String(err));
@@ -156,6 +157,7 @@ export default function AuthPage() {
               {isLoading ? "Please wait…" : isLogin ? "Sign In" : "Sign Up"}
             </button>
           </form>
+          {isLogin&&<Link href="/forgot-password" className="block mt-5 text-[15px] underline">Forgot your password?</Link>}
 
           <div className="mt-8 text-center">
             <button

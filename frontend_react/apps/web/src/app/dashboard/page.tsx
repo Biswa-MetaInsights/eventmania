@@ -8,6 +8,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { avatarFor, useAuthStore, useProfileStore, useWishlistStore } from "@eventmind/store";
 import type { StoredTicket, WishlistItem } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
+import { ParticipantProfile } from "@/components/ParticipantProfile";
+import { privateImage } from "@/lib/operations";
 import { ProfilePictureModal } from "@/components/ProfilePictureModal";
 import type { BadgeType } from "@/components/EventBadges";
 import { CARD_CTA, CARD_GRID, EventCardItem, SkeletonCard, type CarouselEvent } from "@/components/EventsCarousel";
@@ -172,7 +174,7 @@ function DashboardContent() {
         ) : activeTab === "events" ? (
           <MyEventsTab organiserId={organiserId} />
         ) : (
-          <ProfileTab name={capitalized} email={userEmail ?? ""} interests={MOCK_INTERESTS} />
+          isDummyMode ? <ProfileTab name={capitalized} email={userEmail ?? ""} interests={MOCK_INTERESTS} /> : <ParticipantProfile />
         )}
       </div>
     </div>
@@ -376,6 +378,7 @@ function TicketsTab({ tickets }: { tickets: StoredTicket[] }) {
 function TicketCard({ ticket }: { ticket: StoredTicket }) {
   const router = useRouter();
   const isFree = ticket.price_paid === 0;
+  const qr = useQuery({queryKey: ['ticket-qr', ticket.id], queryFn: async () => privateImage('/api/ticket/qr/' + ticket.id), enabled: !isDummyMode});
   const number = ticket.id.substring(ticket.id.length - 8).toUpperCase();
   const card: CarouselEvent = {
     id: ticket.event_id,
@@ -401,7 +404,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
               the card from a phone to the 4-across grid. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={qrUrl(ticket.qr_hash)}
+            src={isDummyMode ? qrUrl(ticket.qr_hash) : qr.data || undefined}
             alt={`QR code for ticket ${number}`}
             className="h-[82%] w-auto rounded-lg"
           />
@@ -413,7 +416,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
           <p className="text-[18px] line-clamp-1" style={{ color: "var(--brand-text)" }}>{ticket.seat_info}</p>
         </>
       }
-      action={isDummyMode ? (
+      action={(
         <button
           onClick={(e) => stop(e, () => router.push(`/chat/${ticket.event_id}?name=${encodeURIComponent(ticket.event_title)}`))}
           aria-label={`Join the chat for ${ticket.event_title}`}
@@ -421,7 +424,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
         >
           Join Chat
         </button>
-      ) : undefined}
+      )}
     />
   );
 }

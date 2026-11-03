@@ -76,7 +76,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Event } from "@eventmind/types";
-import { eventsSource, isDummyMode } from "@/lib/data-source";
+import { eventsSource } from "@/lib/data-source";
 import {
   ActionLabel,
   HERO_CONTROL,
@@ -177,7 +177,7 @@ const ALLOWED: Record<EventLifecycle, readonly EventLifecycle[]> = {
 };
 
 /** See the header: no column, no enum value, no search default. */
-const REGISTRATION_CLOSED_IS_LOCAL = isDummyMode;
+const REGISTRATION_CLOSED_IS_LOCAL = true;
 const REGISTRATION_CLOSED_HINT = "Not available yet — the backend has no such status.";
 
 /**

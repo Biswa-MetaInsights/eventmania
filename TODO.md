@@ -741,7 +741,7 @@ The user service persists and returns contact_email on the private organizer pro
 - Add health/error monitoring, review security/rate limits and run basic load tests.
 - Configure password recovery/email verification and transactional email using the selected sender metainsights.bv@gmail.com; an app password must be entered privately on the host, then TLS/login and actual inbox delivery verified.
 - Connect a dedicated NewFind domain; new paid services require explicit approval.
-- Rename the GitHub repository to newfind once authenticated settings access is available, then validate server remotes and Vercel connectivity.
+- GitHub repository renamed to `Biswa-MetaInsights/newfind` on 2026-11-04; repository ID, release branch and open PR #10 preserved. Local clone remotes updated. Verify/update the Hetzner remote and Vercel integration after rename; review PR #10 before merging the release branch into main.
 
 ### Organizer browser verification — Biswajith Gopinathan, 2026-11-02
 

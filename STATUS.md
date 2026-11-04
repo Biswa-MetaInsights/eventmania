@@ -12,7 +12,7 @@ All seven NewFind containers are healthy. The rollout verified unchanged TalktoF
 
 Public browser checks verified international town search (Leuven), the attributed 200 km map and closed-registration event details with persisted agenda. Authenticated browser UI, real-device mobile QA and production concurrent-load testing are not fully verified; API tests do not substitute for those checks. This is a controlled core-feature test release, not completion of every priority 1–3 item.
 
-The shared frontend footer now identifies MetaInsights BV as developer and platform provider in source; production deployment of that branding is pending verification.
+Frontend revision `e238d193387c4ca10a9068f4bfc8ba3e7b35f66e` was promoted to Production on 2026-11-04. The live footer shows “Developed and powered by MetaInsights BV” and company copyright; the public API gateway responds operational. The original GitHub repository was renamed in place to `Biswa-MetaInsights/newfind`, preserving repository ID 1194615580, PR #10 and the release branch. Local clone remotes use the new URL; the server remote still needs explicit verification and update.
 
 ## Deployed core capabilities
 
@@ -41,7 +41,7 @@ The professional-QA candidate adds persistent event operations on the existing i
 - AI assistant: not released; paid inference is not activated.
 - Paid off-server backup storage is explicitly deferred by the owner until testing goes well (2026-11-04); do not purchase or activate it during this testing phase. Outbound monitoring alerts still require an approved destination. The restic workflow reads back the exact uploaded snapshot and verifies hashes; it never restores over production. Local encryption/restore, wrong-password/corrupt-data rejection and alert failure/recovery tests passed. Local backups/health checks do not cover host loss or notify an operator externally.
 - Full mobile/browser/accessibility, production concurrent load, cross-device organizer door operation and deployed community sharing need evidence before professional handover. An isolated 10,000-listing geographic pagination regression passed, with one inventory lookup per page; date/price discovery pages no longer fetch inventory for the entire catalogue. The current browser is signed out and its phone-width emulation attempt was blocked, so those UI checks remain pending.
-- A dedicated NewFind domain and GitHub repository rename remain separate account/domain operations.
+- A dedicated NewFind domain remains separate. GitHub repository rename is complete; Vercel linked-repository display and the Hetzner remote need post-rename verification. The default `main` branch still awaits PR #10 review; use the release branch for current application work.
 
 ## Deployment boundaries
 

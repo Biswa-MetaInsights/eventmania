@@ -27,7 +27,10 @@ Python FastAPI services are located in `backend/`. See `backend/` and `docker-co
 - **Official product name:** NewFind
 - **Supported frontend:** Next.js (not Flutter)
 - **Legacy code:** Keep existing Flutter code untouched until the Next.js build and deployment are verified.
-- **Repository:** Currently `eventmania`; GitHub repository rename to `newfind` is a separate repository-settings operation.
-- **Deployment:** No deployment is triggered by this documentation change.
+- **Repository:** https://github.com/Biswa-MetaInsights/newfind — the original repository renamed in place; history, branches and PRs are preserved.
+- **Current release branch:** `deployment/hetzner-backend`. PR #10 collects the tested deployment changes for review into `main`.
+- **Existing clones:** `git remote set-url origin https://github.com/Biswa-MetaInsights/newfind.git`.
+- **Hosting:** Vercel project `newfind` serves the frontend; Hetzner `/opt/newfind` runs the backend. The older Vercel project is a separate deferred decommissioning task.
+- **Deployment:** Git pushes may build previews; production promotion requires checking the intended revision and environment.
 
 Powered by MetaInsights BV.

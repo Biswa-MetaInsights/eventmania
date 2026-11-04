@@ -14,6 +14,10 @@ Public browser checks verified international town search (Leuven), the attribute
 
 Frontend revision `e238d193387c4ca10a9068f4bfc8ba3e7b35f66e` was promoted to Production on 2026-11-04. The live footer shows “Developed and powered by MetaInsights BV” and company copyright; the public API gateway responds operational. The original GitHub repository was renamed in place to `Biswa-MetaInsights/newfind`, preserving repository ID 1194615580, PR #10 and the release branch. Local clone remotes use the new URL; the server remote still needs explicit verification and update.
 
+## Mobile frontend update — 2026-11-04
+
+Owner: **Biswajith Gopinathan**. Prepared higher-contrast dark logo/headline, consistent shared navigation icons, explicit first-visit city selection with persisted confirmation, 44 px city controls, bounded scrollable city picker, mobile menu ARIA state/Escape/outside dismissal, and labeled autofill-friendly 16 px authentication fields. Existing saved cities are preserved. TypeScript and production build pass; focused ESLint has no errors (one pre-existing unused `showToast` warning). Location-store runtime checks pass for hydration, reload persistence, explicit default-city confirmation and legacy records; calculated dark headline/background contrast is 14.78:1. Production Vercel promotion remains blocked by connector project access and browser sign-in. Real-device mobile and authenticated browser journeys remain unverified; these fixes must not be reported as live until promotion and verification.
+
 ## Deployed core capabilities
 
 The professional-QA candidate adds persistent event operations on the existing isolated five-API stack. PostgreSQL and Redis remain private. Kafka and extra service containers are unnecessary for these journeys.

@@ -132,9 +132,10 @@
   --brand-hint: #111827;   /* == --brand-text; see the token note above */
   --brand-muted: #9CA3AF;  /* placeholders + muted fills ONLY */
   /* Logo/wordmark tint — follows the brand green in BOTH themes (green in light,
-     the lighter dark-mode green in dark so it stays readable on the dark ground).
+     the existing linen text in dark so it stays readable on the dark ground).
      Defined via var() so it resolves per-theme automatically. */
   --brand-logo: var(--brand-green);
+  --brand-heading: var(--brand-green);
 
   /* legacy aliases — body + Tailwind color-* tokens */
   --background: var(--brand-bg);
@@ -155,6 +156,8 @@
   --brand-bg: #0F1A18;       /* deep warm green-black */
   --brand-surface: #16211F;  /* cards/navbar lifted slightly off the bg */
   --brand-text: #ECEAE4;     /* warm off-white */
+  --brand-logo: var(--brand-text);
+  --brand-heading: var(--brand-text);
   --brand-border: #2A3A38;
   --brand-nav-border: #33433F;
   /* Dark needs no lift: --brand-surface (#16211F) already sits off --brand-bg
@@ -168,8 +171,7 @@
                               --brand-text's #ECEAE4; Gautham asked for the brand
                               white shade specifically. */
   --brand-muted: #8B938F;  /* placeholders + muted fills ONLY */
-  /* --brand-logo inherits `var(--brand-green)` from :root, which resolves to the
-     dark-mode green (#2F8A80) here — a readable green on the dark ground. */
+  /* Logo and headline use the existing linen text token for dark contrast. */
 
   /* ── .dark-gray alternate (neutral, no green tint) — uncomment to swap ──
   --brand-green: #2E7D77;

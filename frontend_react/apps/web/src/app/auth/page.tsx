@@ -73,7 +73,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "var(--brand-bg)" }}>
+    <div className="flex min-h-[100dvh]" style={{ backgroundColor: "var(--brand-bg)" }}>
       {/* Left panel — hidden on small screens. A fixed green fill in BOTH themes
           (like the footer), so everything on it takes --brand-on-green rather
           than the themed text tokens. */}
@@ -103,13 +103,16 @@ export default function AuthPage() {
                 name. */}
             {isLogin
               ? "Sign in to access your dashboard and event tickets."
-              : "Sign in to start joining events."}
+              : "Create an account to start joining events."}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <Field label="Full Name">
+              <Field label="Full Name" htmlFor="auth-name">
                 <input
+                  id="auth-name"
+                  name="name"
+                  autoComplete="name"
                   ref={nameRef}
                   type="text"
                   required
@@ -121,8 +124,13 @@ export default function AuthPage() {
               </Field>
             )}
 
-            <Field label="Email Address">
+            <Field label="Email Address" htmlFor="auth-email">
               <input
+                id="auth-email"
+                name="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
                 type="email"
                 required
                 value={email}
@@ -132,8 +140,11 @@ export default function AuthPage() {
               />
             </Field>
 
-            <Field label="Password">
+            <Field label="Password" htmlFor="auth-password">
               <input
+                id="auth-password"
+                name="password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 type="password"
                 required
                 minLength={8}
@@ -145,7 +156,7 @@ export default function AuthPage() {
             </Field>
 
             {error && (
-              <p className="text-red-500 text-sm">{error}</p>
+              <p role="alert" className="text-red-500 text-sm">{error}</p>
             )}
 
             <button
@@ -187,14 +198,14 @@ export default function AuthPage() {
 }
 
 const inputCls =
-  "w-full px-4 py-3 rounded-lg border border-[var(--brand-border)] bg-[var(--brand-bg)] text-[var(--brand-text)] " +
+  "w-full text-base px-4 py-3 rounded-lg border border-[var(--brand-border)] bg-[var(--brand-bg)] text-[var(--brand-text)] " +
   "placeholder:text-[var(--brand-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]/30 " +
   "focus:border-[var(--brand-green)] transition-colors";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-bold text-[var(--brand-text)]">{label}</label>
+      <label htmlFor={htmlFor} className="text-sm font-bold text-[var(--brand-text)]">{label}</label>
       {children}
     </div>
   );

@@ -25,7 +25,7 @@ import { shareItem, type ShareFallback, type ShareKind } from '@/lib/share-event
 import { ShareModal } from './ShareModal'
 import type { BadgeType } from './EventBadges'
 import type { EventIcon } from './EventIcons'
-import { CancelIcon, DuplicateIcon, EditIcon } from './organizer/ConsoleIcons'
+import { CancelIcon, DuplicateIcon, EditIcon, HeartIcon } from './organizer/ConsoleIcons'
 
 /**
  * The fields these controls need. Both `CarouselEvent` and `CommunityItem`
@@ -598,10 +598,7 @@ export function EventWishlistButton({
       >
         {/* Hovering brings the outline to full strength (same as the share icon);
             an actual save additionally fills it. */}
-        <svg className={s.icon} viewBox="0 0 24 24" fill={liked ? GREEN : 'none'} stroke={liked || hovered ? GREEN : MUTED} strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round"
-            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-        </svg>
+        <HeartIcon className={s.icon} fill={liked ? GREEN : 'none'} color={liked || hovered ? GREEN : MUTED} />
       </button>
     </div>
   )

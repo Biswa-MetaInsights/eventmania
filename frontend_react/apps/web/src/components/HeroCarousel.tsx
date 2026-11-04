@@ -437,7 +437,7 @@ export function HeroCarousel() {
               at 320px the longest turn wraps, which is unavoidable and harmless. */}
           <h1
             className="font-bold leading-[1.15] mb-5"
-            style={{ color: "var(--brand-green)", fontSize: "clamp(26px, calc(4.0vw - 6px), 46px)" }}
+            style={{ color: "var(--brand-heading)", fontSize: "clamp(26px, calc(4.0vw - 6px), 46px)" }}
           >
             {m.headline.map((turn, i) => (
               <Fragment key={turn}>

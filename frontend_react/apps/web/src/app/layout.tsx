@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 //  APP FONT — single source of truth for the entire site's typeface.
 //  To swap the font, change ONLY these two things:
 //    1. the import below (e.g. `import { Inter } from "next/font/google"`)
-//    2. the loader call below (`Roboto({ ... })` → `Inter({ ... })`)
+//    2. the loader call below (`Inter({ ... })` → `Inter({ ... })`)
 //  Everything else inherits automatically via the `--font-app` CSS variable.
 // ─────────────────────────────────────────────────────────────────────────────
-import { Roboto } from "next/font/google";
+import { Inter } from "next/font/google";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { ChatPresence } from "@/components/ChatPresence";
@@ -14,8 +14,9 @@ import { NO_FLASH_SCRIPT } from "@/lib/theme";
 import "@/lib/api-config";
 import "./globals.css";
 
-const appFont = Roboto({
-  subsets: ["latin"],
+const appFont = Inter({
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
   style: ["normal", "italic"],
   variable: "--font-app",
 });

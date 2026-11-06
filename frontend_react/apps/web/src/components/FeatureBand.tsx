@@ -182,7 +182,7 @@ function BodyLink({
  *  numeric drop here — that is what sat it low the first time.
  *
  *  The `-translate-y` on top of it is the nudge from the x-height centre up to
- *  the CAP-height centre — Roboto's x-height is ~0.53em and its cap height
+ *  the CAP-height centre — the previous font's x-height is ~0.53em and its cap height
  *  ~0.71em, so their midpoints differ by ~0.09em, and that is the whole constant.
  *  A disc this much taller than the text reads low when centred on lowercase.
  *  It is a transform, NOT a vertical-align offset, so it stays independent of
@@ -331,19 +331,19 @@ const TILE =
   'bg-[var(--brand-surface)] border-[var(--brand-control-border)]'
 
 /** ⚠️ THE TYPE SCALE IS THE EVENT CARD'S, not this band's own (Gautham,
- *  2026-08-19): a tile title is `text-[20px] font-bold` and its body
- *  `text-[18px]`, the same pair `EventCardItem` uses for an event title and its
+ *  2026-08-19): a tile title uses `nf-card-title` and its body
+ *  uses `nf-body`, the same pair `EventCardItem` uses for an event title and its
  *  date/venue line — the two sit on the same page and were visibly out of step
  *  at 18/16. **If `EventsCarousel`'s card sizes move, move these with them**;
  *  they are a deliberate match, not a coincidence. The `SeeAllTile` in that file
  *  carries the same note for the same reason. */
 const TILE_TITLE =
-  'text-[20px] font-bold leading-snug transition-colors duration-200 text-[var(--brand-text)]'
+  'nf-card-title transition-colors duration-200 text-[var(--brand-text)]'
 
 /** `--brand-hint` is the secondary-text token and is NOT gray — do not "restore"
  *  it to --brand-muted, which is placeholders and fills. */
 const TILE_BODY =
-  'text-[18px] leading-relaxed transition-colors duration-200 text-[var(--brand-hint)]'
+  'nf-body transition-colors duration-200 text-[var(--brand-hint)]'
 
 /** ⚠️ ONE ACCENT PER HALF, and it drives everything (Gautham, 2026-08-19):
  *  **participants are GREEN, organisers are TERRACOTTA.** The accent is the
@@ -496,7 +496,7 @@ function CTATile({ audience, cta }: { audience: Audience; cta: AudienceCTA }) {
           rest colour cannot simply be reused there. */}
       <span
         className={
-          'text-[18px] font-bold transition-colors duration-200 ' +
+          'nf-control transition-colors duration-200 ' +
           `${SKIN[audience].link} ${SKIN[audience].fg}`
         }
       >
@@ -546,8 +546,8 @@ export function FeatureBand() {
             sit on the text baseline, and flex alignment can only centre or
             stretch the whole box (swashes included). See the constants above. */}
         <h2
-          className="font-extrabold tracking-[-0.5px]"
-          style={{ fontSize: 'clamp(22px, 4vw, 30px)', color: TEXT }}
+          className="nf-section-title"
+          style={{ color: TEXT }}
         >
           Why
           <Wordmark

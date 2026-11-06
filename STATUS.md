@@ -4,6 +4,8 @@ Owner: **Biswajith Gopinathan (Biswa-MetaInsights)**. Reviewed 2026-11-04.
 
 ## Deployment state
 
+Typography update (2026-11-06), owner **Biswajith Gopinathan**: Inter replaces Roboto through the single app font loader. Shared roles give compact responsive hero/section/card titles, 16 px body and controls, and 14 px metadata; logo artwork and green palette are preserved. Local production build and TypeScript pass; focused ESLint has no errors and two existing EventsCarousel unused-symbol warnings. Local browser preview is unreachable from the cloud browser, so visual/responsive verification and production promotion remain pending. This typography candidate is not yet confirmed live.
+
 The core release is live on 2026-11-03. Backend API images were updated to application revision `b4c4849d14ff799ab17cb732b14729b8ebc8682b`; post-rollout health and persisted core workflows passed, with unchanged TalktoFile container start times. The frontend uses the production Vercel project `newfind` and its same-origin `/api` proxy.
 
 Live PostgreSQL tests passed for registration/login, private profiles, event creation/content, cross-border discovery, currency validation, free booking/retry, organizer-only attendee access, private QR, duplicate check-in, chat, communities/reviews and rescheduling notifications. Records survived NewFind-only user/event/ticketing restarts. The same journeys passed through the public HTTPS Vercel API proxy; post-frontend-release persistence verification passed.

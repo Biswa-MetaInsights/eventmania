@@ -581,7 +581,7 @@ function ExploreContent() {
       <div className="px-4 sm:px-6 lg:px-12 pt-10 pb-4">
         {/* Page title + search */}
         <div className="flex flex-col gap-2 mb-6">
-          <h1 className="text-[32px] font-extrabold tracking-tight" style={{ color: "var(--brand-text)" }}>
+          <h1 className="nf-section-title" style={{ color: "var(--brand-text)" }}>
             Explore
           </h1>
           <p className="text-[18px]" style={{ color: "var(--brand-hint)" }}>

@@ -268,7 +268,7 @@ export function InkPanel({
  */
 export function MicroLabel({ children, color }: { children: ReactNode; color?: string }) {
   return (
-    <div className="text-[15px] font-semibold" style={{ color: color ?? "var(--brand-hint)" }}>
+    <div className="nf-meta font-semibold" style={{ color: color ?? "var(--brand-hint)" }}>
       {children}
     </div>
   );
@@ -386,7 +386,7 @@ export function Pill({
 export function CountBadge({ children, active = false }: { children: ReactNode; active?: boolean }) {
   return (
     <span
-      className={`text-[15px] font-bold shrink-0 transition-colors ${
+      className={`nf-meta font-bold shrink-0 transition-colors ${
         active
           ? "text-[var(--brand-on-green)]"
           : "text-[var(--brand-terracotta)] group-hover:text-[var(--brand-on-green)]"
@@ -424,7 +424,7 @@ export function StatTile({
         {value}
       </div>
       {sub && (
-        <div className="text-[15px] mt-2.5" style={{ color: toneColor(tone) }}>
+        <div className="nf-meta mt-2.5" style={{ color: toneColor(tone) }}>
           {sub}
         </div>
       )}
@@ -466,7 +466,7 @@ export function InkStatTile({
         {value}
       </div>
       {sub && (
-        <div className="text-[15px] mt-1" style={{ color: box ? ON_BOX_SOFT : ON_INK_SOFT }}>
+        <div className="nf-meta mt-1" style={{ color: box ? ON_BOX_SOFT : ON_INK_SOFT }}>
           {sub}
         </div>
       )}
@@ -580,7 +580,7 @@ export function Tabs({
             aria-pressed={on}
             /* 2px on BOTH states so the control cannot resize when picked. */
             className={`group inline-flex items-center gap-2 rounded-lg font-semibold border-2 transition-colors ${
-              size === "sm" ? "px-3.5 py-1.5 text-[18px]" : "px-4 py-1.5 text-[20px]"
+              size === "sm" ? "px-3.5 py-1.5 nf-control" : "px-4 py-1.5 nf-control"
             } ${
               on
                 ? "bg-[var(--brand-green)] text-[var(--brand-on-green)] border-[var(--brand-green)]"
@@ -617,7 +617,7 @@ export function FilterButton({ children }: { children: ReactNode }) {
       type="button"
       disabled
       title="Filtering arrives with the organiser backend"
-      className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[18px] font-semibold cursor-not-allowed"
+      className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 nf-control font-semibold cursor-not-allowed"
       style={{
         border: "2px solid var(--brand-control-border)",
         backgroundColor: "var(--brand-surface)",
@@ -722,7 +722,7 @@ export function FilterSelect<T extends string>({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="nf-chip inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[18px] font-semibold"
+        className="nf-chip inline-flex items-center gap-2 rounded-lg px-3.5 py-2 nf-control font-semibold"
         style={{
           border: `2px solid ${applied ? "var(--brand-green)" : "var(--brand-control-border)"}`,
           backgroundColor: applied
@@ -802,7 +802,7 @@ type ButtonTone = "accent" | "green" | "outline" | "onInk";
  * `CategoryBadge` sizes follow: never declare a utility twice.
  */
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[18px] whitespace-nowrap transition-colors";
+  "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 nf-control whitespace-nowrap transition-colors";
 
 /**
  * ⚠️ TONES ARE CLASSES, NOT AN INLINE `style` — every colour, fill and border.
@@ -1137,7 +1137,7 @@ export function TableRow({ template, children }: { template: string; children: R
 export function TableFooter({ children, note }: { children?: ReactNode; note: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-3.5 flex-wrap">
-      <span className="text-[15px]" style={{ color: "var(--brand-hint)" }}>{note}</span>
+      <span className="nf-meta" style={{ color: "var(--brand-hint)" }}>{note}</span>
       <div className="flex items-center gap-3">
         {children}
         <div className="flex gap-1.5">
@@ -1223,7 +1223,7 @@ export function NotBuiltYet({ what, todo }: { what: string; todo: string }) {
           </code>{" "}
           in <code>apps/web/.env.local</code> to see the full design against sample data.
         </p>
-        <p className="text-[15px]" style={{ color: "var(--brand-hint)", opacity: 0.8 }}>
+        <p className="nf-meta" style={{ color: "var(--brand-hint)", opacity: 0.8 }}>
           Tracked as {todo}
         </p>
       </div>

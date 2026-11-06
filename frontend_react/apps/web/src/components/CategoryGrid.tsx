@@ -327,8 +327,8 @@ export function CategoryGrid() {
           straight back into place. */}
       <div className={`flex items-center justify-between ${GUTTERS} mb-5`}>
         <h2
-          className="font-extrabold tracking-[-0.5px]"
-          style={{ fontSize: 'clamp(22px, 4vw, 30px)', color: TEXT }}
+          className="nf-section-title"
+          style={{ color: TEXT }}
         >
           Browse by category
         </h2>

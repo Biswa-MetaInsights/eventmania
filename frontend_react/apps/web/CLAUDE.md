@@ -69,40 +69,26 @@ Rationale for all of the above: `DESIGN_NOTES.md` §7.
 
 ## Typography
 
-**One font, one place.** The whole app uses a single font (currently **Roboto**) loaded once in
-`layout.tsx` and exposed as `--font-app`; `globals.css` maps it to `body` and Tailwind's
-`--font-sans`. **There are no per-component font declarations** — do not re-import a font in a
-component or set `fontFamily` inline.
+**One font, one place.** The app uses **Inter**, loaded once in `layout.tsx` through
+`next/font/google` with `display: "swap"`, and exposed as `--font-app`. Font files are
+self-hosted by Next.js. Keep the SVG logo/wordmark artwork unchanged. Do not add
+per-component font imports or inline `fontFamily` declarations.
 
-**To swap the font:** change only the two marked lines in `layout.tsx` (the `next/font/google` import
-and the loader call). Keep `variable: "--font-app"`. Nothing else touches.
+**The scale lives in `globals.css`.** Use its semantic classes rather than new arbitrary sizes:
 
-**Font-size floor: 15px.** One rule in `globals.css` raises `text-xs`, `text-sm` and arbitrary
-`text-[9px]`…`text-[14px]` to 15px. **Do not add new sub-15px sizes.** Opt out with
-`data-keep-type` on an element (and its subtree) whose small type is deliberate.
-
-**Prominent copy above the floor:** page subtitle 18px; empty-state heading 18px with a 16px helper
-line. Follow this on new pages. See `DESIGN_NOTES.md` §8.
-
-## ⚠️ The type scale — one scale, whole app
-
-**The console had its own** until 2026-08-22 (everything at the 15px floor, plus 11px uppercase
-micro-labels), and that — more than any colour — is what made it read as a different product. It is
-now on the scale below, and **so is anything new.** Sizes come from `EventsCarousel`'s card and
-`/event/[id]`'s body; the console runs one step quieter where a table genuinely needs it.
-
-| Role | Size | Reference |
+| Role | Class | Treatment |
 |---|---|---|
-| Section / page heading | `clamp(…)` **extrabold**, `tracking-[-0.5px]` | `EventsCarousel`'s "Events in {city}"; the console `h1` |
-| Card or row title | **20px bold** | the event card's title; a console table row |
-| Big figure | **32px extrabold**, `-0.5px` | `StatTile` — every console figure, the earnings total included |
-| Body, table cells | **17–18px** | card meta row 18px; console cells 17px |
-| Controls | buttons **18px bold**, filter tabs **20px semibold** | the card's "View details" CTA |
-| Labels, counts, sub-lines | **15px** — the floor | `MicroLabel`, `CountBadge` |
+| Homepage headline | `nf-hero-title` | Responsive 28–48px, bold, line-height 1.2 |
+| Section/page heading | `nf-section-title` | Responsive 22–24px, bold |
+| Card title | `nf-card-title` | 18px mobile / 20px desktop, semibold |
+| Body | `nf-body` | 16px, line-height 1.5 |
+| Supporting date/location/label | `nf-meta` | 14px, line-height 1.5 |
+| Button/filter/input | `nf-control` | 16px, semibold; inputs may use regular weight |
 
-**Do not add a `data-keep-type` to squeeze a label in.** If a label competes with its figure, the
-figure is too small — that is the mistake the console's 11px labels were compensating for. The only
-live opt-out left in the app is `EventCard.tsx` (dead code) and one comment in `FeatureBand`.
+Supporting text has a 14px floor. Keep form fields at least 16px on touch to avoid
+focus zoom; never shrink tap targets to match smaller type. Numerical dashboard
+figures and fitted event-detail hero titles retain their specialized sizing.
+Existing SVG brand artwork is not body text. Use weights 400, 600 and 700 for new UI.
 
 ## Shape
 

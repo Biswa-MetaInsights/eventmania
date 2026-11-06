@@ -9,6 +9,9 @@
 
 ---
 
+## 2026-11-06
+- **Biswajith Gopinathan** — adopt Inter and shared responsive typography roles across discovery, authentication, event content and organizer controls; retain NewFind logo and palette.
+
 ## 2026-11-04
 - **Biswajith Gopinathan** — improve mobile dark contrast, shared navigation icons, explicit persisted city selection, menu accessibility and authentication labels/autofill; production promotion and real-device QA remain pending.
 

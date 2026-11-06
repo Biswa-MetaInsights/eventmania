@@ -436,8 +436,8 @@ export function HeroCarousel() {
               longest turn. Below lg the layout stacks and the clamp floor takes over;
               at 320px the longest turn wraps, which is unavoidable and harmless. */}
           <h1
-            className="font-bold leading-[1.15] mb-5"
-            style={{ color: "var(--brand-heading)", fontSize: "clamp(26px, calc(4.0vw - 6px), 46px)" }}
+            className="nf-hero-title mb-5"
+            style={{ color: "var(--brand-heading)" }}
           >
             {m.headline.map((turn, i) => (
               <Fragment key={turn}>
@@ -476,7 +476,7 @@ export function HeroCarousel() {
               treat it as provisional rather than a new site-wide precedent. It is
               the number that makes the first sentence a tight fit (580px in a 600px
               block); anything larger wraps it at every width. */}
-          <p className="mb-0" style={{ color: "var(--brand-text)", fontSize: 24, lineHeight: 1.6 }}>
+          <p className="nf-body mb-0" style={{ color: "var(--brand-text)" }}>
             {m.subcopy.map((line, i) => (
               <Fragment key={line.text}>
                 {i > 0 && <br />}

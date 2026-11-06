@@ -93,7 +93,7 @@ export default function AuthPage() {
       {/* Right panel — auth form */}
       <div className="flex flex-1 items-center justify-center px-4 sm:px-6 py-12 lg:px-20" style={{ backgroundColor: "var(--brand-bg)" }}>
         <div className="w-full max-w-md">
-          <h2 className="text-3xl font-bold text-[var(--brand-text)] mb-3">
+          <h2 className="nf-section-title text-[var(--brand-text)] mb-3">
             {isLogin ? "Welcome Back" : "Create Account"}
           </h2>
           <p className="text-[var(--brand-hint)] mb-10">

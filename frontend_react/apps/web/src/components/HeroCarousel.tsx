@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { eventsSource } from "@/lib/data-source";
 // Every <Link> in this file is currently parked (the per-slide CTA and the
 // Explore/Publish pair). Restore this import with whichever one comes back.
 // import Link from "next/link";
+import { GUTTERS } from "@/lib/layout";
 import { EVENT_FORMATS } from "@eventmind/types";
 
 // Local hero images live in apps/web/public/hero/. Paths are served from the public
@@ -187,6 +188,39 @@ export function HeroCarousel() {
   const [next, setNext] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [tones, setTones] = useState<Record<string, "light" | "dark">>({});
+  const [paused, setPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(preference.matches);
+    update();
+    preference.addEventListener("change", update);
+    return () => preference.removeEventListener("change", update);
+  }, []);
+
+  function measureTone(image: HTMLImageElement) {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 24;
+      canvas.height = 16;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return;
+      // Sample the left side where the copy lives, not the overall photo hue.
+      context.drawImage(image, 0, 0, image.naturalWidth * 0.65, image.naturalHeight, 0, 0, 24, 16);
+      const pixels = context.getImageData(0, 0, 24, 16).data;
+      let brightness = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        brightness += (pixels[i] * 0.2126 + pixels[i + 1] * 0.7152 + pixels[i + 2] * 0.0722) / 255;
+      }
+      const tone = brightness / (pixels.length / 4) > 0.43 ? "dark" : "light";
+      const source = image.getAttribute("src")!;
+      setTones(previous => previous[source] === tone ? previous : { ...previous, [source]: tone });
+    } catch {
+      // A missing/foreign image keeps the safe light-text/dark-scrim fallback.
+    }
+  }
 
   const rafRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -196,6 +230,11 @@ export function HeroCarousel() {
 
   const runAnimation = useCallback((targetIdx: number) => {
     if (animatingRef.current) return;
+    if (reducedMotion) {
+      currentRef.current = targetIdx;
+      setCurrent(targetIdx);
+      return;
+    }
     animatingRef.current = true;
     setNext(targetIdx);
     setAnimating(true);
@@ -216,7 +255,7 @@ export function HeroCarousel() {
       }
     }
     rafRef.current = requestAnimationFrame(frame);
-  }, []);
+  }, [reducedMotion]);
 
   const advance = useCallback(() => {
     if (animatingRef.current) return;
@@ -224,18 +263,19 @@ export function HeroCarousel() {
   }, [runAnimation]);
 
   useEffect(() => {
-    timerRef.current = setInterval(advance, 4000);
+    if (!paused && !reducedMotion) timerRef.current = setInterval(advance, 4000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      cancelAnimationFrame(rafRef.current);
     };
-  }, [advance]);
+  }, [advance, paused, reducedMotion]);
+
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
   function goTo(index: number) {
     if (animatingRef.current || index === currentRef.current) return;
     if (timerRef.current) clearInterval(timerRef.current);
     runAnimation(index);
-    timerRef.current = setInterval(advance, 4000);
+    if (!paused && !reducedMotion) timerRef.current = setInterval(advance, 4000);
   }
 
   // The CTA swaps at the wipe's halfway point, so the label matches whichever
@@ -247,274 +287,63 @@ export function HeroCarousel() {
   // const activeSlide = m.slides[activeIdx];
   const clipPath = buildClipPath(progress);
 
+  const tone = tones[m.slides[activeIdx].src] ?? "light";
+  const heroStyle = {
+    "--hero-foreground": tone === "light" ? "#F2EFEA" : "#0F1A18",
+    "--hero-wash": tone === "light" ? "15, 26, 24" : "242, 239, 234",
+  } as CSSProperties;
+
   return (
-    // ⚠️ THE HERO IS THE ONE SURFACE NOT CAPPED AT THE 1400px PAGE COLUMN.
-    // Gautham, 2026-08-11: at 1920 the cap left ~260px of dead margin on each side
-    // before the gutter even began, and the copy sat marooned against it. The grid
-    // now spans the full viewport inside the standard gutters and splits 50/50, so
-    // the copy column IS the page's left half. **This is not the rejected edge-bleed
-    // variant** — nothing crosses the gutter; the panel still stops where every
-    // other section stops. Do not "restore" maxWidth 1400 here.
-    <section className="w-full px-4 sm:px-6 lg:px-12 py-8 lg:py-12">
-      {/* 50/50: copy left, photo right. Was 1fr_1.35fr inside the capped column. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-        {/* ── Right: rotating image panel ──────────────────────────────── */}
-        {/* `order-1 lg:order-2`: when the hero STACKS (below lg) the photo leads
-            and the spoken exchange sits under it — Biswajith's call (2026-09-07);
-            on a phone the copy-first stack read as a wall of quotes with the
-            picture out of sight. At lg the image takes the right column as
-            before. Fully rounded — it is contained now, no off-screen edge.
-
-            ⚠️ The panel is 16/9 at EVERY width because that is the native aspect of
-            every photo in /public/hero (1376–1408 × 768). object-cover only crops
-            when the panel disagrees with the source, so matching it means nothing is
-            cut. The old `lg:h-[min(82vh,820px)]` made the panel near-square (~777×738)
-            and threw away ~40% of each photo's width — Gautham's "cut off in the
-            middle". Do not pin a height here again; re-crop the source images first. */}
-        {/* The 5px frame is Gautham's explicit call (2026-08-11), not the app's
-            border system — it is decoration on a photo, not a control, so
-            neither the 2px `--brand-control-border` rule nor `--brand-border`
-            applies. Note `aspect-[16/9]` sizes the BORDER box (Tailwind sets
-            box-sizing: border-box), so the frame eats 10px of the photo rather
-            than growing the panel.
-
-            ⚠️ IT IS VISIBLE IN DARK MODE ONLY (Gautham, 2026-08-20). The colour
-            comes from `--brand-hero-frame`, which is green in dark and
-            TRANSPARENT in light — a token, not a `dark:` class, because the
-            theme rides on `data-theme` rather than prefers-color-scheme. The
-            border keeps its 5px in both, so the panel's geometry and the photo
-            crop never shift when the theme flips.
-
-            ⚠️ `backgroundClip: padding-box` is what makes "transparent" actually
-            transparent. Backgrounds paint under the border by default, so
-            without it the #111827 letterbox fill below shows through the frame
-            and light mode gets a black border instead of no border. */}
-        <div
-          className="relative w-full overflow-hidden rounded-lg aspect-[16/9] order-1 lg:order-2"
-          style={{
-            backgroundColor: "#111827",
-            backgroundClip: "padding-box",
-            border: "5px solid var(--brand-hero-frame)",
-          }}
-        >
-          {/* Outgoing image — static, no animation */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={m.slides[current].src}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={() => runAnimation((currentRef.current + 1) % SLIDE_COUNT)}
-          />
-
-          {/* Incoming image — revealed by diagonal clip-path wipe */}
-          {animating && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={m.slides[next].src}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ clipPath }}
-            />
-          )}
-
-          {/* Bottom scrim so the CTA and dots stay legible on any photo */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent)" }}
-          />
-
-          {/* PARKED 2026-08-11 at Gautham's request — the per-slide CTA ("Find offline
-              events", "Find wellness events", "Find online communities", …). Its label
-              and destination swapped with the photo at the wipe's halfway point.
-
-              Not dead: every slide in MODES still carries the `label` + `href` this
-              rendered, so restoring it is uncommenting this block, the `activeSlide`
-              line above, and the `next/link` import at the top of the file.
-
-          <Link
-            href={activeSlide.href}
-            className="absolute bottom-5 left-5 inline-flex items-center gap-2 px-5 py-3 rounded-lg font-bold transition-colors"
-            style={{ backgroundColor: "var(--brand-terracotta)", color: "var(--brand-on-terracotta)" }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--brand-terracotta-hover)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--brand-terracotta)"; }}
-          >
-            {activeSlide.label}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 12h15m0 0-6-6m6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
-
-          */}
-
-          {/* Navigation dots — CENTERED. They sat bottom-right to stay clear of the
-              per-slide CTA in the bottom-left; with that CTA parked the panel's whole
-              bottom edge is free, so they centre. Move them back to `right-5` if the
-              CTA ever comes back. */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
-            {m.slides.map((slide, i) => (
-              // The bar is 4px tall; the button around it carries invisible
-              // padding (cancelled by the negative margin) so the tap target is
-              // ~28px without the dots moving or the row getting taller. On a
-              // COARSE pointer (finger) the padding grows to a 44px-tall,
-              // 12px-wider hit area — still cancelled by the margin, so the
-              // dots sit exactly where they do under a mouse.
-              <button
-                key={slide.src}
-                onClick={() => goTo(i)}
-                aria-label={slide.label}
-                className="flex items-center py-3 -my-3 px-1 -mx-1 [@media(pointer:coarse)]:py-5 [@media(pointer:coarse)]:-my-5 [@media(pointer:coarse)]:px-2 [@media(pointer:coarse)]:-mx-2"
-              >
-                <span
-                  className="block h-1 rounded-full transition-all duration-300"
-                  // White, not terracotta — the CTA is terracotta now, and two
-                  // terracotta elements on one photo read as the same control.
-                  style={{
-                    width: activeIdx === i ? 28 : 8,
-                    backgroundColor: activeIdx === i ? "#FFFFFF" : "rgba(255,255,255,0.45)",
-                  }}
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Left: copy (everything here is mode-driven) ──────────────── */}
-        {/* The BLOCK is centred in the page's left half; the LINES stay left-aligned
-            (Gautham's call — centred lines lose the common left edge the rest of the
-            site reads on). `max-w-[560px]` is what makes centring mean anything: a
-            full-width block has nothing to centre. 560 is measured, not chosen — it
-            is the LONGEST spoken turn's width at the 46px cap, plus a little air. */}
-        <div className="order-2 lg:order-1 w-full max-w-[600px] mx-auto">
-          {/* PARKED 2026-08-11 at Gautham's request — the Events / Communities
-              segmented toggle. Not deleted: the whole `communities` mode is still
-              wired and this is the only thing that reaches it. To restore, uncomment
-              and put `setMode` back in the useState destructure above.
-
-              ⚠️ UPDATE 2026-08-14 — do NOT restore this on its own. Communities
-              were cut from the MVP and deferred to Phase 2 app-wide, so
-              MODES.communities now points at routes that redirect to home
-              (/explore?view=communities and /community/create). Restoring the
-              toggle means un-parking the whole feature: grep `PARKED 2026-08-14`.
-
-          <div
-            className="inline-flex p-1 rounded-lg mb-6"
-            style={{ backgroundColor: "var(--brand-bg)", border: "2px solid var(--brand-control-border)" }}
-          >
-            {(Object.keys(MODES) as ModeKey[]).map((key) => {
-              const active = key === mode;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setMode(key)}
-                  aria-pressed={active}
-                  className="px-5 py-2 rounded-md font-semibold transition-colors"
-                  style={{
-                    backgroundColor: active ? "var(--brand-green)" : "transparent",
-                    color: active ? "var(--brand-on-green)" : "var(--brand-text)",
-                  }}
-                >
-                  {MODES[key].toggleLabel}
-                </button>
-              );
-            })}
-          </div>
-
-          */}
-
-          {/* ⚠️ The size formula is a MEASUREMENT, not a taste call — re-measure if
-              you touch this copy or the 50/50 split.
-
-              `calc(4.1vw - 6px)` tracks the copy block's own growth. The block is
-              `min(600px, half the page)`, so between lg and ~1280px it is the half
-              that binds and the font has to shrink with it. The constraint is that
-              **each spoken turn holds on one line** (a turn needs ~12.4× the font
-              size in px) — a wrapped turn reads as prose, not as someone talking.
-              A plain vw with no offset fails it: vw grows faster than the block does
-              between lg and ~1280, which is exactly where turns started wrapping.
-
-              46px cap is what that constraint allows inside the 560px block for the
-              longest turn. Below lg the layout stacks and the clamp floor takes over;
-              at 320px the longest turn wraps, which is unavoidable and harmless. */}
-          <h1
-            className="nf-hero-title mb-5"
-            style={{ color: "var(--brand-heading)" }}
-          >
-            {m.headline.map((turn, i) => (
-              <Fragment key={turn}>
-                {i > 0 && <br />}
-                {turn}
-              </Fragment>
+    <section aria-label="Discover NewFind" aria-roledescription="carousel"
+      className="nf-home-hero relative isolate w-full overflow-hidden" style={heroStyle}>
+      <div className="absolute inset-0 -z-20" aria-hidden="true">
+        {/* The existing diagonal wipe requires img rather than next/image. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={m.slides[current].src} alt="" fetchPriority="high" loading="eager"
+          className="absolute inset-0 h-full w-full object-cover" onLoad={event => measureTone(event.currentTarget)} />
+        {animating && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={m.slides[next].src} alt="" className="absolute inset-0 h-full w-full object-cover"
+            style={{ clipPath }} onLoad={event => measureTone(event.currentTarget)} />
+        )}
+      </div>
+      {/* The wash guarantees contrast even on a bright patch or during a wipe.
+          Its color changes atomically with the text, never through muddy gray. */}
+      <div className="nf-home-hero-wash absolute inset-0 -z-10 pointer-events-none" aria-hidden="true" />
+      <div className={`${GUTTERS} relative mx-auto flex min-h-[420px] w-full items-center py-16 pb-24 sm:min-h-[460px] lg:min-h-[520px] lg:py-24`}>
+        <div className="w-full max-w-[650px]">
+          <h1 className="nf-hero-title mb-5" style={{ color: "var(--hero-foreground)" }}>
+            {m.headline.map((turn, index) => (
+              <Fragment key={turn}>{index > 0 && <br />}{turn}</Fragment>
             ))}
           </h1>
-
-          {/* PARKED 2026-08-11 at Gautham's request — the terracotta eyebrow.
-              The body copy's "near you or online" says what "Online & offline"
-              said, and the two sat one line apart. Still on the Mode type and in
-              both MODES entries, so this uncomments as-is.
-
-          <p
-            className="font-bold tracking-widest uppercase mb-3"
-            style={{ color: "var(--brand-terracotta)" }}
-          >
-            {m.eyebrow}
-          </p>
-
-          */}
-
-          {/* mb-0 because the CTA pair below is parked — restore mb-8 with it.
-              No max-width: each line is one written sentence and should sit on one
-              line, so the block decides the measure. `max-w-md` (448px) used to cap
-              it ~100px short and forced both sentences to wrap.
-
-              Left-aligned, so both sentences share one left edge with each other and
-              with the exchange above. A centred version was tried on 2026-08-11 and
-              reverted the same day — centring gave every line its own start, and
-              "Join a one-off event…" no longer lined up under "Leave it with us."
-
-              ⚠️ 24px is a deliberate departure from the 18px page-subtitle standard
-              in DESIGN_NOTES §8 — Gautham asked for +6px and called it "for now", so
-              treat it as provisional rather than a new site-wide precedent. It is
-              the number that makes the first sentence a tight fit (580px in a 600px
-              block); anything larger wraps it at every width. */}
-          <p className="nf-body mb-0" style={{ color: "var(--brand-text)" }}>
-            {m.subcopy.map((line, i) => (
+          <p className="nf-body mb-0" style={{ color: "var(--hero-foreground)" }}>
+            {m.subcopy.map((line, index) => (
               <Fragment key={line.text}>
-                {i > 0 && <br />}
-                {line.bold && <strong>{line.bold}</strong>}
-                {renderLine(line, optionCount)}
+                {index > 0 && <br />}
+                {line.bold && <strong>{line.bold}</strong>}{renderLine(line, optionCount)}
               </Fragment>
             ))}
           </p>
-
-          {/* PARKED 2026-08-11 at Gautham's request — the Explore / Publish pair.
-              The per-slide terracotta CTA on the photo already covers "explore", and
-              publishing is reachable from the navbar. `primary` / `secondary` stay on
-              the Mode type and in MODES so this uncomments as-is.
-
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={m.primary.href}
-              className="px-7 py-3.5 rounded-lg font-bold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "var(--brand-green)", color: "var(--brand-on-green)" }}
-            >
-              {m.primary.label}
-            </Link>
-            <Link
-              href={m.secondary.href}
-              className="px-7 py-3.5 rounded-lg font-bold transition-colors"
-              style={{
-                backgroundColor: "var(--brand-surface)",
-                color: "var(--brand-text)",
-                border: "2px solid var(--brand-control-border)",
-              }}
-            >
-              {m.secondary.label}
-            </Link>
-          </div>
-
-          */}
-
         </div>
+      </div>
+      <div className={`${GUTTERS} absolute inset-x-0 bottom-4 flex flex-wrap items-center justify-between gap-3`}>
+        <div className="flex items-center gap-1 rounded-lg bg-black/65 px-2" aria-label="Choose hero image">
+          {m.slides.map((slide, index) => (
+            <button key={slide.src} type="button" onClick={() => goTo(index)} aria-label={slide.label}
+              aria-pressed={activeIdx === index}
+              className="flex h-11 min-w-11 items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-white">
+              <span className="block h-1 rounded-full bg-white" style={{ width: activeIdx === index ? 28 : 8, opacity: activeIdx === index ? 1 : 0.6 }} />
+            </button>
+          ))}
+        </div>
+        {!reducedMotion && (
+          <button type="button" onClick={() => setPaused(value => !value)} aria-pressed={paused}
+            aria-label={paused ? "Resume slideshow" : "Pause slideshow"}
+            className="min-h-11 rounded-lg bg-black/65 px-4 text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-white">
+            {paused ? "Resume" : "Pause"}
+          </button>
+        )}
       </div>
     </section>
   );

@@ -496,3 +496,14 @@ a, button, [role="button"], input, select, textarea, label, summary {
 @media (prefers-reduced-motion: reduce) {
   .nf-seg-thumb { transition: none; }
 }
+
+/* Homepage image is confined to the hero; Events remains on the page surface.
+   The left 70% keeps a constant 72% wash behind the entire copy column.
+   Mobile uses the same coverage everywhere because its copy spans the image. */
+.nf-home-hero { background: #0F1A18; }
+.nf-home-hero-wash { background: rgba(var(--hero-wash), 0.72); }
+@media (min-width: 1024px) {
+  .nf-home-hero-wash {
+    background: linear-gradient(90deg, rgba(var(--hero-wash), 0.72) 0%, rgba(var(--hero-wash), 0.72) 70%, rgba(var(--hero-wash), 0.1) 100%);
+  }
+}

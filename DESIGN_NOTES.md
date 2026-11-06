@@ -312,6 +312,16 @@ unused EventCard only. Future changes should use the shared roles.
 
 ## 9. `HeroCarousel` mode system
 
+**Current homepage layout, owner-approved 2026-11-06:** the original photos rotate
+as a full-width background confined to the hero, ending before discovery content.
+Original spoken-exchange wording is retained. The former two-column frame and
+sparkle are removed from this hero. Sampled image brightness selects light or dark
+copy with a matching 72% scrim under its full area; this also protects contrast
+during the diagonal wipe. Images may crop responsively as backgrounds. Pause/Resume,
+44px controls and reduced-motion support are required. The remaining notes below
+record the former layout and parked features; their frame, crop and column rules
+are historical and are superseded by this paragraph.
+
 > **⚠️ Parked 2026-08-11 — three blocks, commented out, NOT deleted** (Gautham: "unnecessary, but
 > not sure… we might bring it back later"):
 >

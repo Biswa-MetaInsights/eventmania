@@ -40,7 +40,7 @@ hexes in components**, and do not restate the palette in this file — read `glo
 Tokens: `--brand-green`, `--brand-green-hover`, `--brand-on-green` (text/icons **on** a green fill),
 `--brand-bg` (page), `--brand-surface` (cards/navbar/inputs), `--brand-text`, `--brand-border`,
 `--brand-nav-border`, `--brand-control-border`, `--brand-hint`, `--brand-muted`,
-`--brand-terracotta` (+ `-hover`, `--brand-on-terracotta`), `--brand-logo`, `--brand-hero-frame` (the hero photo's frame — green in dark, **transparent in light**, which is how that border is made dark-only).
+`--brand-terracotta` (+ `-hover`, `--brand-on-terracotta`), `--brand-logo`. The homepage hero now uses an image-dependent light/dark foreground and matching scrim; its former `--brand-hero-frame` token is retained only for compatibility.
 
 **Naming convention — what Gautham means:**
 - **"green" / "green shade"** → always `#184E4A` (`--brand-green`). Never another green, never Tailwind `green-*`.

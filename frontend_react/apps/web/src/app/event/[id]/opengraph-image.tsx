@@ -38,7 +38,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
       <div style={{ width: "100%", height: "100%", display: "flex", backgroundColor: LINEN }}>
         {/* Left — event picture with a price chip */}
         <div style={{ width: 470, height: "100%", position: "relative", display: "flex" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <img src={img} alt="" width={470} height={630} style={{ width: 470, height: 630, objectFit: "cover" }} />
           <div
             style={{
@@ -82,7 +82,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
                 marginRight: 14,
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={MARK} alt="" width={30} height={30} />
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: 3, color: GREEN }}>NEWFIND</div>

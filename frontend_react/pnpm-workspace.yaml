@@ -4,3 +4,6 @@ packages:
 allowBuilds:
   sharp: true
   unrs-resolver: true
+overrides:
+  browserslist: 4.29.5
+  baseline-browser-mapping: 2.11.34

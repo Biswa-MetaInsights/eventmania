@@ -1,3 +1,5 @@
+from access import authorize, principal, verified_principal
+from uuid import UUID
 import httpx
 import logging
 from fastapi import FastAPI, Request, Response, HTTPException, status, Depends
@@ -13,15 +15,21 @@ from typing import Dict
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Biswa API Gateway", version="1.0.0")
+def rate_key(request: Request):
+    try:
+        return 'user:' + principal(request)['sub']
+    except HTTPException:
+        return 'ip:' + get_remote_address(request)
+
+limiter = Limiter(key_func=rate_key)
+app = FastAPI(title="NewFind API Gateway", version="1.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Policy (Global entry point)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to frontend domain
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,19 +37,21 @@ app.add_middleware(
 
 # Service Map (Internal Docker bridge addresses if using Docker)
 SERVICE_MAP: Dict[str, str] = {
-    "auth": "http://localhost:8001/auth",
-    "user": "http://localhost:8002/users",
-    "community": "http://localhost:8002/users/communities",
-    "event": "http://localhost:8003/events",
-    "ticket": "http://localhost:8004/tickets",
-    "ticketing": "http://localhost:8004/tickets",
-    "payment": "http://localhost:8005/payments",
-    "notification": "http://localhost:8006/notifications",
-    "chat": "http://localhost:8007/chat",
-    "recommendation": "http://localhost:8008/recommendations",
-    "review": "http://localhost:8009/reviews",
-    "community": "http://localhost:8011/communities",
+    "auth": "http://auth:8001/auth",
+    "user": "http://user:8002/users",
+    "event": "http://event:8003/events",
+    "ticket": "http://ticketing:8004/tickets",
+    "ticketing": "http://ticketing:8004/tickets",
+    "payment": "http://payment:8005/payments",
+    "notification": "http://notification:8006/notifications",
+    "chat": "http://chat:8007/chat",
+    "recommendation": "http://recommendation:8008/recommendations",
+    "review": "http://review:8009/reviews",
+    "community": "http://user:8002/users/communities",
 }
+
+# Allow isolated test endpoints without changing production defaults.
+SERVICE_MAP = {name: os.getenv(f"BACKEND_{name.upper()}_URL", url) for name, url in SERVICE_MAP.items()}
 
 # Shared HTTP Client for Proxying
 client = httpx.AsyncClient()
@@ -50,9 +60,10 @@ client = httpx.AsyncClient()
 async def shutdown_event():
     await client.aclose()
 
+@app.api_route("/{service_name}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @app.api_route("/{service_name}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-@limiter.limit("60/minute") # Global Rate Limit
-async def gateway_proxy(service_name: str, path: str, request: Request):
+@limiter.limit(os.getenv("API_RATE_LIMIT", "120/minute")) # Global Rate Limit
+async def gateway_proxy(request: Request, service_name: str, path: str = ""):
     """
     Standardized Proxy Gateway.
     Routes incoming /service/path requests to internal internal_service_url/path.
@@ -60,10 +71,12 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
     if service_name not in SERVICE_MAP:
         raise HTTPException(status_code=404, detail=f"Service '{service_name}' not found.")
 
+    await authorize(request, service_name, path, client)
+
     target_url = f"{SERVICE_MAP[service_name]}/{path}"
     
     # 1. Forward original query parameters
-    params = dict(request.query_params)
+    params = list(request.query_params.multi_items())
     
     # 2. Forward original body
     body = await request.body()
@@ -72,6 +85,8 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
     headers = dict(request.headers)
     headers.pop("host", None)
     headers.pop("content-length", None)
+    headers.pop("x-internal-key", None)
+    headers["accept-encoding"] = "identity"
 
     try:
         response = await client.request(
@@ -83,11 +98,22 @@ async def gateway_proxy(service_name: str, path: str, request: Request):
             timeout=30.0
         )
         
+        if service_name == "event" and request.method == "GET" and response.status_code == 200:
+            try:
+                UUID(path.strip("/"))
+            except ValueError:
+                pass
+            else:
+                event = response.json()
+                if event.get("status") == "draft" or event.get("visibility") == "private":
+                    viewer=await verified_principal(request,client)
+                    if event.get("organizer_id")!=viewer['sub']:raise HTTPException(403,"Private event")
+
         # Return matched response to the client
         return Response(
             content=response.content,
             status_code=response.status_code,
-            headers=dict(response.headers)
+            headers={k: v for k, v in response.headers.items() if k.lower() not in {"content-encoding", "content-length", "transfer-encoding", "connection", "access-control-allow-origin", "access-control-allow-credentials"}}
         )
 
     # Must precede the RequestError handler below — TimeoutException is a subclass

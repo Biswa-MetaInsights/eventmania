@@ -3,8 +3,8 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { reviewsApi } from "@eventmind/api";
-import { eventsSource } from "@/lib/data-source";
+import { reviewsApi, organizerApi } from "@eventmind/api";
+import { eventsSource, isDummyMode } from "@/lib/data-source";
 import type { Review, ReviewAggregates } from "@eventmind/api";
 import { useAuthStore } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
@@ -58,46 +58,20 @@ import {
 import { ReviewsSection } from "@/components/Reviews";
 import { SimilarEvents } from "@/components/SimilarEvents";
 import { toCarouselEvent } from "@/lib/card-adapters";
-import { eventImageUrl, HERO_SCRIM } from "@/lib/event-media";
+import { eventImageUrl, locationLabel, HERO_SCRIM } from "@/lib/event-media";
 import { heroTitleSize } from "@/lib/hero-title";
 import { GUTTERS } from "@/lib/layout";
+import { isExternalEvent, externalTicketUrl } from "@/lib/external-events";
 import { formatPrice } from "@/lib/currency";
 
 const GREEN = "var(--brand-green)";
-
-/**
- * ⚠️ PLACEHOLDER, and it feeds BOTH sidebar cards (Gautham, 2026-09-01).
- *
- * The organiser block reads identically in the participant and organiser views —
- * same eyebrow, same name, same trust line — so toggling the preview never
- * changes it. That is only possible while ONE string answers for both, which is
- * why it lives here rather than at either call site.
- *
- * It is a FALLBACK as of 2026-09-11, not the only answer: `/organizer/create`
- * now asks for the organisation's name and an event that carries one prints it
- * instead (`organiserNameOf` below). This still shows for every event written
- * before that field existed, and for every real-mode event until the column
- * lands — there is no organiser lookup on this page either way.
- *
- * ⚠️ It is the ORGANISATION's name that belongs here (Gautham, 2026-09-01), not
- * the signed-in person's, and "Verified · 40+ events" in `BookingCard` /
- * `OrganiserEventCard` has to become real at the same time. Logged as TODO.md §1.
- */
-const ORGANISER_NAME = "NewFind Collective";
-
-/** The organisation to print under "Organised by". Blank and whitespace-only
- *  both fall through to the placeholder — an empty heading is worse than a
- *  stand-in. */
-function organiserNameOf(event: { organization_name?: string }): string {
-  return event.organization_name?.trim() || ORGANISER_NAME;
-}
 
 function fmt(iso: string, opts: Intl.DateTimeFormatOptions) {
   return new Date(iso).toLocaleDateString("en-US", opts);
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+function fmtTime(iso: string, timeZone: string) {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone, timeZoneName: "short" });
 }
 
 export default function EventDetailPage({
@@ -113,6 +87,16 @@ export default function EventDetailPage({
     queryKey: ["event", id],
     queryFn: () => eventsSource.get(id).then((r) => r.data),
   });
+
+  const { data: organizer } = useQuery({
+    queryKey: ["public-organizer", event?.organizer_id],
+    queryFn: () => organizerApi.publicProfile(event!.organizer_id).then((r) => r.data),
+    enabled: !!event?.organizer_id && !isExternalEvent(event),
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const organizerName = event && isExternalEvent(event) ? "Ticketmaster listing" : organizer?.name || event?.organization_name?.trim() || "Organizer details unavailable";
+  const organizerVerified = organizer?.verification_status === "verified";
 
   const { data: reviews = [] } = useQuery<Review[]>({
     queryKey: ["reviews", id],
@@ -215,18 +199,21 @@ export default function EventDetailPage({
   // an event that will not take place at all; using them here would tell a
   // ticket holder their event was called off.
   const registrationClosed = lifecycle === "registration_closed";
-  const bookable = !cancelled && !registrationClosed;
+  const external = isExternalEvent(event);
+  const providerUrl = externalTicketUrl(event);
+  const bookable = !cancelled && !registrationClosed && (!external || !!providerUrl);
   const DIMMED = cancelled ? "grayscale opacity-60" : "";
   // The shared card controls speak CarouselEvent, so a wishlist save from here is
   // byte-identical to one from a card and renders the same in /dashboard.
   const card = toCarouselEvent(event);
-  const location =
-    (event.location?.address as string) ??
-    (event.location?.city as string) ??
-    "Online Event";
+  const location = locationLabel(event);
 
   function handleBookNow() {
     if (!bookable) return;
+    if (external) {
+      if (providerUrl) window.location.assign(providerUrl);
+      return;
+    }
     router.push(isAuthenticated ? `/checkout/${id}` : "/auth");
   }
 
@@ -484,15 +471,19 @@ export default function EventDetailPage({
               their attendee list is the opposite of helpful. */}
           <div className={`order-1 lg:order-2 ${organiserView ? "" : DIMMED}`}>
             {organiserView ? (
-              <OrganiserEventCard event={event} organiserName={organiserNameOf(event)} />
+              <OrganiserEventCard event={event} organiserName={organizerName} verified={organizerVerified} />
             ) : (
               <BookingCard
+                external={external}
+                providerAvailable={!!providerUrl}
+                unlimited={event.capacity === 0}
                 cancelled={cancelled}
                 registrationClosed={registrationClosed}
-                dateLabel={fmt(event.start_date, { weekday: "long", month: "short", day: "numeric" })}
-                timeLabel={fmtTime(event.start_date)}
+                dateLabel={fmt(event.start_date, { weekday: "long", month: "short", day: "numeric", timeZone: event.timezone || "UTC" })}
+                timeLabel={fmtTime(event.start_date,event.timezone || "UTC")}
                 location={location}
-                organizer={organiserNameOf(event)}
+                organizer={organizerName}
+                verified={organizerVerified}
                 price={event.price}
                 currency={event.currency}
                 offerName={event.offer_name}
@@ -521,7 +512,7 @@ export default function EventDetailPage({
       <SimilarEvents event={event} />
 
       {/* ── AI Event Assistant widget ── */}
-      <EventChatWidget event={event} />
+      {isDummyMode && <EventChatWidget event={event} />}
 
       {/* ── Sticky bar ──
           ⚠️ It follows the sidebar: the organiser's says what they came to find
@@ -542,11 +533,11 @@ export default function EventDetailPage({
         />
       ) : (
         <DetailStickyBar
-          caption="Starting from"
-          amount={formatPrice(event.price, event.currency)}
+          caption={external ? "Tickets" : "Starting from"}
+          amount={external ? "Check Ticketmaster" : formatPrice(event.price, event.currency)}
           // Same priority as the booking card's CTA below, and for the same
           // reason: cancelled outranks closed outranks full.
-          cta={cancelled ? "Event cancelled" : registrationClosed ? "Registration closed" : "Book Now"}
+          cta={cancelled ? "Event cancelled" : registrationClosed ? "Registration closed" : external ? "View tickets on Ticketmaster" : "Book Now"}
           onClick={handleBookNow}
           disabled={!bookable}
           gutters={GUTTERS}
@@ -624,12 +615,16 @@ function BookingCard({
   timeLabel,
   location,
   organizer,
+  verified = false,
   price,
   currency,
   offerName,
   isFree,
   going,
   left,
+  external = false,
+  providerAvailable = false,
+  unlimited = false,
   cancelled = false,
   registrationClosed = false,
   onBook,
@@ -638,6 +633,10 @@ function BookingCard({
   timeLabel: string;
   location: string;
   organizer: string;
+  external?: boolean;
+  providerAvailable?: boolean;
+  unlimited?: boolean;
+  verified?: boolean;
   price: number;
   currency?: string;
   /** The organiser's own name for this price — "Early bird". Optional, and
@@ -655,21 +654,14 @@ function BookingCard({
   registrationClosed?: boolean;
   onBook: () => void;
 }) {
-  const soldOut = left <= 0;
+  const soldOut = !external && !unlimited && left <= 0;
   return (
     <DetailCardShell>
-      {/* ⚠️ The name comes from `organiserNameOf` — the event's own organisation
-          name, or `ORGANISER_NAME` when it has none. The TRUST LINE below is
-          still hardcoded and there is still no organiser lookup on this page.
-          Logged as TODO.md §1; "Verified" cannot ship to real users as-is.
-
-          ⚠️ `OrganiserEventCard` renders this SAME header, deliberately. Change
-          the eyebrow or the subline in one and change it in the other. */}
       <DetailCardHeader
         eyebrow="Organised by"
         name={organizer}
-        subline="Verified · 40+ events"
-        verified
+        subline={verified ? "Verified" : undefined}
+        verified={verified}
       />
 
       <DetailCardBody>
@@ -688,25 +680,26 @@ function BookingCard({
             and together they outgrow the stacked card on a 320–375px phone —
             the shell is overflow-hidden, so without it the second chip was
             silently clipped. */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-7">
+        {!external && <div className="flex flex-wrap items-center justify-between gap-3 mt-7">
           <DetailPeopleChip count={going} label="going" />
           {/* ⚠️ Hidden once registration is closed. The card is NOT dimmed in
               that state (unlike a cancelled one), so "12 spots left" would sit
               directly above a disabled "Registration closed" button and read as
               a bug — scarcity copy only makes sense while the seats are
               claimable. */}
-          {!soldOut && !registrationClosed && <DetailAccentChip text={`${left} spots left`} />}
-        </div>
+          {!soldOut && !registrationClosed && <DetailAccentChip text={unlimited ? "Open registration" : `${left} spots left`} />}
+        </div>}
 
+        {external && <p className="mt-6 text-[16px]">Tickets and availability are managed by Ticketmaster. NewFind does not issue tickets for this listing.</p>}
         <DetailDivider />
 
         <DetailPriceRow
           // The offer takes over the caption when there is one: "Early bird"
           // above the figure says more than "Starting from" and is what the
           // organiser typed it for. A free event never has one.
-          label={offerName?.trim() || "Starting from"}
-          amount={formatPrice(price, currency)}
-          suffix={isFree ? undefined : "/ ticket"}
+          label={external ? "Tickets" : offerName?.trim() || "Starting from"}
+          amount={external ? "Check Ticketmaster" : formatPrice(price, currency)}
+          suffix={external || isFree ? undefined : "/ ticket"}
         />
 
         {/* ⚠️ `outline`, not a green fill (Gautham, 2026-08-31) — the same skin
@@ -721,10 +714,10 @@ function BookingCard({
                 ? "Registration closed"
                 : soldOut
                   ? "Sold Out"
-                  : "Book Now"
+                  : external ? "View tickets on Ticketmaster" : "Book Now"
           }
           onClick={onBook}
-          disabled={cancelled || registrationClosed || soldOut}
+          disabled={cancelled || registrationClosed || soldOut || (external && !providerAvailable)}
           variant="outline"
         />
       </DetailCardBody>

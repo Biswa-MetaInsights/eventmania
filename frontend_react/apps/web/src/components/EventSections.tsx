@@ -75,7 +75,7 @@ function Section({
       {/* The control sits on the heading's line and wraps beneath it on a phone
           rather than squeezing a 22px heading. */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="text-[22px] font-bold text-[var(--brand-text)]">{title}</h2>
+        <h2 className="nf-section-title text-[var(--brand-text)]">{title}</h2>
         {canEdit && (
           <ConsoleButton
             tone="outline"
@@ -136,7 +136,7 @@ export function AnnouncementsSection({
                 this". `PostedAt` degrades to nothing rather than to "Invalid Date". */}
             <PostedAt iso={a.posted_at} />
             {a.title && (
-              <h3 className="text-[18px] font-bold text-[var(--brand-text)] mt-1.5">{a.title}</h3>
+              <h3 className="nf-card-title text-[var(--brand-text)] mt-1.5">{a.title}</h3>
             )}
             {/* whitespace-pre-line so an organiser's own line breaks survive —
                 they typed them into a textarea and meant them. */}
@@ -191,11 +191,11 @@ export function AgendaSection({ items, ...rest }: SectionProps & { items: Agenda
               i > 0 ? "border-t border-[var(--brand-border)]" : "pt-0"
             }`}
           >
-            <span className="text-[18px] font-bold" style={{ color: "var(--brand-green)" }}>
+            <span className="nf-card-title" style={{ color: "var(--brand-green)" }}>
               {row.time}
             </span>
             <div>
-              <h3 className="text-[18px] font-bold text-[var(--brand-text)]">{row.title}</h3>
+              <h3 className="nf-card-title text-[var(--brand-text)]">{row.title}</h3>
               {row.detail && (
                 <p className="text-[18px] leading-relaxed text-[var(--brand-hint)] mt-1 whitespace-pre-line">
                   {row.detail}
@@ -233,7 +233,7 @@ export function FaqSection({ items, ...rest }: SectionProps & { items: FaqItem[]
             key={row.id}
             className={`py-4 ${i > 0 ? "border-t border-[var(--brand-border)]" : "pt-0"}`}
           >
-            <dt className="text-[18px] font-bold text-[var(--brand-text)]">{row.question}</dt>
+            <dt className="nf-card-title text-[var(--brand-text)]">{row.question}</dt>
             <dd className="text-[18px] leading-relaxed text-[var(--brand-hint)] mt-1.5 whitespace-pre-line">
               {row.answer}
             </dd>

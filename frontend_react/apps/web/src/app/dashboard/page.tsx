@@ -1,10 +1,15 @@
 "use client";
 
+import { isDummyMode } from "@/lib/data-source";
 import { useEffect, useState, Suspense, type MouseEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { loadBookings } from "@/lib/bookings";
 import { useRouter, useSearchParams } from "next/navigation";
-import { avatarFor, useAuthStore, useProfileStore, useTicketsStore, useWishlistStore } from "@eventmind/store";
+import { avatarFor, useAuthStore, useProfileStore, useWishlistStore } from "@eventmind/store";
 import type { StoredTicket, WishlistItem } from "@eventmind/store";
 import { Navbar } from "@/components/navbar/Navbar";
+import { ParticipantProfile } from "@/components/ParticipantProfile";
+import { privateImage } from "@/lib/operations";
 import { ProfilePictureModal } from "@/components/ProfilePictureModal";
 import type { BadgeType } from "@/components/EventBadges";
 import { CARD_CTA, CARD_GRID, EventCardItem, SkeletonCard, type CarouselEvent } from "@/components/EventsCarousel";
@@ -84,8 +89,13 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const userEmail = useAuthStore((s) => s.userEmail);
-  const tickets = useTicketsStore((s) => s.tickets);
+  const bookingQuery = useQuery({
+    queryKey: ["bookings", userEmail], queryFn: loadBookings,
+    enabled: hasHydrated && isAuthenticated, retry: false,
+  });
+  const tickets = bookingQuery.data ?? [];
   const wishlistItems = useWishlistStore((s) => s.items);
 
   // Who is signed in, and do they run events? Shares the console's query keys,
@@ -110,10 +120,11 @@ function DashboardContent() {
   const setActiveTab = (tab: TabId) => router.replace(`/dashboard?tab=${tab}`, { scroll: false });
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) router.replace("/auth");
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   const displayName = userEmail ? userEmail.split("@")[0].split(".")[0] : "User";
   const capitalized = displayName.charAt(0).toUpperCase() + displayName.slice(1);
@@ -157,13 +168,13 @@ function DashboardContent() {
       {/* ── Tab content ── */}
       <div className={`py-8 ${GUTTERS}`}>
         {activeTab === "tickets" ? (
-          <TicketsTab tickets={tickets} />
+          bookingQuery.isPending ? <p>Loading tickets…</p> : bookingQuery.isError ? <p role="alert">Tickets could not be loaded. Please refresh or sign in again.</p> : <TicketsTab tickets={tickets} />
         ) : activeTab === "wishlist" ? (
           <WishlistTab items={wishlistItems} />
         ) : activeTab === "events" ? (
           <MyEventsTab organiserId={organiserId} />
         ) : (
-          <ProfileTab name={capitalized} email={userEmail ?? ""} interests={MOCK_INTERESTS} />
+          isDummyMode ? <ProfileTab name={capitalized} email={userEmail ?? ""} interests={MOCK_INTERESTS} /> : <ParticipantProfile />
         )}
       </div>
     </div>
@@ -367,6 +378,7 @@ function TicketsTab({ tickets }: { tickets: StoredTicket[] }) {
 function TicketCard({ ticket }: { ticket: StoredTicket }) {
   const router = useRouter();
   const isFree = ticket.price_paid === 0;
+  const qr = useQuery({queryKey: ['ticket-qr', ticket.id], queryFn: async () => privateImage('/api/ticket/qr/' + ticket.id), enabled: !isDummyMode});
   const number = ticket.id.substring(ticket.id.length - 8).toUpperCase();
   const card: CarouselEvent = {
     id: ticket.event_id,
@@ -392,7 +404,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
               the card from a phone to the 4-across grid. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={qrUrl(ticket.qr_hash)}
+            src={isDummyMode ? qrUrl(ticket.qr_hash) : qr.data || undefined}
             alt={`QR code for ticket ${number}`}
             className="h-[82%] w-auto rounded-lg"
           />
@@ -404,7 +416,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
           <p className="text-[18px] line-clamp-1" style={{ color: "var(--brand-text)" }}>{ticket.seat_info}</p>
         </>
       }
-      action={
+      action={(
         <button
           onClick={(e) => stop(e, () => router.push(`/chat/${ticket.event_id}?name=${encodeURIComponent(ticket.event_title)}`))}
           aria-label={`Join the chat for ${ticket.event_title}`}
@@ -412,7 +424,7 @@ function TicketCard({ ticket }: { ticket: StoredTicket }) {
         >
           Join Chat
         </button>
-      }
+      )}
     />
   );
 }

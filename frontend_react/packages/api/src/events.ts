@@ -2,6 +2,8 @@ import { apiClient } from "./client";
 import type { Event, CurrencyCode } from "@eventmind/types";
 
 export interface EventSearchParams {
+  /** Non-published searches require the authenticated organizer_id at the gateway. */
+  status?: "draft" | "published" | "registration_closed" | "cancelled" | "completed";
   q?: string;
   category?: string;
   event_type?: string;
@@ -10,6 +12,10 @@ export interface EventSearchParams {
   /** Inclusive price bounds, compared against the RAW `price` number — the
    *  backend does no currency conversion, so a range is only meaningful within
    *  one currency. See TODO.md §25. */
+  currency?: CurrencyCode;
+  tag?: string;
+  sort?: "date" | "distance" | "price" | "popularity" | "name";
+  offset?: number;
   price_min?: number;
   price_max?: number;
   community_id?: string;
@@ -21,6 +27,8 @@ export interface EventSearchParams {
 }
 
 export interface EventCreateData {
+  timezone?: string;
+  visibility?: "public"|"unlisted"|"private";
   organizer_id: string;
   title: string;
   description: string;
@@ -50,6 +58,8 @@ export interface EventCreateData {
  * holding tickets. See TODO.md §20 — do not write copy promising that it does.
  */
 export interface EventUpdateData {
+  timezone?: string;
+  visibility?: "public"|"unlisted"|"private";
   description?: string;
   start_date?: string;
   end_date?: string;
@@ -86,7 +96,7 @@ export interface EventUpdateData {
   price?: number;
   /** ⚠️ Fixed at creation, same as `price` above. */
   currency?: CurrencyCode;
-  /** "draft" | "published" | "cancelled" | "completed" — the backend enum. */
+  /** "draft" | "published" | "registration_closed" | "cancelled" | "completed" — the backend enum. */
   status?: string;
 }
 
@@ -109,7 +119,7 @@ export interface ChatResponse {
 export const eventsApi = {
   search: (params?: EventSearchParams) =>
     apiClient.get<Event[]>("/event/search", {
-      params: { status: "published", ...params },
+      params,
     }),
 
   get: (id: string) => apiClient.get<Event>(`/event/${id}`),

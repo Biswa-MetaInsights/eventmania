@@ -13,10 +13,7 @@
 // The dev server must already be running (default http://localhost:3000; pass
 // --base=… to override). Screenshots land in scripts/sweep-shots/.
 //
-// ⚠️ /dashboard, /organizer/create and /checkout/[id] redirect to /auth on a
-// HARD load before the persisted session rehydrates (their guards do not wait
-// for `_hasHydrated`). With credentials the sweep reaches them through the
-// navbar menus instead, as a user would.
+// Core protected routes wait for auth hydration; legacy menu navigation below remains supported.
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";

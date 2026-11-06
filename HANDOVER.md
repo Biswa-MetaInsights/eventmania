@@ -25,6 +25,20 @@
 
 ---
 
+## Professional-QA release components (Biswajith Gopinathan, 2026-11-03)
+
+| Component | Integration constraint |
+|---|---|
+| ParticipantProfile | Real profile mutations; avatar reads require the authenticated blob helper. |
+| LocationSelector | Explicit town search, GeoNames attribution, permission-based rounded GPS centre; no postcode guarantee. |
+| EventMap | Lazy Leaflet map; OSM attribution, no tile prefetch; list remains usable on tile failure. |
+| EventRooms | Polling on existing event service; server enforces ticket-holder/organizer membership. |
+| NotificationBell | Private persisted notices; query cache must clear when the account changes. |
+| AccountRecovery | One-use token read from URL fragment, then removed from address bar; never log it. |
+| SocialSignIn | Shared provider controls for sign-in and explicit account linking. |
+| SocialCallback | Single-use provider callback exchange; no application tokens in URLs. |
+
+
 ## Repository Layout
 
 ```
@@ -285,17 +299,14 @@ price chip, badge, rail, dialog chassis, form field or empty state already exist
 second version is a bug even when it looks fine on its own. **One control = one component; if it
 must look different somewhere, add a prop — do not fork the file.**
 
-⚠️ **Communities are PARKED for Phase 2 (2026-08-14) — parked, NOT dead.** Every community-shaped
-file is intact and still type-checked, but unreachable at runtime: `/community/*` redirects home.
-**Do not delete any of it as dead code, and do not add a call site back** — the requirement is that
-a user never encounters the word "community" anywhere. The full file list, the `CommunityCarousel`
-trap (its importers are commented out, so tooling reads it as unreferenced) and the restore
-checklist: `COMPONENTS.md` and `TODO.md` §12.
+Communities are active in the professional-QA candidate, with persisted membership/reviews and event linkage. Optional home-carousel code remains parked. Treat STATUS.md as the authority for deployment state and tested boundaries.
 
 ### The shared systems — import these, never re-implement
 
 | File | What it is |
 |---|---|
+| `components/SocialSignIn.tsx` | Capability-driven sign-in and Profile connection buttons |
+| `components/SocialCallback.tsx` | Google/Facebook authorization callback completion |
 | `components/EventIcons.tsx` | **The** glyph set — every icon in the app |
 | `components/EventActions.tsx` | **The** round controls — share / wishlist / back / arrow, plus the organiser's edit / duplicate / cancel |
 | `components/ModalShell.tsx` | **The** dialog chassis — overlay, panel, title row, close, Escape, click-outside, portal |
@@ -307,7 +318,6 @@ checklist: `COMPONENTS.md` and `TODO.md` §12.
 | `lib/currency.ts` | **The** price formatter — never hand-write a currency symbol |
 | `lib/csv.ts` | **The** CSV download — never hand-roll `values.join(",")` |
 | `lib/checkin-store.ts` | **The** door record behind Attendees' check-in controls — localStorage, this device only, until `TODO.md` §19.3 |
-| `lib/dev-flags.ts` | **The** developer escape hatches — every one gated on `NODE_ENV === "development"` **and** an env var |
 | `lib/layout.ts` | `GUTTERS` — **the** standard horizontal padding |
 | `lib/pointer.ts` | `hoverCapable()` — guards `onMouseEnter`-driven *state* (menus) so a tap does not open-then-close it |
 | `lib/share-event.ts` | **The** share pipeline, both kinds |
@@ -408,20 +418,9 @@ rules apply, and costs nothing on a backend or docs task. The *reasoning* behind
 
 ## Shipping checklist
 
-### Strip the dev bypass
+### Production access
 
-`lib/dev-flags.ts` holds the developer escape hatches — today `SKIP_ORGANIZER_VERIFICATION`, which
-opens `/organizer/create` with no verified organiser profile and adds a dev strip to
-`/organizer/onboarding`. **Remove all of it as part of shipping**, in this order:
-
-1. Delete `lib/dev-flags.ts`.
-2. In `app/organizer/create/page.tsx` — drop the import, reset `verificationChecked` to `useState(false)`, delete the early return in the gate effect, and put the back button back to a plain `router.back()`.
-3. In `app/organizer/onboarding/page.tsx` — drop the import, delete the early return that suppresses the verified-organiser redirect, and delete the terracotta-edged dev strip above the header.
-4. Remove `NEXT_PUBLIC_SKIP_ORGANIZER_VERIFICATION` from `.env.local.example` and from every developer's `.env.local`.
-5. Delete the `lib/dev-flags.ts` row from `COMPONENTS.md` and from this file's *Component Registry*, and `CLAUDE.md`'s guideline 13 with them.
-
-**What this is NOT:** it is not a live hole in production — the reasoning is stated once, in
-`CLAUDE.md` guideline 13, along with the corollary that matters more than this checklist.
+Organizer development bypasses have been removed. Run type-check and backend integration tests before release. Set NEXT_PUBLIC_DATA_MODE=real and an HTTPS NEXT_PUBLIC_API_URL only after backend health checks pass.
 
 ---
 

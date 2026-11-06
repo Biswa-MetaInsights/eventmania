@@ -70,6 +70,7 @@ export function EventChatWidget({ event }: Props) {
         access === "organizer"
           ? `Hi! I'm your event assistant for "${event.title}". As the organiser, you can ask me anything about your event — schedule, venue, attendee FAQs, or how to present key details.`
           : `Hi! I'm your event assistant for "${event.title}". Ask me anything — what to bring, where to go, what to expect, and more.`;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initialise a fresh conversation only when the panel opens.
       setMessages([{ role: "assistant", content: greeting }]);
     }
   }, [open, access, event.title]); // eslint-disable-line react-hooks/exhaustive-deps

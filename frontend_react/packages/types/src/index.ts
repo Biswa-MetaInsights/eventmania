@@ -73,6 +73,8 @@ export interface FaqItem {
 }
 
 export interface Event {
+  source?: string;
+  external_id?: string;
   id: string;
   organizer_id: string;
   title: string;
@@ -90,6 +92,10 @@ export interface Event {
   end_date: string;
   capacity: number;
   tickets_sold: number;
+  badge_types?: string[];
+  distance_km?: number | null;
+  timezone?: string;
+  visibility?: "public" | "unlisted" | "private";
   price: number;
   /** ISO 4217 code the organiser priced in. Absent on rows written before the
    *  column existed — treat a missing value as DEFAULT_CURRENCY, never as USD. */
@@ -200,6 +206,12 @@ export interface ApiError {
 
 export type VerificationStatus = "unverified" | "pending" | "verified";
 
+export interface PublicOrganizerProfile {
+  user_id: string;
+  name: string;
+  verification_status: VerificationStatus;
+}
+
 export interface OrganizerProfile {
   id: string;
   user_id: string;
@@ -207,6 +219,7 @@ export interface OrganizerProfile {
   company_name: string;
   company_address: string;
   company_email: string;
+  contact_email: string;
   company_website?: string;
   country: string;
   registration_number: string;

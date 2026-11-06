@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
+from pydantic import BaseModel, Field
+import os
+import secrets
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user_profile import UserProfile
@@ -7,6 +10,36 @@ from uuid import UUID
 from typing import List
 
 router = APIRouter(prefix="/users", tags=["Users Profile"])
+
+class ProfileCreate(BaseModel):
+    user_id: UUID
+    full_name: str = Field(min_length=1, max_length=200)
+
+@router.post("/internal/profile", status_code=201)
+def initialize_profile(data: ProfileCreate, x_internal_key: str = Header(""), db: Session = Depends(get_db)):
+    expected = os.getenv("INTERNAL_API_KEY", "")
+    if not expected or not secrets.compare_digest(x_internal_key, expected):
+        raise HTTPException(status_code=403, detail="Internal access only")
+    profile = db.query(UserProfile).filter(UserProfile.id == data.user_id).first()
+    if not profile:
+        profile = UserProfile(id=data.user_id, full_name=data.full_name)
+        db.add(profile)
+        db.commit()
+    return {"id": str(profile.id)}
+
+@router.get('/internal/attendee/{user_id}')
+def attendee_identity(user_id: UUID, x_internal_key: str = Header(''), db: Session = Depends(get_db)):
+    from backend.shared.security import internal
+    internal(x_internal_key)
+    profile = db.get(UserProfile, user_id)
+    if not profile: raise HTTPException(404, 'Profile not found')
+    import httpx
+    try:
+        response = httpx.get(os.getenv('AUTH_SERVICE_URL', 'http://auth:8001') + '/auth/internal/identity/' + str(user_id), headers={'X-Internal-Key': x_internal_key}, timeout=5)
+        response.raise_for_status()
+    except httpx.HTTPError:
+        raise HTTPException(503, 'Identity service is temporarily unavailable')
+    return {'id': str(profile.id), 'full_name': profile.full_name, 'email': response.json()['email']}
 
 @router.get("/{user_id}", response_model=UserProfileOut)
 def get_user_profile(user_id: UUID, db: Session = Depends(get_db)):

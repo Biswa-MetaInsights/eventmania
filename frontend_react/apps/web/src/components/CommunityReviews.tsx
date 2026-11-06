@@ -1,65 +1,18 @@
-"use client";
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Attendee reviews on /community/[slug].
-//
-//  ⚠️ A community has NO reviews of its own — the review service is event-scoped
-//  (`/review/event/{id}`), and there is no community review table. So this block
-//  aggregates the reviews of the community's own PAST events client-side, and
-//  the subtitle says exactly that. It is not a community rating and must not be
-//  labelled as one.
-//
-//  One request per event, so the event list is capped (MAX_EVENTS) at the most
-//  recent past events — the ones people actually reviewed.
-// ─────────────────────────────────────────────────────────────────────────────
-
-import { useQueries } from "@tanstack/react-query";
-import { reviewsApi, type Review } from "@eventmind/api";
-import type { Event } from "@eventmind/types";
-import { ReviewsSection } from "./Reviews";
-
-/** How many past events we'll fan out review requests to. One request each. */
-const MAX_EVENTS = 6;
-
-/** Reviews rendered. The rest still count towards the average and the total. */
-const MAX_REVIEWS = 5;
-
-export function CommunityReviews({ pastEvents }: { pastEvents: Event[] }) {
-  // Most recent first — pastEvents arrives newest-last-run first from the page.
-  const ids = pastEvents.slice(0, MAX_EVENTS).map((e) => String(e.id));
-
-  const results = useQueries({
-    queries: ids.map((id) => ({
-      queryKey: ["reviews", id],
-      queryFn: () => reviewsApi.forEvent(id).then((r) => r.data),
-      // The review service 404s for an event with no reviews; that is a normal
-      // answer here, not a failure worth retrying six times over.
-      retry: false,
-    })),
-  });
-
-  const all: Review[] = results
-    .flatMap((r) => r.data ?? [])
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  const count = all.length;
-  const average = count > 0 ? all.reduce((sum, r) => sum + r.rating, 0) / count : undefined;
-
-  return (
-    <ReviewsSection
-      subtitle={
-        count > 0
-          ? "From attendees of this community's past events"
-          : undefined
-      }
-      reviews={all.slice(0, MAX_REVIEWS)}
-      average={average}
-      count={count || undefined}
-      emptyText={
-        pastEvents.length === 0
-          ? "This community hasn't run an event yet — reviews will appear here once it has."
-          : "No reviews yet. Attend an event from this community and be the first to share your experience!"
-      }
-    />
-  );
+'use client';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@eventmind/api';
+import { useAuthStore } from '@eventmind/store';
+import { inputCls } from '@/components/FormControls';
+interface Review {id:string;rating:number;comment:string;name:string}
+export function CommunityReviews({communityId}:{communityId:string}){
+  const authenticated=useAuthStore(s=>s.isAuthenticated);
+  const client=useQueryClient();
+  const [rating,setRating]=useState(5),[comment,setComment]=useState('');
+  const reviews=useQuery({queryKey:['community-reviews',communityId],queryFn:()=>apiClient.get<{items:Review[];count:number;average_rating:number|null}>(`/community/${communityId}/reviews`).then(r=>r.data)});
+  const post=useMutation({mutationFn:()=>apiClient.post(`/community/${communityId}/reviews`,{rating,comment}),onSuccess:()=>{setComment('');void client.invalidateQueries({queryKey:['community-reviews',communityId]});}});
+  return <section className="my-8 space-y-4"><h2 className="text-[24px] font-bold">Community reviews</h2>
+    {reviews.isPending?<p>Loading reviews…</p>:reviews.isError?<p>Reviews are temporarily unavailable.</p>:<><p>{reviews.data?.count?`${reviews.data.average_rating?.toFixed(1)} / 5 · ${reviews.data.count} reviews`:'No community reviews yet.'}</p>{reviews.data?.items.map(r=><article key={r.id} className="border border-[var(--brand-border)] rounded-lg p-4"><p className="font-bold">{r.name} · {r.rating}/5</p><p className="mt-2 whitespace-pre-wrap">{r.comment}</p></article>)}</>}
+    {authenticated&&<form className="space-y-3" onSubmit={e=>{e.preventDefault();post.mutate();}}><p>Members can publish one review. Organisers cannot review their own community.</p><label className="block">Rating<select value={rating} onChange={e=>setRating(Number(e.target.value))} className={`${inputCls(false)} ml-3`}>{[5,4,3,2,1].map(n=><option key={n}>{n}</option>)}</select></label><label className="block">Your review<textarea className={`${inputCls(false)} block w-full mt-2`} value={comment} onChange={e=>setComment(e.target.value)} minLength={5} maxLength={4000} required rows={3}/></label><button disabled={post.isPending} className="px-5 py-3 rounded-lg bg-[var(--brand-green)] text-[var(--brand-on-green)] font-bold">{post.isPending?'Publishing…':'Publish review'}</button>{post.isError&&<p role="alert">Review not published. You must be a member and may only review once.</p>}{post.isSuccess&&<p role="status">Your review was published.</p>}</form>}
+  </section>;
 }

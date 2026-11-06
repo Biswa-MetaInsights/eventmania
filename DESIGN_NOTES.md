@@ -299,22 +299,28 @@ token itself fails AA as text on linen.
 
 ## 8. Typography rationale
 
-**Why a 15px floor:** it gives the site a comfortable, Talk_to_file-like scale (their effective
-minimum was ~14–15px). The rule uses `!important`, which is safe **only because the app uses no
-responsive text scaling** (no `md:text-*` etc.) — if you ever add responsive size-ups from a small
-base, revisit it.
-
-**Prominent-copy scale (above the floor)**, so key copy doesn't sit at the minimum: a page subtitle
-(the `<p>` under an `<h1>`) is **18px**; an empty-state heading is **18px** with a **16px** helper
-line. Applied across Explore, Organizer console, My Events, Create Event, Onboarding, Create
-Community and Community detail. Follow this on new pages.
-
-**Why `data-keep-type` exists:** `EventCard.tsx`'s 11/12/14px type is intentional and must not
-change. The carousels already use no sub-15px type, so they need no marker.
+The owner approved Inter and a more compact Eventbrite-inspired hierarchy on 2026-11-06.
+This uses an independent open font rather than copying Eventbrite's font assets.
+The role tokens and classes in `globals.css` define the scale; `layout.tsx` loads the
+font once. Supporting text is 14px while body and inputs remain 16px. Card titles
+use 18px on mobile and 20px on desktop; headings use tighter leading than body text.
+The logo artwork, green palette, controls' touch areas and specialized dashboard
+figures retain their identities. `data-keep-type` remains an exception for the legacy
+unused EventCard only. Future changes should use the shared roles.
 
 ---
 
 ## 9. `HeroCarousel` mode system
+
+**Current homepage layout, owner-approved 2026-11-06:** the original photos rotate
+as a full-width background confined to the hero, ending before discovery content.
+Original spoken-exchange wording is retained. The former two-column frame and
+sparkle are removed from this hero. Sampled image brightness selects light or dark
+copy with a matching 72% scrim under its full area; this also protects contrast
+during the diagonal wipe. Images may crop responsively as backgrounds. Pause/Resume,
+44px controls and reduced-motion support are required. The remaining notes below
+record the former layout and parked features; their frame, crop and column rules
+are historical and are superseded by this paragraph.
 
 > **⚠️ Parked 2026-08-11 — three blocks, commented out, NOT deleted** (Gautham: "unnecessary, but
 > not sure… we might bring it back later"):

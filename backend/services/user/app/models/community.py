@@ -1,5 +1,5 @@
 from sqlalchemy.types import Uuid
-from sqlalchemy import Column, String, Text, DateTime
+from sqlalchemy import Column, String, Text, DateTime, JSON
 import uuid
 import datetime
 from sqlalchemy.ext.declarative import declarative_base
@@ -15,6 +15,7 @@ class Community(Base):
     slug = Column(String(350), unique=True, index=True, nullable=False)
     description = Column(Text, nullable=True)
     category = Column(String(100), nullable=True)
+    location = Column(JSON, default=dict, nullable=False)
     website = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

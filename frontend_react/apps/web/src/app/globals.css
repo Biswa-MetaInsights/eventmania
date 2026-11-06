@@ -45,6 +45,14 @@
      popup while our --brand-text goes near-white, i.e. invisible options. */
   color-scheme: light;
 
+  /* Typography roles: shared by public pages and organizer surfaces. */
+  --type-hero: clamp(1.75rem, 3.4vw, 3rem);
+  --type-section: clamp(1.375rem, 2vw, 1.5rem);
+  --type-card: 1.125rem;
+  --type-body: 1rem;
+  --type-meta: 0.875rem;
+  --type-control: 1rem;
+
   --brand-green: #184E4A;
   --brand-green-hover: #133D39; /* darker green for button :hover */
   --brand-on-green: #F2EFEA;
@@ -132,9 +140,10 @@
   --brand-hint: #111827;   /* == --brand-text; see the token note above */
   --brand-muted: #9CA3AF;  /* placeholders + muted fills ONLY */
   /* Logo/wordmark tint — follows the brand green in BOTH themes (green in light,
-     the lighter dark-mode green in dark so it stays readable on the dark ground).
+     the existing linen text in dark so it stays readable on the dark ground).
      Defined via var() so it resolves per-theme automatically. */
   --brand-logo: var(--brand-green);
+  --brand-heading: var(--brand-green);
 
   /* legacy aliases — body + Tailwind color-* tokens */
   --background: var(--brand-bg);
@@ -155,6 +164,8 @@
   --brand-bg: #0F1A18;       /* deep warm green-black */
   --brand-surface: #16211F;  /* cards/navbar lifted slightly off the bg */
   --brand-text: #ECEAE4;     /* warm off-white */
+  --brand-logo: var(--brand-text);
+  --brand-heading: var(--brand-text);
   --brand-border: #2A3A38;
   --brand-nav-border: #33433F;
   /* Dark needs no lift: --brand-surface (#16211F) already sits off --brand-bg
@@ -168,8 +179,7 @@
                               --brand-text's #ECEAE4; Gautham asked for the brand
                               white shade specifically. */
   --brand-muted: #8B938F;  /* placeholders + muted fills ONLY */
-  /* --brand-logo inherits `var(--brand-green)` from :root, which resolves to the
-     dark-mode green (#2F8A80) here — a readable green on the dark ground. */
+  /* Logo and headline use the existing linen text token for dark contrast. */
 
   /* ── .dark-gray alternate (neutral, no green tint) — uncomment to swap ──
   --brand-green: #2E7D77;
@@ -226,9 +236,24 @@ body {
   color: var(--foreground);
   /* The single default typeface. Components inherit this unless they opt out. */
   font-family: var(--font-app), system-ui, Arial, sans-serif;
+  font-size: var(--type-body);
+  line-height: 1.5;
   /* Smooth the flip between light and dark. */
   transition: background-color 200ms ease, color 200ms ease;
 }
+
+/* Semantic roles override utility sizing without changing colors or layout. */
+.nf-hero-title { font-size: var(--type-hero); font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; }
+.nf-section-title { font-size: var(--type-section); font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; }
+.nf-card-title { font-size: var(--type-card); font-weight: 600; line-height: 1.35; }
+.nf-body { font-size: var(--type-body); line-height: 1.5; }
+.nf-meta { font-size: var(--type-meta); line-height: 1.5; }
+.nf-control { font-size: var(--type-control); font-weight: 600; line-height: 1.5; }
+@media (min-width: 1024px) {
+  :root { --type-card: 1.25rem; }
+}
+/* Inputs remain at least 16px, including smaller supporting-text utilities. */
+:is(input, select, textarea) { font-size: var(--type-control); }
 
 /* ── Autofill styling ─────────────────────────────────────────────────────────
    When the browser autofills a saved value it forces its own light background
@@ -264,9 +289,9 @@ optgroup {
 }
 
 /* ── Font-size floor ──────────────────────────────────────────────────────────
-   No text on the site renders below 15px. Any Tailwind class that would be
+   Supporting text has a 14px minimum; body and controls use the role tokens. Any Tailwind class that would be
    smaller — `text-xs` (12px), `text-sm` (14px), and arbitrary `text-[9px]`…
-   `text-[14px]` — is raised to the floor. Sizes already ≥15px are untouched.
+   `text-[13px]` — is raised to the floor. Larger explicit sizes are untouched.
 
    Opt-out: elements marked `data-keep-type` (and their descendants) are exempt,
    so components with deliberately small, hand-tuned type keep it. Currently used
@@ -284,12 +309,12 @@ optgroup {
   .text-\[13px\],
   .text-\[14px\]
 ):not([data-keep-type], [data-keep-type] *) {
-  font-size: 15px !important;
+  font-size: var(--type-meta) !important;
 }
 
 /* ── Form-control floor on TOUCH: 16px ────────────────────────────────────────
    iOS Safari zooms the whole page when a focused <input>/<select>/<textarea>
-   is under 16px, and the 15px floor above is one pixel short of that. Every
+   is under 16px, so supporting-text classes must be lifted on touch. Every
    form in the app goes through `text-sm` (FormControls' inputCls, /explore's
    search + selects, the chat composers, checkout), so rather than touch 30
    call sites this lifts the same class list one more pixel — on a coarse
@@ -297,7 +322,7 @@ optgroup {
 
    Specificity note: the floor rule above is (0,2,0) with !important; this one
    repeats its `:not()` so it lands at (0,2,1) and wins the tie. Keep the
-   `:not()` — without it the floor's 15px beats this and the zoom comes back. */
+   `:not()` — without it the supporting-text floor beats this and the zoom comes back. */
 @media (pointer: coarse) {
   :is(input, select, textarea):is(
     .text-xs,
@@ -470,4 +495,28 @@ a, button, [role="button"], input, select, textarea, label, summary {
    does not would read as two controls moving against each other. */
 @media (prefers-reduced-motion: reduce) {
   .nf-seg-thumb { transition: none; }
+}
+
+/* Homepage image is confined to the hero; Events remains on the page surface.
+   The left 70% keeps a constant 72% wash behind the entire copy column.
+   Mobile uses the same coverage everywhere because its copy spans the image. */
+.nf-home-hero { background: #0F1A18; }
+.nf-home-hero-wash { background: rgba(var(--hero-wash), 0.72); }
+@media (min-width: 1024px) {
+  .nf-home-hero-wash {
+    background: linear-gradient(90deg, rgba(var(--hero-wash), 0.72) 0%, rgba(var(--hero-wash), 0.72) 70%, rgba(var(--hero-wash), 0.1) 100%);
+  }
+}
+
+/* Finish the image on the hero's bottom edge, using the current page theme.
+   This sits behind text and controls and never covers the Events section. */
+.nf-home-hero::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: clamp(80px, 8vw, 120px);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--brand-bg) 0%, transparent), var(--brand-bg));
+  z-index: -1;
+  pointer-events: none;
 }

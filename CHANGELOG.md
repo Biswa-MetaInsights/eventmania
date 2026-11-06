@@ -9,6 +9,32 @@
 
 ---
 
+## 2026-11-07
+- **Biswajith Gopinathan** — deploy auth/gateway social backend with protected backup/restore and rollback images; verify health, preserved Gmail configuration and unchanged TalktoFile starts; provider activation and frontend promotion remain pending.
+- **Biswajith Gopinathan** — prepare browser-bound Google/Facebook authorization-code sign-in, signed Google identity verification and explicit account linking with isolated security tests; Google provider activation and live OAuth QA remain pending.
+
+## 2026-11-06
+- **Biswajith Gopinathan** — activate Gmail SMTP privately for NewFind auth/event services; verify TLS authentication, application test send and owner-confirmed inbox receipt with unchanged TalktoFile container start times.
+- **Biswajith Gopinathan** — retain original hero photos/copy in a full-width rotating background above discovery, with image-dependent text contrast, a subtle bottom fade into the page surface, pause controls and reduced-motion support.
+- **Biswajith Gopinathan** — adopt Inter and shared responsive typography roles across discovery, authentication, event content and organizer controls; retain NewFind logo and palette.
+
+## 2026-11-04
+- **Biswajith Gopinathan** — improve mobile dark contrast, shared navigation icons, explicit persisted city selection, menu accessibility and authentication labels/autofill; production promotion and real-device QA remain pending.
+
+## 2026-11-03
+- **Biswajith Gopinathan** — prepare encrypted off-server backup/readback verification, operational alert retries/recovery and SMTP preflight; suppress synthetic production mail; verify 10,000-listing geographic pagination and reduce inventory fanout. Real destination activation remains pending credentials/approval.
+- **Biswajith Gopinathan** — deploy isolated core APIs and frontend; verify PostgreSQL operations through the public HTTPS proxy, restart persistence and protected database restores; load 236,907 GeoNames towns/cities and enable local health monitoring.
+- **Biswajith Gopinathan** — preserve international search coordinates in links and correct physical venue labels and venue-zone event time display following browser QA.
+- **Biswajith Gopinathan** — add persistent organizer event content, attendee/check-in audit, chat, notifications, profiles/assets, communities and interest suggestions; implement locally verified account recovery and verification with durable delivery.
+- **Biswajith Gopinathan** — add cross-border 200 km map discovery and offline international town search; enforce currency-safe comparisons and totals; update vulnerable runtime dependencies and guard the isolated rollout with backups and rollback images.
+
+## 2026-11-02
+- **Biswajith Gopinathan** — fix owner draft visibility; prepare bounded Ticketmaster sync and external-ticket safeguards; remove fictional-event fallback from discovery.
+- **Biswajith Gopinathan** — implement safe public organizer identity, contact-email persistence/migration, core auth hydration guards and verified daily local database backups; hide unsupported real-mode features and replace unimplemented marketing claims.
+
+## 2026-11-01
+- Deployed the isolated persistent core backend; deployed API, concurrent booking and restart-persistence checks pass. Public routing and frontend registration/free-booking verification subsequently passed.
+
 ## 2026-09-11
 
 - **The dashboard's fourth tab is "Profile", and it takes a picture** (Gautham) — "Participant Profile" was renamed (every tab there is already a participant's), and the avatar disc gained an always-visible camera badge that opens `ProfilePictureModal` — the same `CoverImageField` an organiser picks a cover photo with, at `kind="avatar"`: a circular preview, upload or a pasted link, Remove. The picture also replaces the green initial disc in the navbar's account menu. It is stored in `useProfileStore` (localStorage, keyed by email) rather than on `profiles.avatar_url`, which is a `String(512)` with no upload endpoint behind it — the same wall the cover image hit. `image-upload.ts` grew `fileToAvatarDataUrl`: 320px, centre-cropped square, 150 KB.

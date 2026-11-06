@@ -4,86 +4,25 @@
 > Delete an entry once it ships (and add a `CHANGELOG.md` line). `STATUS.md` lists these as
 > one-liners — read the spec here before picking one up.
 >
-> **Items marked NEEDS A DECISION are blocked on Gautham.** Do not silently work around them.
+> **Current backlog owner: Biswajith Gopinathan (Biswa-MetaInsights).** Biswajith authorized the combined launch backlog on 2026-11-02; routine implementation decisions no longer wait for Gautham. Existing historical notes retain their authorship. Paid services, disruptive production changes and real payments still require explicit approval.
 
 ---
 
-## Where the work is — frontend, backend, or both
+## Current priorities — owner: Biswajith Gopinathan
 
-Every section below carries a tag in its heading. **The tag is the first thing to read**: it says
-what kind of session can pick the item up, and roughly half of this file cannot be moved at all
-from the side you happen to be sitting on.
-
-| Tag | Meaning |
-|---|---|
-| **`[FE]`** | Frontend only — React/Next.js under `frontend_react/`. No API change needed. |
-| **`[BE]`** | Backend only — FastAPI under `backend/`. The UI is already built and waiting, or the item is invisible to the UI. |
-| **`[FE+BE]`** | Needs both, and usually **backend first**: the frontend half is blocked until the field, endpoint or event exists. |
-| **`[OPS]`** | Neither — deployment, verification or a third-party account. |
-
-⚠️ **`[FE+BE]` is not "half done on each side".** In almost every case here the frontend is already
-built against a shape the backend does not serve yet (organiser console, tags, tickets), so the
-frontend half is a *swap*, not a build. Read the section before assuming there is UI work in it.
-
-| # | Item | Tag |
+| Priority | State | Remaining work |
 |---|---|---|
-| 1 | Organiser identity on `/event/[id]` is hardcoded | `[FE+BE]` |
-| 2 | `Today` / `Recommended` badges are dead for real data | `[FE+BE]` |
-| 2b | Tag derivation belongs in the backend | `[FE+BE]` |
-| 3 | Chat backend — persistence, room list, real unread | `[BE]` |
-| 3b | Join a community | `[FE+BE]` · parked |
-| 3c | Verify the participant room end to end | `[FE+BE]` |
-| 4 | Ticketmaster geocoding | `[BE]` |
-| 5 | Auth guards race zustand hydration | `[FE]` · decision |
-| 6 | Event card meta row over-stuffed | `[FE]` · decision |
-| 7 | Chat launcher overlaps the Similar-events card | `[FE]` · decision |
-| 7b | Event assistant for unregistered users | `[FE+BE]` · decision |
-| 8 | Home-page filter tabs | `[FE]` · decision |
-| 9 | Remaining icon-set stragglers | `[FE]` |
-| 10 | Dead code awaiting sign-off | `[FE]` |
-| 11 | Smaller gaps | mixed — **tagged per bullet** |
-| 12 | Phase 2 — un-park the community feature | `[FE]` (+ 3b for the backend half) |
-| 13 | Pricing — free to list, 2% on paid events | `[FE+BE]` |
-| 14 | Organiser stats dashboard | `[BE]` — the frontend shipped |
-| 15 | `FeatureBand` breadth card | `[FE]` · blocked on catalogue size |
-| 16 | Park event rooms for Phase 2 | `[FE]` |
-| 17 | Recommendation engine | `[BE]` |
-| 18 | Verify share on a public deploy | `[OPS]` |
-| 19 | Organiser console — the backend behind dashboard v2 | `[BE]` |
-| 20 | Postponing and cancelling an event | `[BE]` |
-| 21 | How to handle a refund | `[BE]` · decision |
-| 22 | Posting an announcement is too hard for an organiser | `[FE]` · decision |
-| 23 | `registration_closed` has no backend — the UI ships ahead of it | `[BE]` |
-| 24 | Notifications move to the navbar bell | `[BE]` — pill removed 2026-09-02, **the bell now owes its signals** |
-| 25 | Multi-currency — every amount is a bare number | `[FE+BE]` · decision |
-| 26 | Contact person email on `/organizer/onboarding` is collected but not persisted | `[BE]` |
+| 1 | Core and Gmail sender deployed; broader QA remains | Finish deployed recovery/verification journeys, Google activation and approved alert destination; paid off-server backups deferred by owner; authenticated/mobile/accessibility and production-load evidence; provider approval/credentials |
+| 2 | Event operations deployed; live API QA passed | Console large-data search/pagination UX, scheduled reminders, refund/statement workflows and operator training |
+| 3 | Communities, interest suggestions and social-auth backend deployed | Finish Google credentials/consent, frontend production promotion and real OAuth QA; Facebook follows separately. Paid tiers/Stripe test flow, refunds/settlements and grounded assistant remain |
+
+Implemented in the release candidate: persisted profiles/images and event content, 200 km map discovery, backend live badges, currency-safe comparisons/totals, email recovery/verification transport, attendees/check-ins/audit, event closure, reschedule/cancel notices, persistent chat/notifications, communities/membership/reviews and saved-interest suggestions. See STATUS.md for tested boundaries. Production activation is not implied by implementation.
 
 ---
 
-## 1. `[FE+BE]` Organiser identity on `/event/[id]` is hardcoded — must fix before launch
+## 1. Organiser identity — implemented (Biswajith Gopinathan)
 
-**Where:** the green header on **both** right-column cards in `app/event/[id]/page.tsx` — the
-participant's `BookingCard` and the organiser's `OrganiserEventCard`, which show the same block
-(Gautham, 2026-09-01).
-
-Every part of the organiser block is fake: the name is the literal string `"NewFind Collective"` —
-the `ORGANISER_NAME` constant both cards are passed — the avatar is that string's first letter, and
-"✓ Verified · 40+ events" is a fixed string. There is no organiser lookup, no verification flag and
-no event count behind it. Gautham approved this **for now** so the card could match the reference
-design. **"Verified" is a trust claim** — it cannot ship to real users as-is.
-
-**Fix:** look the organiser up by `event.organizer_id` via `organizerApi`, then pass real
-`organizer` / `verified` / `eventCount` props into both cards, replacing `ORGANISER_NAME`.
-`CommunityJoinCard` already does exactly this lookup — **copy it, don't re-derive it.**
-
-⚠️ **The name is the ORGANISATION's, not the person's** (Gautham, 2026-09-01): `company_name` on
-`OrganizerProfile`, falling back to `full_name`. `/organizer/onboarding` already collects it and
-`organizerApi.get(userId)` already returns it, so **nothing new is needed on the create-event form.**
-
-`OrganizerProfile` also carries `VerificationStatus` (`"unverified" | "pending" | "verified"`), so
-the verified flag is `verification_status === "verified"`. **The event count has no backend field
-yet and needs one.** Where an organiser is unverified or the count is unknown, **hide the trust
-line — do not fake it.**
+Both event sidebar views use the same privacy-safe public organizer lookup. The API exposes only user_id, name and verification_status; bank/contact/address data remains owner-only. Unknown counts are hidden, and a badge appears only for a genuinely verified profile. The organization name falls back to full_name; failed lookups display a neutral unavailable label.
 
 ---
 
@@ -109,184 +48,23 @@ that work; this tab cannot light up before it.
 
 ---
 
-## 2b. `[FE+BE]` Tag derivation belongs in the backend — and two more tags are already dead
+## 2b. Release candidate — Backend badge derivation implemented; recommendation badges apply only to interest matches.
 
-§2 covers the two badge types nothing emits. This covers the four that *are* emitted: they are all
-derived **client-side, per card**, in `toCarouselEvent()` (`lib/card-adapters.ts`).
+## 3. Release candidate — Persistent event rooms/messages/read cursors and older-history UI implemented; deployed QA remains.
 
-| Tag | Predicate |
-|---|---|
-| `sold-out` | `capacity > 0 && tickets_sold >= capacity` |
-| `selling-fast` | `!soldOut && capacity > 0 && tickets_sold / capacity > 0.7` |
-| `this-week` | `!soldOut && isThisWeek(start_date)` |
-| `free` | `price === 0` |
+## 3b. Release candidate — Durable membership and community reviews implemented; no paid membership.
 
-**⚠️ Two of those four can never fire on a real event either.** `tickets_sold` is
-`Column(Integer, default=0)` in `services/event/app/models/event.py` and **nothing in the repo ever
-writes to it** — a repo-wide grep returns only the column definition, the Pydantic field, fixture
-literals and read sites. Tickets never reach the database at all (§11, "real ticket issuance"), so
-`tickets_sold` is permanently `0` on live data and **`sold-out` and `selling-fast` appear only on
-the dummy fixtures, which hardcode the numbers.** Only `this-week` and `free` survive against a real
-backend.
+## 3c. Release candidate — Server-derived sender identity and organizer badge verified through API; deployed browser/cross-device QA remains.
 
-The same zero shows through on the detail page: `/event/[id]` passes `going={event.tickets_sold}`
-and `left={capacity - tickets_sold}` into the booking card, so every real event reads "0 going".
+## 4. `[OPS+BE]` Activate and verify the Ticketmaster catalogue — Biswajith Gopinathan
 
-**Second problem — the derivation is duplicated.** `app/explore/page.tsx` re-implements the sold-out,
-selling-fast and popularity predicates independently of `card-adapters.ts`. Two copies of the 0.7
-threshold, free to drift.
+A lightweight one-shot importer is prepared (`backend/scripts/sync_external_events.py` and `backend/shared/ticketmaster_sync.py`). It runs in the existing event container, authenticates private ingestion, validates provider links, upserts provider IDs, and stops cleanly on provider errors. Default scope is Brussels/BE, Amsterdam/NL and Luxembourg/LU, two pages per city. A timer may be installed only after a successful real import. Native tickets and provider listings are distinct: external checkout is blocked server-side and the UI directs visitors to Ticketmaster.
 
-**Third — a client-side tag cannot be filtered server-side.** `/event/search` accepts no
-`selling_fast` or `this_week` parameter, so the home filter tabs and Explore's "Selling fast" toggle
-narrow only the rows already fetched, not the catalogue (`DESIGN_NOTES.md` §10 records this for the
-Explore panel). A "Free" tab that silently misses free events further down the result set is worse
-than no tab.
+Deployed and checked on 2026-11-03: event/ticketing safeguards, database backup, healthy services and persistent core API journeys. Pending: configure a private Ticketmaster key (absent from server and Vercel), run a real import, verify provenance/links/images and repeated-sync identity, then activate the refresh timer. No real import is claimed until those checks pass. Venue coordinates are used when supplied; missing coordinates remain missing rather than fake 0,0. No paid geocoding is configured.
 
-**Fix, in order:**
-1. **Make `tickets_sold` real** — increment it on issuance. Blocked on §11's real ticket issuance;
-   until that lands, anything built on it stays decorative.
-2. **Move derivation server-side** — return a computed tag array on the event payload from
-   `/event/search` and `/event/{id}`, with the thresholds owned by the event service.
-3. **Accept the same tags as filter parameters** on `/event/search`, so the tabs filter the
-   catalogue rather than the page.
-4. **Reduce `toCarouselEvent` to rendering what it is given**, and delete the duplicate predicates
-   in `explore/page.tsx`.
+## 5. Auth hydration — core routes fixed (Biswajith Gopinathan)
 
-Fold §2 in when this lands — a backend-owned tag set is the natural home for a real `recommended`
-signal and a `today` check.
-
----
-
-## 3. `[BE]` Chat backend — persistence, room list, real unread
-
-The navbar glow and `/chat` inbox are a **frontend-only MVP** (`components/ChatPresence.tsx`). It
-opens one WebSocket per room while the app is open and marks a room unread on any inbound message
-whose `sender_id` isn't the user's. By design this cannot detect anything received while the app is
-closed, and there is no read-receipt state that survives a refresh.
-
-**Needs, in order:**
-1. **Message persistence** — `chat_endpoints.py` has its `db.add` / `commit` calls commented out.
-2. **A room-list endpoint** — the frontend currently derives rooms from tickets held plus events organised.
-3. **A real unread-count / read-receipt mechanism**, then replace `ChatPresence` with it.
-
-Room ids share the WS base (`CHAT_WS_BASE`) with the room page via `lib/chat.ts`. Current unread
-state lives in `packages/store/src/chat-unread-store.ts` (persisted map `eventmind-chat-unread`,
-plus a non-persisted `activeRoom` so the room you are viewing never glows).
-
----
-
-## 3b. `[FE+BE]` Join a community — the button exists, nothing behind it
-
-> ⚠️ **Blocked by the Phase 2 park (2026-08-14).** Communities are switched off for the MVP, so
-> nothing in this section is reachable by a user. Do not build it before §12 is actioned.
-
-**Where:** `components/CommunityJoinCard.tsx` (the card CTA) and `app/community/[slug]/page.tsx`
-(the sticky bar CTA). Both call `handleJoin()`, which is **deliberately empty**. Gautham asked for
-the button now and the flow later — do not wire it up halfway.
-
-**Nothing exists on the backend.** `backend/services/community/` has only create / search / get
-(`community_endpoints.py`). There is no membership table, no join endpoint, and no notification
-hook. `Community.member_count` is a plain `Integer` column with **nothing maintaining it** — it is
-whatever the seed script wrote.
-
-**Needs, in order:**
-
-1. **`community_members` table** — `community_id`, `user_id`, `joined_at`; unique on
-   `(community_id, user_id)` so a double-click can't join twice. New model beside
-   `models/community.py`.
-   > ⚠️ Mind the startup-order trap in `HANDOVER.md`: the community service must still create the
-   > `communities` table before the user service does. Adding a second table here doesn't change
-   > that, but adding a *relationship* to `communities` could.
-2. **Endpoints** — `POST /community/{id}/members` (join), `DELETE /community/{id}/members` (leave),
-   `GET /community/{id}/members/me` (am I a member?). Join/leave must update `member_count` in the
-   same transaction, or drop the column and compute the count — **do not leave two sources of
-   truth.**
-3. **Notification on new events** — when an event is published with a `community_id`, the
-   notification service emails / notifies that community's members. This is the actual feature
-   Gautham asked for; the join button is only its entry point. Decide whether it fires from the
-   event service on publish or from a Kafka consumer (note Kafka is mocked in dev — `MOCK_KAFKA`).
-4. **Frontend join state** — `communityApi.join/leave/membership`, surfaced through React Query.
-   Auth-gate the CTA: unauthenticated users go to `/auth` first.
-
-**Then design the joined state** (not yet designed — this is the open question, not a coding task):
-
-- What the CTA becomes — "Joined ✓", a "Leave" affordance, and where leaving lives so it isn't a
-  one-click mistake.
-- Whether the sticky bar keeps a CTA at all once you're a member, or switches to something else.
-- What a member sees that a non-member doesn't — member-only events? a members list? a notification
-  preference toggle ("email me about new events")?
-- Whether `member_count` visibly increments straight away (optimistic) or after the round-trip.
-
-**Until all of the above lands, the button must keep doing nothing** rather than storing a
-device-local "joined" flag — a join that sends no email is not the feature.
-
----
-
-## 3c. `[FE+BE]` Verify the participant room end to end — and make people in it identifiable
-
-**Why this matters now:** `FeatureBand`'s lead card on the home page says *"Every event has its
-own room. Ask the organiser a question, and meet the people going."* That is a claim to every
-visitor, so the room needs to be confirmed working, not just confirmed present.
-
-**What has been verified — by reading the code only (2026-08-18):**
-- The room id **is the event id** (`app/chat/[roomId]` opens `CHAT_WS_BASE/{roomId}/{userId}`).
-- Membership is **tickets held ∪ events organised**, deduped (`app/chat/page.tsx`), so every
-  ticket-holder and the organiser resolve to the same room for a given event.
-- `ConnectionManager.broadcast_to_room` fans each message out to **every** socket in
-  `active_connections[room_id]`, plus a Redis publish for other instances.
-
-So it is a group room by construction, not a 1:1 with the organiser. **Nobody has run two clients
-against one event and watched a message land.** Do that first: two browsers, two accounts, both
-ticketed on the same event, and confirm each sees the other's message.
-
-**Gaps found while reading — fix before leaning on the card any harder:**
-1. **Nobody is identifiable.** Every sender that is not you renders as
-   `Attendee <first 4 chars of their UUID, uppercased>`. There is **no organiser branch at all**, so
-   the one thing the card tells people to do — ask the organiser — cannot actually be acted on,
-   because you cannot tell which message is theirs. The page already knows `roomId === event.id`,
-   so look the event up and compare `msg.sender_id` against `organizer_id` to badge them. Real
-   display names need a user lookup (`GET /user/{id}`) or a name on the broadcast payload.
-2. **Nothing persists** — see §3. Two people in the room at different times see an empty room, so
-   "meet the people going" only works if they happen to be online together.
-3. **Post-booking only** — a prospective attendee cannot reach the room at all, which is the same
-   shape of problem as §7b. The card's copy deliberately does not say *when* you can chat, so it
-   stays accurate either way; do not "clarify" it.
-
----
-
-## 4. `[BE]` Ticketmaster geocoding
-
-Ingestion runs, but many Ticketmaster events carry no venue coordinates and are currently saved with
-`lat: 0, lng: 0`. That is a real point in the Atlantic, so those events fall out of every radius
-search. Needs a geocoding API (Google Maps or Nominatim) in
-`backend/services/recommendation/app/services/ticketmaster_ingestion.py`.
-
-Note `eventCoords()` in `SimilarEvents.tsx` already treats `0,0` as "no coordinates" — keep that
-guard until this is fixed.
-
-Once geocoding works end to end, `seed_events.py` is no longer needed for populating **events**
-(still useful for communities).
-
----
-
-## 5. `[FE]` Auth guards race zustand hydration — NEEDS A DECISION (behaviour change)
-
-Every guard is `useEffect(() => { if (!isAuthenticated) router.replace("/auth") })`, which fires on
-the first client render — **before** zustand's `persist` has rehydrated `eventmind-auth` from
-localStorage. So `isAuthenticated` is still `false`, the guard redirects, and `/auth` (seeing the
-now-hydrated session) sends the user on to `/`.
-
-Reproduced repeatedly on `/dashboard`, `/organizer`, `/organizer/my-events`: a hard load lands on
-`/`, a soft client-side navigation usually survives — the signature of a hydration race, and why it
-looks intermittent in normal use.
-
-**The fix already exists in the codebase and is simply not used here.** The store exposes
-`_hasHydrated`, and `app/page.tsx` already gates on it
-(`hasHydrated ? _selectedCity : DEFAULT_CITY`); `/chat` does too. The guards should do the same —
-wait for `_hasHydrated` before deciding, and render the loader until then.
-
-**Do not "fix" it by removing the guard.** Flagged as needing a decision only because it is an
-auth-behaviour change rather than a layout one.
+Dashboard, checkout, organizer onboarding and event creation wait for persisted authentication before redirecting or fetching. The console already used this guard. Parked community/chat routes still need the same review when enabled.
 
 ---
 
@@ -410,7 +188,7 @@ nothing in common but their size.
 - `[FE]` **SEO metadata** on dynamic routes other than `/event/[id]` and `/community/[slug]`.
 - `[FE+BE]` **Notification bell** — icon present, no panel, no backend.
 - `[FE]` **Help page** — link present, no page.
-- `[BE]` **Real ticket issuance** — tickets are Zustand/localStorage only, never written to the database.
+- `[BE]` **Paid/tiered ticket issuance** — free booking persistence, live inventory and idempotency are implemented and tested; paid issuance and tiers remain pending.
 - `[FE+BE]` **Social login** — buttons present, disabled.
 - `[FE+BE]` **Event image upload** — `image_url` exists and is populated for synced events; no organiser upload path, no field on the create form.
 - `[FE+BE]` **Ticket tiers** — backend supports one price per event; Free/Standard/VIP needs schema changes.
@@ -497,39 +275,7 @@ issuance and real payment capture first.
 
 ---
 
-## 14. `[BE]` Organiser stats dashboard
-
-**Promised on the home-page `FeatureBand`** ("Everything an organiser wants, in one place — see all
-your event info and stats in the organiser dashboard, one at a time, or all together"), and intended
-for the MVP.
-
-⚠️ **That copy was softened on 2026-08-19 and no longer names a figure.** It used to promise
-"tickets sold, revenue, and how each event is tracking", which set a bar nothing could clear:
-"tickets sold" needs real ticket issuance (§11) and a real `tickets_sold` (§2b — nothing writes to
-that column today), and "revenue" needs payments that actually complete (§13). The card now says
-"info and stats", so **event counts and statuses honestly satisfy it** and the two harder figures
-can follow their dependencies. **Do not put revenue or tickets-sold back into the card before the
-numbers behind them are real, and do not wire the page to the existing hardcoded constants and call
-it done.**
-
-**Wanted:** per-event stats, all-events aggregate, and any organiser-selected subset.
-
-**✅ BUILT 2026-08-20 — the front end of this is done.** `app/organizer/page.tsx` was replaced by the
-multi-section console at `app/organizer/(console)/*` (dashboard v2, imported from Claude Design). What
-that closed:
-- The three hardcoded constants (**Total Revenue `12450`**, **Total Attendees `1,240`**, per-row
-  `price * 120`) are **gone**. Revenue is now `tickets_sold × price` in the event's own currency, and
-  every figure without a real source prints an em dash instead of a number.
-- ⚠️ **The live bug is FIXED.** The old page called `eventsApi.search()` with **no `organizer_id`**,
-  so "Your Managed Events" listed every published event on the platform rather than the signed-in
-  organiser's. The console fetches through `organizerSource.events(organiserId)`, which passes it.
-
-**Still blocked on the same data as §13 and §11:** attendee counts need `tickets_sold` to be real
-(§2b), and revenue needs payments to actually complete. The console reports event counts, statuses
-and sold/capacity honestly and says plainly where a figure has no source — **the remaining backend
-work is itemised in §19.**
-
----
+## 14. Release candidate — Real organizer overview and currency-split earnings implemented; payment/refund statements remain.
 
 ## 15. `[FE]` `FeatureBand` — a "plenty to choose from" card for participants — LATER, NOT NOW
 
@@ -564,109 +310,13 @@ into "we'll pick the right ones for you", which is §2 and is not built.
 
 ---
 
-## 16. `[FE]` Event rooms are being parked for Phase 2 — the `FeatureBand` chat card goes with them
+## 16. Real-mode capability presentation — implemented (Biswajith Gopinathan)
 
-**Gautham's plan (2026-08-20), mostly not yet actioned.** The per-event chat room every event
-carries is to be **commented out and pushed to the next phase**, the same way communities were
-parked on 2026-08-14 — parked, not deleted.
-
-> ⚠️ **One piece of this IS done, and it was a deletion, not a parking.** The organiser console's
-> **Event rooms section** was removed outright on 2026-09-01 (Gautham) — see §19's header. That was
-> the organiser's private mirror of the room, and it is gone for good, not commented out. **The
-> participant-facing room is a separate question and is still fully live** — `/chat`,
-> `/chat/[roomId]`, `EventChatWidget`, `ChatPresence` and the `FeatureBand` tile below are all
-> untouched, and everything in this section still applies to them.
-
-⚠️ **The home page advertises it, so the copy has to move in the SAME change.** `FeatureBand`'s
-lead participant tile is *"Talk to the organiser before you go — Every event has its own room. Ask
-the organiser, meet the people going, even before it starts. Say goodbye to endless emails."* The
-moment rooms are unreachable that tile is **a promise the product cannot keep**, on the page whose
-whole job is to earn trust. It is the first card a participant reads.
-
-**Adjust the card — do not just delete it and leave a hole.** In order of preference:
-1. **Comment it out** alongside the room code, exactly like the parked "Everything in one feed"
-   card two lines below it in `FEATURES.participants`. That leaves the participants half with one
-   feature tile plus its CTA.
-2. **Or replace it** with §15's "plenty to choose from" tile if the catalogue is big enough by then —
-   that would keep the half at two feature tiles and needs no grid change.
-
-⚠️ **Removing a tile IS a layout change.** The band is one flat grid whose top step is
-`band:grid-cols-7`, sized to exactly today's seven tiles. Dropping the chat card makes it six, so
-`grid-cols-7` must become `grid-cols-6` **and** its 1400px breakpoint should be re-picked — six wider
-tiles need less room, so the row can start earlier. The narrower steps are bound with `max-band:`
-for a reason; read the notes in the component and beside `--breakpoint-band` in `globals.css`
-before touching them.
-
-**What else names the room, and must be swept in the same pass:**
-- `components/ChatPresence.tsx` — the app-wide listener mounted in `layout.tsx` that lights the
-  navbar's chat glow. Its whole purpose is per-event rooms.
-- The chat button in `components/navbar/Navbar.tsx` and its unread dot (`eventmind-chat-unread`).
-- `/chat`, and the room entry point on `/event/[id]`.
-- ⚠️ **`EventChatWidget.tsx` is NOT this.** That is the AI event assistant, a different feature that
-  stays — and `FeatureBand`'s second participant tile ("An AI assistant that knows the event inside
-  out") is about the assistant, not the room. **Do not park that card by mistake.**
-
-**Related, and partly superseded by this:** §3 (chat persistence, room list, real unread) and §7b
-(should the assistant open to unregistered users) — §3's work is exactly what parking defers.
+Real mode hides chat, notification and event-assistant entry points, ticket chat actions and the unimplemented Recommended filter. ChatPresence opens no sockets or organizer-room queries in real mode. Home cards describe discovery, persisted free tickets, event management, publishing and free listings; paid checkout is explicitly unavailable. Dummy-mode components remain for future work. Hiding controls does not complete the deferred backend services.
 
 ---
 
-## 17. `[BE]` The "Recommended" tab has no recommendation engine behind it — build one
-
-**Gautham (2026-08-20): there is no working recommendation system, and the home page's "Recommended"
-tab needs one.** §2 records the symptom on the frontend (nothing ever emits a `recommended` badge, so
-the tab matches zero events); this is the backend half, and it is the bigger one. **Do §2 and this
-together — neither is worth doing alone.**
-
-**What actually exists today** (`backend/services/recommendation/`):
-- `app/services/recommendation_logic.py` — `generate_recommendations(user_id)`: fetches the user
-  profile, fetches `/events/search?status=published`, and keeps an event if its `category` is in
-  `user.interests` **or** if any interest string appears in the event description. That is the whole
-  algorithm: a substring match. No scoring, no ranking, no ordering, and **no limit** — it returns
-  every match in whatever order the event service listed them.
-- `app/api/reco_endpoints.py` — `GET /recommendations/for-you?user_id=…` wraps it. Also
-  `GET /recommendations/trending`, which **returns a hardcoded `[]`**, and
-  `POST /recommendations/refresh/{user_id}`, which returns a "task started" message and starts
-  nothing.
-- ⚠️ **Nothing on the frontend calls any of them.** `packages/api` only reaches this service for
-  `ingestCity()` (the Ticketmaster pipeline, which lives in the same service but is unrelated work).
-
-**⚠️ It cannot work as written, for three reasons — fix these before tuning any algorithm:**
-1. **`user.interests` is effectively always empty.** The column exists
-   (`user_profile.py`, `Column(JSON, default=[])`) but nothing in the product ever fills it: the
-   interests block on `/dashboard` is **hardcoded display values** (see `STATUS.md`), and there is no
-   UI to set them. An interest-matching engine over an empty interest list returns `[]` for every
-   user. **Either collect interests (onboarding, or infer from bookings) or pick a signal that
-   exists.**
-2. **The behavioural signals it would otherwise use are also empty** — `tickets_sold` is never
-   written (§2b) and tickets never reach the DB (§11), so "people who booked X also booked Y" and
-   any popularity ranking have no data yet. `/recommendations/trending` returning `[]` is honest
-   about that.
-3. **It needs Redis.** `RecommendationService.__init__` constructs a `redis.Redis` client at import
-   and caches results for an hour. The dev launchers run with `REDIS_HOST=MOCK`, so **verify the
-   cache path works (or is bypassed) under the mock before trusting a local test.**
-
-**A defensible first version, in order:**
-1. **Decide what "recommended" means and write it down** — it is a promise on the home page. With no
-   interests and no booking history, the honest MVP is *proximity + upcoming + category affinity from
-   what the user has actually viewed or wishlisted* (`eventmind-wishlist` is real and local; a
-   server-side view/wishlist signal would need adding).
-2. **Return a RANKED, LIMITED list**, not every match — with a score, so the frontend can take a top N.
-3. **Expose it through the gateway** (`/recommendation/*` → the service) and add a `packages/api`
-   client beside `ingestCity()`; today there is no frontend path to it at all.
-4. **Feed the badge from the backend**, per §2b — the `recommended` flag belongs in a backend-owned
-   tag set, not another branch in `toCarouselEvent()`. That is what finally makes the tab match
-   something.
-5. **Handle the cold-start case explicitly.** A new, signed-out, or interest-less user must get
-   *something* sensible (nearest upcoming events) or the tab shows an empty state on a fresh account
-   — which is exactly today's bug wearing a new coat.
-
-⚠️ **Until this ships, do not advertise recommendations anywhere in the UI** — `FeatureBand` has a
-standing rule against it (see the component header), and `STATUS.md` lists the dead badge under
-known-wrong. **A "Recommended" tab that matches nothing is worse than no tab**, so if this work is
-not being picked up, take §2's second option and drop the tab instead.
-
----
+## 17. Release candidate — Interest/category/tag matching within the selected radius implemented; no paid AI model.
 
 ## 18. `[OPS]` Verify event/community share on a public deploy — the link unfurl (1b) cannot be tested on localhost
 
@@ -723,10 +373,7 @@ mobile). Left as-is for now.
 >   why the header's "N need you" pill is attendees-only and the "next up" hero lost its "Questions"
 >   tile and both room CTAs. Do not reintroduce a count that can only print zero.
 
-**Real today:** Events, from `eventsSource.search({ organizer_id })` via
-`organizerSource.events()`. Event, when, where, sold (`tickets_sold`/`capacity`), gross revenue
-(`tickets_sold × price`, in the event's own currency) and the live/upcoming/past/draft buckets are
-all derived from data the events service actually returns.
+**Real today:** Events read through `organizerSource.events()` with the signed-in organizer ID. The console now explicitly requests draft, published, cancelled and completed states instead of silently showing published events only. Each state is currently capped at 200 rows; cursor pagination remains pending for larger organizer portfolios.
 
 **Not real — and deliberately NOT faked.** In `dummy` data mode these render the fixtures in
 `lib/fixtures/organizer.ts` so the whole design is visible with no backend; in `real` mode
@@ -906,66 +553,7 @@ at `/organizer/events` — Gautham's call, not a silent deletion.
 
 ---
 
-## 20. `[BE]` Postponing and cancelling an event — the frontend is done, nothing is told
-
-**Shipped on the frontend 2026-08-21 (Gautham).** An organiser viewing their own `/event/[id]` can
-switch to an organiser view and either **edit the details** (description, start/end date & time,
-city, venue or online link) or **cancel the event**. Both write through
-`eventsSource.update()` → `PATCH /event/{id}`, which already exists and works.
-
-**What the backend does today:** `update_event` in
-`backend/services/event/app/api/event_endpoints.py` copies the submitted fields onto the row,
-commits, and returns it. That is all. It does not know a postponement from a typo fix, it publishes
-nothing to Kafka, and **it does not check who is asking** (see the authorisation item below).
-
-**Gautham's requirement (2026-08-21): a postponement and a cancellation must each send every
-attendee a notification AND an email.** Neither exists.
-
-**What to build, in order:**
-
-1. **Treat a schedule/venue change as a POSTPONEMENT, not an edit.** Either a dedicated
-   `PATCH /events/{id}/reschedule`, or a diff inside `update_event` — but the decision must be made
-   in the **event service**, not in the browser. The frontend already tells the organiser "this
-   counts as postponing the event" (`EditEventModal.tsx`); the backend currently disagrees silently.
-   Publish `event.postponed` with the event id, the **old and new** `start_date` / `end_date` /
-   `location`, and the organiser id. `create_event` shows the pattern —
-   `background_tasks.add_task(kafka_manager.send, …)`.
-2. **Publish `event.cancelled`** the same way when `status` moves to `CANCELLED`. It is a distinct
-   message, not a postponement with no new date: the recipient's next action differs completely.
-3. **Handlers in the notification service.** `services/notification/app/services/event_handlers.py`
-   already has the shape (`handle_ticket_issued` is the closest sibling) and
-   `notification_service.send_email` already renders templates. Two new templates and two new
-   handlers. ⚠️ **Both need the attendee list, which means the ticketing service** — and nothing
-   writes tickets to the database yet (§11, "real ticket issuance"). **That is the true blocker: an
-   email pipeline over an empty ticket table sends nothing and looks like it worked.**
-4. **In-app notification as well as email.** The bell in the navbar is an icon with no panel and no
-   backend (§11) — a "notification" today has nowhere to land. Scope that with this, or the
-   requirement is only half met.
-5. **Authorisation on the write path — do this one FIRST.** `PATCH /events/{id}` takes no identity
-   and checks no ownership: **any caller who knows an event id can rewrite or cancel anyone's
-   event.** The gateway forwards the `Authorization` header already, so the fix is to decode the
-   JWT in the event service and compare `sub` against `event.organizer_id`. The frontend's
-   `ownsEvent()` (`lib/data-source.ts`) only decides whether to *draw* the controls — it is a UI
-   gate, not a permission, and it is trivially bypassed with curl. ⚠️ **This is a live hole today,
-   not a nice-to-have**, and it got worse the moment the UI made the edit path ordinary.
-6. **Refunds on cancellation** — **specced in §21**, and still blocked on payments completing (§13)
-   and tickets existing (§11). ⚠️ **§21's decision 5 is this one:** whether a cancellation refunds
-   automatically or raises a request the organiser approves — an attendee whose event was called off
-   did nothing to warrant a request queue. Decide it here, with this section. The cancel dialog says
-   plainly that no refunds are issued; when that changes, change the dialog in the same commit.
-
-**Two smaller frontend follow-ups**, deliberately left out and to be picked up with the above rather
-than on their own:
-
-- **A `Postponed` badge.** Nothing marks a moved event on a card or a hero. It needs a real signal
-  (a flag or a recorded previous date — a client-side guess is not one) and a `BADGE_CONFIG` entry;
-  §2b is the rule for where a tag may be derived. Until then a postponed event looks identical to
-  one that was always on that date.
-- **Un-cancelling.** `EventStatus` allows it and the API would accept it, but there is no control
-  and no copy, on purpose: bringing back an event whose attendees were told it was off is a
-  different action from cancelling, and needs its own message.
-
----
+## 20. Release candidate — Owner-only lifecycle changes create durable in-app notices and email outbox entries; Gmail SMTP is configured, and event-mail journey QA remains.
 
 ## 21. `[BE]` How to handle a refund — NEEDS A DECISION on the policy, then a build
 
@@ -1136,224 +724,26 @@ questions above need, and `DESIGN_NOTES.md` is where it belongs once measured.
 
 ---
 
-## 23. `[BE]` `registration_closed` has no backend — the UI ships ahead of it
+## 23. Release candidate — Registration closure is persisted and blocks new bookings while preserving the listing.
 
-**Gautham chose frontend-first, 2026-09-01**, when the lifecycle chip on `/event/[id]` became an
-editable four-state select (`components/organizer/EventStatus.tsx`). The state is real in the UI and
-**not persistable against the live backend**. Three things are missing, and the second is the one
-that would ship a bug if the first landed alone.
+## 24. Release candidate — Persistent authenticated notifications and navbar bell implemented; scheduled reminders remain.
 
-1. **The enum.** `backend/services/event/app/models/event.py` declares
-   `EventStatus = draft | published | cancelled | completed`. A PATCH carrying
-   `status: "registration_closed"` **422s** — which is why the option is disabled off dummy mode
-   today (`REGISTRATION_CLOSED_IS_LOCAL` in `EventStatus.tsx`).
+## 25. Release candidate — Nonzero price comparisons require currency and earnings totals stay separated by currency; no FX conversion.
 
-2. **⚠️ The search default, and it is not optional.** `event_endpoints.py` defaults both list
-   endpoints to `status: Optional[EventStatus] = Query(EventStatus.PUBLISHED)`. Add the enum value
-   and nothing else, and a registration-closed event **vanishes from discovery** — the exact
-   opposite of what the state promises the organiser ("stays visible to participants"). The default
-   has to become *published **or** registration_closed*, and the two endpoints have to agree.
-   **Do not land 1 without 2.**
+## 26. Organizer contact email — implemented (Biswajith Gopinathan)
 
-3. **The join gate.** Nothing server-side refuses a booking on a closed event — the frontend
-   disables the CTA and `handleBookNow`, and that is all. `/checkout` and the ticketing service must
-   reject it too, or a stale tab still buys a ticket. Same class of gap as §20's cancelled events.
+The user service persists and returns contact_email on the private organizer profile. An additive, repeatable startup migration preserves existing rows and backfills their company email because historical contact inputs were discarded. Older clients without contact_email also use company_email; new submissions preserve the supplied contact address. Public organizer responses exclude both addresses.
 
-**What `completed` becomes.** "Finished" was dropped from the UI in the same change, so
-`lifecycleOf()` currently folds `completed` onto `registration_closed` — true of a finished event
-(visible, not taking joins) and better than the `draft` fallback, which would have told a
-participant the page was invisible to them. If the backend ever needs the two distinguished again,
-that is a **product** decision about what a past event's page should say, not a mapping to quietly
-change here.
+## 27. Launch operations and verification — owner: Biswajith Gopinathan
 
-**Frontend work when this lands:** delete `REGISTRATION_CLOSED_IS_LOCAL` and
-`REGISTRATION_CLOSED_HINT`, and drop the `reasonFor()` branch that reads them. Nothing else changes
-— the select, the copy and the booking gate are already built against the real shape.
+- Daily protected local PostgreSQL backups are installed. Four core databases passed isolated restoration, checksums and public-table row-count checks. Paid off-server storage is deferred by the owner until testing goes well (2026-11-04); local snapshots cannot recover a lost server.
+- Complete mobile/device verification and the organizer publish/edit/participant-booking browser checks. Organizer onboarding and draft creation passed; draft console visibility was identified and fixed in code.
+- Add health/error monitoring, review security/rate limits and run basic load tests.
+- Gmail sender activation passed private credential entry, TLS/login, application transport and owner-confirmed inbox delivery (2026-11-06). Finish complete deployed recovery/verification and event-mail journeys.
+- Finish Google OAuth first: configure the Web application client/consent, register `https://newfind-khaki.vercel.app/auth/google/callback`, enter credentials privately using `backend/scripts/configure_google.py`, then verify new sign-up, explicit existing-account linking, subsequent login and cancellation. Facebook activation follows separately.
+- Connect a dedicated NewFind domain; new paid services require explicit approval.
+- GitHub repository renamed to `Biswa-MetaInsights/newfind` on 2026-11-04; repository ID, release branch and open PR #10 preserved. Local clone remotes updated. Verify/update the Hetzner remote and Vercel integration after rename; review PR #10 before merging the release branch into main.
 
----
+### Organizer browser verification — Biswajith Gopinathan, 2026-11-02
 
-## 24. `[BE]` Notifications move to the navbar bell — the console pill is gone
-
-**Gautham, 2026-09-02**, on reading the console header: *"I think it's best to remove that honestly.
-It's a bit confusing. I think all this 'notifications' should be displayed in the bell icon on the
-navbar instead."* The shape was then decided in full (below) and the build **deliberately deferred**,
-because the bell is only worth building once something can feed it.
-
-**The two parts are separable and must not be bundled.** Part A is frontend-only and unblocked; part
-B is a backend feature. Doing A alone is a net improvement — the pill duplicates the dashboard
-column that sits directly beneath it, and does it worse.
-
-### Part A `[FE]` — remove the "N need you" pill. ✅ **DONE 2026-09-02.**
-
-Deleted from `app/organizer/(console)/layout.tsx`: the pill JSX, the `needsYou` `useMemo` and its
-`⚠️ ATTENDEES ONLY` comment, the whole `organizer-attendees` `useQuery` (the counter was its only
-consumer, so the shell no longer fetches attendees on every console page), and four then-unused
-imports — `PendingIcon`, `useMemo`, `useQuery`, `organizerSource`. `isDummyMode` stayed: same
-module, still feeding the sample-data footer. A comment marks the spot and points here.
-
-Why it went, for anyone tempted to put a counter back:
-
-1. **It was a dead end.** A `<span>`, not a link — it named a number of chores and gave you nowhere
-   to go. The Events hero's *"Notifications"* column is the same information **with working links**,
-   one screen below it.
-2. **It read as a message notification**, because it sat immediately beside the inert *"Search
-   events, attendees…"* box and looked like a property of the search.
-
-⚠️ **`PendingIcon` (`ConsoleIcons.tsx`) now has no caller.** It stays exported so nothing flags it.
-**Do not delete it** — it is part of the console's chrome set and the bell's list is the obvious
-next user. Logged in §10.
-
-### ⚠️ The removed signals are now owed to the bell — this is a debt, not a deletion
-
-Part A took a real signal off the screen and part B has not landed, so **an organiser currently has
-no ambient indication that anything is waiting on them** until they open the dashboard. That is an
-accepted, deliberate gap (the pill was a bad way to close it), but it means part B **must** carry
-these two, and they are the minimum bar for calling the bell done:
-
-- **Refund requested** — an attendee is owed money and an organiser has to approve it (§21).
-- **Awaiting payment** — a booking is holding a seat it has not paid for.
-
-Both come from `organizerSource.attendees()` (`status !== "Confirmed"`), which is **dummy-mode only**
-— the real backend serves no attendee list yet (§19). Do not ship the bell to real mode claiming to
-watch these until it can.
-
-### Part B `[BE]` — the bell becomes the one notification surface
-
-**The bell is completely inert today.** `components/navbar/Navbar.tsx` → `BellButton()` is a button
-with a `title="Notifications"` tooltip, no `onClick`, no badge and no data source. This is a build
-from scratch, not a move.
-
-**The decided shape (Gautham, 2026-09-02) — do not re-litigate these four:**
-
-| Question | Decided |
-|---|---|
-| Audience | **Both.** Participant *and* organiser notifications in one bell. |
-| Interaction | **A dropdown panel** listing individual items, each linking to the thing it is about — not a badge that merely navigates. |
-| Chat button | **Untouched.** It keeps its own green-glow-plus-terracotta-dot for unread chat. Messages and notifications stay two visibly different concepts. |
-| Participant sources | **Upcoming booked events** and **wishlist events starting soon.** |
-
-**Match the existing dropdown, do not invent a second one.** `NavDropdown` and `AvatarMenu` in the
-same file already establish the pattern: `activeMenu` state keyed by a `MenuKey`, `closeAll()` on
-sibling hover, `LINEN` panel on a 1px `BORDER`, `rounded-lg shadow-xl`, and the **invisible bridge
-div** (`absolute -top-1 inset-x-0 h-1`) that stops `onMouseLeave` firing while the pointer crosses
-the `mt-1` gap. Add `"notifications"` to `MenuKey`. A panel of *rows that navigate* is not a
-`DropdownItem` (emoji + label), so it needs its own row component — that is fine, but it should
-still use `useHoverStyle` so it hovers green like everything else in the bar.
-
-**Three traps, all previously paid for:**
-
-- ⚠️ **The unread badge must be `absolute`-positioned over the glyph**, exactly like `ChatButton`'s
-  dot. The navbar's search box is the row's only elastic element and the fit at **1024px** is
-  arithmetic, not measured — anything that widens the button row means re-measuring at exactly
-  1024px (see `apps/web/CLAUDE.md` → Responsiveness, and the `w-[170px] xl:w-[410px]` comment in the file).
-  An overlaid badge changes no width and avoids the whole problem.
-- ⚠️ **Colour anything that hovers with CLASSES, not an inline `style`.** An inline colour beats a
-  `hover:` rule; this has bitten the console table row, `FeatureBand`'s audience badge and
-  `FilterSelect`'s menu items.
-- ⚠️ **A notification is a promise to a user** — the `FeatureBand` rule applies here just as hard.
-  Never render a row for something the app cannot actually do.
-
-**What can be derived on the frontend today** (useful for judging how much of B is really backend):
-
-| Row | Source | Mode |
-|---|---|---|
-| "X starts in N days" | `useTicketsStore` — `StoredTicket.start_date` / `event_title` | both |
-| "X is this week, you haven't booked" | `useWishlistStore` — `WishlistItem.date` / `badgeType` | both |
-| Refund requested · awaiting payment | `organizerSource.attendees()`, gated on the navbar's existing `isOrganizer` | dummy only |
-
-The navbar **already knows who is an organiser** — `organizerApi.get(userId)` on a 5-minute
-`staleTime` — so gating the organiser rows costs nothing new.
-
-**Why this is still `[BE]` despite that table.** Everything above is *derived from local state the
-user themself created*. A notification system is the opposite: things that happened **elsewhere**,
-that persist, and that are individually **read or unread**. None of that exists. Missing:
-
-1. **Somewhere to store them.** Per-user rows with `read_at`, survivable across devices and reloads.
-2. **Producers.** Refund requested, payment failed, ticket issued, event cancelled or postponed
-   (§20), organiser replies. Most already flow through Kafka — see `KAFKA_TOPIC_TICKET_ISSUED` and
-   `KAFKA_TOPIC_PAYMENT_FAILED` in the notification service's config.
-3. **Read endpoints.** `GET` a page of notifications, `POST` mark-read / mark-all-read, and an
-   unread count cheap enough for the navbar to poll on every page.
-
-⚠️ **The `notification` service is NOT a head start — it is a mailer.**
-`backend/services/notification/` consumes Kafka and sends **email and SMS** (SendGrid + a Twilio
-placeholder). It declares **no `DATABASE_URL`** — `HANDOVER.md` correctly lists it among the stateless
-services — and `main.py` exposes **only a `/` health check**. It stores nothing and serves nothing a
-UI can read. This feature needs a *notification feed*, which is either a new stateful service or a
-new persistence layer plus routes inside this one. **Decide which before starting.**
-
-⚠️ **Two live bugs in that service, found while scoping this.** Both are latent today because the
-mailer is only ever exercised with no API key (it logs `SIMULATED EMAIL` and returns before
-touching either):
-
-- `notification_service.py:24` calls `self.jinja_env.get_project_template(template_name)`. Jinja2's
-  `Environment` has **no such method** — it is `get_template()`. The first real send with
-  `SENDGRID_API_KEY` set will `AttributeError`.
-- `main.py:18` uses `@app.on_event("startup")`, deprecated in current FastAPI in favour of a
-  `lifespan` handler.
-
-**Open, not yet decided:** whether an organiser's notifications and a participant's are visually
-separated inside the one panel (the navbar is split by audience everywhere else — see the
-Participants / Organisers dropdowns — so mixing them in one flat list may read wrong), and what the
-empty state says.
-
----
-
-## 25. `[FE+BE]` Multi-currency is displayed but not SUPPORTED — every comparison is a bare number
-
-**Raised while building the `/explore` price range (Gautham, 2026-09-08).** The gap is easy to miss
-because the *rendering* half is finished and looks complete: `lib/currency.ts` is the one formatter,
-every event carries its own `currency` column, and `/organizer/create` writes it. **What does not
-exist is any notion that ₹100 and $100 are different amounts.**
-
-Where it bites today, in order of how visible it is:
-
-1. **`/explore`'s price range** — the query is `price >= min AND price <= max` against the raw column
-   (`event_endpoints.py`), so a **$45** event matches "Up to ₹500" and a **₹4,000** one does not. The
-   filter's labels say ₹ because India is the launch market; that is a deliberate, informed choice,
-   **not a sign that the numbers were converted.** Its **Free** preset (`price = 0`) is the one bound
-   that is honest in every currency.
-2. **Sort by "Price: low to high"** (`/explore`) sorts the same bare numbers, so a mixed-currency
-   list is ordered by a meaningless key.
-3. **Organiser totals** — an organiser running events in two currencies has no honest single figure
-   on the Dashboard or Earnings. **This half is already specced in §19.10 and is the harder
-   question; do not solve it here.** §19.10 stays the source of truth for it.
-
-**Needed to close it, and none of it is decided:**
-
-- **A rate source.** A live FX API (a dependency and a key — Gautham's call), or a rates table an
-  admin maintains, or a hard "the catalogue is single-currency per market" rule that makes the
-  question go away. The third is the cheapest and may well be right for launch.
-- **A display currency for the viewer**, and whether a converted amount is ever shown as if it were
-  the price (it must not be — a ticket is charged in the organiser's currency, so a converted figure
-  is a *guide*, and needs to say so).
-- **Backend filter semantics** — either `price_min`/`price_max` grow a `currency` parameter and the
-  service converts before comparing, or search is scoped to one currency per market.
-
-⚠️ **Until this is decided, do not "fix" the ₹ labels on the price filter to a neutral "Min"/"Max".**
-Hiding the symbol makes the control look currency-agnostic when it is not; the symbol at least tells
-an Indian user which numbers the range is written for. Every place that compares a raw price carries
-a comment pointing here.
-
----
-
-## 26. `[BE]` Contact person email on `/organizer/onboarding` is collected but not persisted
-
-**Added 2026-09-11.** The Contact Person section now has an Email field beside Full Name
-(`app/organizer/onboarding/page.tsx`), sent as `contact_email` in the `POST /user/{id}/organizer`
-body (`OrganizerProfileCreate` in `packages/api/src/organizer.ts`). The backend does not have this
-field: `OrganizerProfileCreate` in `backend/services/user/app/schemas/organizer_schemas.py` doesn't
-declare it, and `OrganizerProfile` (`backend/services/user/app/models/organizer_profile.py`) has no
-column for it, so Pydantic silently drops it — the value is typed, collected and thrown away.
-
-**To close it:**
-
-1. Add a `contact_email` column to `OrganizerProfile` (the model) — `String(255), nullable=False`,
-   same shape as `company_email`.
-2. Add `contact_email: EmailStr` to both `OrganizerProfileCreate` and `OrganizerProfileOut` in
-   `organizer_schemas.py`.
-3. Add `contact_email: string` to `OrganizerProfile` in `packages/types/src/index.ts` once the
-   backend returns it — not before, or the type promises a field the API never sends.
-4. No migration tooling exists for this service (no `alembic/` directory) — the table is created via
-   `Base.metadata.create_all`, so a fresh `platform_dev.db` picks the column up; an existing dev DB
-   needs the column added by hand or the file deleted and reseeded (`CLAUDE.md` §10).
+Completed in production: synthetic organizer setup; draft create/list/edit/refresh/publish; a free booking of another organizer's event; confirmed QR ticket persistence after reload. Self-booking correctly rejected. Backend safeguards are deployed and Hetzner sign-in is restored. Remaining: real provider sync requires a private Ticketmaster key, then live verification.

@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # AI Agent Config
     GOOGLE_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
+    INTERNAL_API_KEY: str = ""
     TICKETMASTER_API_KEY: Optional[str] = None
     
     # Kafka

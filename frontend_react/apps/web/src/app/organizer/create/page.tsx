@@ -1,9 +1,11 @@
 "use client";
 
+import { eventTimeUtc } from "@/lib/event-time";
+import { LocationSelector } from "@/components/LocationSelector";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 // PARKED 2026-08-14 (MVP) — `communityApi` dropped from this import.
-import { organizerApi } from "@eventmind/api";
+import { communityApi, organizerApi } from "@eventmind/api";
 import { useAuthStore, CITIES } from "@eventmind/store";
 import type { City } from "@eventmind/store";
 // PARKED 2026-08-14 (MVP) — `Community` dropped from this import.
@@ -41,7 +43,6 @@ import { ListEditorModal } from "@/components/organizer/ListEditorModal";
 import { OUTLINE_BUTTON } from "@/lib/controls";
 import { currencySymbol } from "@/lib/currency";
 import { EXTRAS_ARE_LOCAL, eventsSource } from "@/lib/data-source";
-import { SKIP_ORGANIZER_VERIFICATION } from "@/lib/dev-flags";
 import { EXTRAS_HINT } from "@/lib/event-extras";
 import {
   CATEGORIES,
@@ -80,7 +81,7 @@ const GREEN = "var(--brand-green)";
    The segmented Event Type control and the audience chips are deliberately NOT
    sorted — neither is a menu, and "Hybrid, In-Person, Online" would put the
    default in the middle of a three-button row. */
-const CITY_OPTIONS = [...CITIES].sort((a, b) => a.name.localeCompare(b.name));
+
 const CURRENCY_OPTIONS = [...CURRENCIES].sort((a, b) => a.code.localeCompare(b.code));
 
 /* CATEGORIES / EVENT_TYPES / LANGUAGES / TARGET_AUDIENCES were declared here
@@ -328,6 +329,7 @@ function subFromToken(token: string | null): string {
 export default function CreateEventPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
 
   // Event basics
@@ -352,7 +354,9 @@ export default function CreateEventPage() {
   const [eventWebsite, setEventWebsite] = useState("");
 
   // Location
-  const [city, setCity] = useState<City>(CITIES[0]);
+  const [city, setCity] = useState<City>(CITIES.find(c=>c.name==="Brussels")!);
+  const [eventTimezone, setEventTimezone] = useState("Europe/Brussels");
+  const [visibility, setVisibility] = useState<"public"|"unlisted"|"private">("public");
   const [address, setAddress] = useState("");
   const [onlineUrl, setOnlineUrl] = useState("");
 
@@ -424,16 +428,8 @@ export default function CreateEventPage() {
   const [editingList, setEditingList] = useState<{ kind: ListKind; rows: Row[] } | null>(null);
   const [editingCover, setEditingCover] = useState(false);
 
-  /* PARKED 2026-08-14 (MVP) — the whole "add this event to my community" feature.
-     Communities are deferred to Phase 2. These five pieces are interdependent —
-     the state, the lookup, the payload field and the form section — so they park
-     as one set; leaving any one live breaks the others.
-
-  // Community
-  const [community, setCommunity] = useState<Community | null>(null);
-  const [communityId, setCommunityId] = useState<string>("");
-
-  */
+  const [community,setCommunity]=useState<import('@eventmind/types').Community|null>(null);
+  const [communityId,setCommunityId]=useState('');
 
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -441,35 +437,23 @@ export default function CreateEventPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
-  /* Starts true under the dev bypass — the gate is then already open on the first
-     render. Setting it from inside the effect instead would trip
-     `react-hooks/set-state-in-effect` and cost a throwaway render. */
-  const [verificationChecked, setVerificationChecked] = useState(SKIP_ORGANIZER_VERIFICATION);
+  const [verificationChecked, setVerificationChecked] = useState(false);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) { router.replace("/auth"); return; }
-    if (SKIP_ORGANIZER_VERIFICATION) return;
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
 
     organizerApi.get(userId)
       .then(() => {
         setVerificationChecked(true);
-        /* PARKED 2026-08-14 (MVP) — the organiser's community lookup. See the
-           parked state block above. setVerificationChecked stays: it gates the
-           whole form, not just this section.
-
-        // Check if organizer already has a community
-        communityApi.getByOrganizer(userId)
-          .then((r) => setCommunity(r.data))
-          .catch(() => {});
-
-        */
+        communityApi.getByOrganizer(userId).then(r=>setCommunity(r.data)).catch(()=>{});
       })
       .catch(() => router.replace("/organizer/onboarding"));
-  }, [isAuthenticated, router, tokens]);
+  }, [hasHydrated, isAuthenticated, router, tokens]);
 
-  if (!isAuthenticated || !verificationChecked) return null;
+  if (!hasHydrated || !isAuthenticated || !verificationChecked) return null;
 
   /**
    * Open a list dialog on the rows written so far — or on ONE BLANK ROW when
@@ -558,6 +542,9 @@ export default function CreateEventPage() {
       const organizerId = subFromToken(tokens?.access_token ?? null);
       const location: Record<string, unknown> = {
         event_type: eventType,
+        name: address.trim() || city.name,
+        city: city.name,
+        country: city.country,
         latitude: eventType !== "Online" ? city.lat : null,
         longitude: eventType !== "Online" ? city.lng : null,
       };
@@ -568,7 +555,7 @@ export default function CreateEventPage() {
          `datetime-local` inputs used to hand over — the organiser types the
          wall clock at the venue and the ISO string carries their offset. Safe
          to build unguarded: `validate` has already refused an empty half. */
-      const startsAt = new Date(`${startDay}T${startTime}`);
+      const startsAt = eventTimeUtc(`${startDay}T${startTime}`, eventTimezone);
 
       const parsedTags = tags.split(",").map((t) => t.trim()).filter(Boolean);
       // Sent unconditionally; `eventsSource.create` strips them in real mode,
@@ -587,8 +574,10 @@ export default function CreateEventPage() {
         tags: parsedTags,
         language,
         event_website: eventWebsite.trim() || undefined,
-        // PARKED 2026-08-14 (MVP) — community_id: communityId || undefined,
+        community_id: communityId || undefined,
         // The field stays nullable on the event model, so omitting it is valid.
+        timezone: eventTimezone,
+        visibility,
         start_date: startsAt.toISOString(),
         end_date: new Date(
           startsAt.getTime() + totalMinutes(durationHours, durationMinutes) * 60_000
@@ -642,52 +631,11 @@ export default function CreateEventPage() {
         className={`pt-8 max-w-[1536px] mx-auto ${GUTTERS}`}
         style={{ paddingBottom: STICKY_BAR_HEIGHT_COMPACT + 32 }}
       >
-        {/* DEV ONLY — the return half of the create ⇄ onboarding round trip, and
-            the twin of the strip at the top of /organizer/onboarding. The back
-            arrow below already walks there under the bypass, but it reads as a
-            back button, so it is not a door anyone can SPOT — with both the
-            create-page redirect and the console's "Become an organiser" empty
-            state switched off by the dev flags, the onboarding page had no
-            visible way in at all (Gautham, 2026-09-11). Same TERRACOTTA edge as
-            its twin, for the same reason: nothing else on this page is outlined
-            in the annotation colour, and this product has no dashed borders
-            anywhere (Gautham, 2026-09-09). Dropped from the bundle entirely when
-            the flag is off — see lib/dev-flags.ts. */}
-        {SKIP_ORGANIZER_VERIFICATION && (
-          <div
-            className="mb-6 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3"
-            style={{
-              border: "2px solid var(--brand-terracotta)",
-              backgroundColor: "var(--brand-surface)",
-            }}
-          >
-            <p style={{ color: "var(--brand-hint)" }}>
-              Dev bypass on — verification is not being enforced.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/organizer/onboarding")}
-              className="px-4 py-2 rounded-lg font-bold transition-colors bg-[var(--brand-green)] hover:bg-[var(--brand-green-hover)]"
-              style={{ color: "var(--brand-on-green)" }}
-            >
-              ← Organiser registration
-            </button>
-          </div>
-        )}
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          {/* Under the dev bypass this walks to /organizer/onboarding rather than
-              into history, so the two pages can be reviewed as a pair. For a real
-              organiser it stays plain history — they reach this form from the
-              console, and sending them to a verification page they have already
-              completed would be a bug, not a shortcut. */}
           <button
-            onClick={() =>
-              SKIP_ORGANIZER_VERIFICATION
-                ? router.push("/organizer/onboarding")
-                : router.back()
-            }
+            onClick={() => router.back()}
             className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center transition-colors"
             style={{ border: "2px solid var(--brand-control-border)", backgroundColor: "var(--brand-bg)" }}
           >
@@ -991,15 +939,7 @@ export default function CreateEventPage() {
                       unsorted export, because `CITIES[0]` is this form's
                       declared default. */}
                   <FormField label="City" required inline width="sm">
-                    <select
-                      value={city.name}
-                      onChange={(e) => setCity(CITIES.find((c) => c.name === e.target.value) ?? CITIES[0])}
-                      className={inputCls(false)}
-                    >
-                      {CITY_OPTIONS.map((c) => (
-                        <option key={c.name} value={c.name}>{c.name}, {c.country}</option>
-                      ))}
-                    </select>
+                    <LocationSelector value={city} onChange={next=>{setCity(next);if(next.timezone)setEventTimezone(next.timezone);}}/>
                   </FormField>
 
                   {/* No `width`, so it asks for 420px and then takes the whole
@@ -1023,6 +963,8 @@ export default function CreateEventPage() {
                   behind a single caret, so an organiser correcting only the hour
                   has to tab through the date to reach it. Split, each control is
                   the size of the thing it holds and either can be fixed alone. */}
+              <FormField label="Event time zone" required inline><input value={eventTimezone} onChange={e=>setEventTimezone(e.target.value)} placeholder="Europe/Brussels" list="event-timezones" className={inputCls(false)}/><datalist id="event-timezones">{['UTC','Europe/Brussels','Europe/London','Europe/Paris','Europe/Berlin','Europe/Amsterdam','Europe/Luxembourg','Asia/Kolkata','America/New_York','America/Los_Angeles','Asia/Tokyo','Australia/Sydney'].map(z=><option key={z} value={z}/>)}</datalist></FormField>
+              <FormField label="Visibility" inline><select value={visibility} onChange={e=>setVisibility(e.target.value as typeof visibility)} className={inputCls(false)}><option value="public">Public — discoverable</option><option value="unlisted">Unlisted — accessible by link</option><option value="private">Private — organiser access only</option></select></FormField>
               <FormField label="Start Date" required inline width="xs" error={fieldErrors.startDay}>
                 <DateTimeInput
                   type="date"
@@ -1253,38 +1195,8 @@ export default function CreateEventPage() {
 
           </div>
 
-          {/* ── PARKED 2026-08-14 (MVP): the Community section ──
-              An opt-in "Add to {community}" toggle, shown only to organisers who
-              already had a community. Deferred to Phase 2 with the rest of the
-              feature; see the parked state block near the top of this file.
+          {community&&<Section title="Community"><label className="flex items-center gap-3 text-[18px]"><input type="checkbox" checked={!!communityId} onChange={e=>setCommunityId(e.target.checked?community.id:'')}/>Add this event to {community.name}</label></Section>}
 
-          {community && (
-            <Section title="Community">
-              <p className="text-sm" style={{ color: "var(--brand-hint)" }}>
-                You have a community called <span className="font-semibold" style={{ color: "var(--brand-text)" }}>{community.name}</span>.
-                Adding this event to your community groups it with your other events on your community page.
-              </p>
-              <div className="flex items-center gap-3 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setCommunityId(communityId ? "" : community.id)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: communityId ? GREEN : "var(--brand-surface)",
-                    color: communityId ? "var(--brand-on-green)" : "var(--brand-text)",
-                    border: `2px solid ${communityId ? GREEN : "var(--brand-control-border)"}`,
-                  }}
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-                  </svg>
-                  {communityId ? `Added to ${community.name}` : `Add to ${community.name}`}
-                </button>
-              </div>
-            </Section>
-          )}
-
-          */}
 
           {/* ── Whatever the save had to say, last in the sequence ──
               The two buttons used to sit in a bordered card here with these two

@@ -15,7 +15,7 @@ import { communityImageUrl, locationLabel } from "@/lib/event-media";
 //
 // PHASE 2 RESTORE: set PARKED to false (or delete it and its `if` below), and
 // put `alt` back to "Community on NewFind".
-const PARKED: boolean = true;
+const PARKED: boolean = false;
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -55,7 +55,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       <div style={{ width: "100%", height: "100%", display: "flex", backgroundColor: LINEN }}>
         {/* Left — community picture with a member chip */}
         <div style={{ width: 470, height: "100%", position: "relative", display: "flex" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <img src={img} alt="" width={470} height={630} style={{ width: 470, height: 630, objectFit: "cover" }} />
           {community ? (
             <div
@@ -101,7 +101,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 marginRight: 14,
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={MARK} alt="" width={30} height={30} />
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: 3, color: GREEN }}>NEWFIND</div>

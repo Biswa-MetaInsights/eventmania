@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.event_endpoints import router as event_router
+from app.api.workspace import router as workspace_router
 from app.api.chat_endpoint import router as chat_router
 from app.db.session import engine
 from app.models.event import Base
@@ -9,6 +10,17 @@ from app.core.config import settings
 
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
+from backend.shared.migrations import add_columns
+from sqlalchemy import text
+add_columns(engine, 'events', {
+    'organizer_content': "JSON NOT NULL DEFAULT '{}'",
+    'visibility': "VARCHAR(20) NOT NULL DEFAULT 'public'",
+    'timezone': "VARCHAR(100) NOT NULL DEFAULT 'UTC'",
+    'previous_start_date': 'TIMESTAMP NULL',
+})
+if engine.dialect.name == 'postgresql':
+    with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as connection:
+        connection.execute(text("ALTER TYPE eventstatus ADD VALUE IF NOT EXISTS 'REGISTRATION_CLOSED'"))
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
@@ -27,8 +39,19 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(workspace_router)
 app.include_router(event_router)
 app.include_router(chat_router)
+
+@app.on_event('startup')
+def start_delivery():
+    from backend.shared.periodic import start
+    from app.api.workspace import send_event_mail
+    app.state.mail_worker=start(send_event_mail)
+
+@app.on_event('shutdown')
+def stop_delivery():
+    if hasattr(app.state,'mail_worker'):app.state.mail_worker.set()
 
 @app.get("/")
 def health_check():

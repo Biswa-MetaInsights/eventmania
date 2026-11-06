@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { organizerApi } from "@eventmind/api";
 import { avatarFor, useAuthStore, useChatUnreadStore, useProfileStore } from "@eventmind/store";
 import { CityPicker } from "@/components/CityPicker";
+import { NotificationBell } from "@/components/NotificationBell";
+import { collaboration, loadProfile, privateImage } from "@/lib/operations";
 import { isDummyMode } from "@/lib/data-source";
+import { NavGlyph } from "./NavGlyph";
 import { BrandLogo } from "@/components/brand";
 import { ChatIcon } from "@/components/organizer/ConsoleIcons";
 import { BRAND } from "@/lib/theme";
@@ -235,32 +238,7 @@ function LogoutItem({ onLogout }: { onLogout: () => void }) {
 }
 
 // ── Bell button ───────────────────────────────────────────────────────────────
-function BellButton() {
-  const hover = useHoverStyle();
-  return (
-    <button
-      className="p-2 rounded-lg"
-      style={hover.style}
-      onMouseEnter={hover.onMouseEnter}
-      onMouseLeave={hover.onMouseLeave}
-      title="Notifications"
-    >
-      <svg
-        className="w-[21px] h-[21px]"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={1.8}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
-        />
-      </svg>
-    </button>
-  );
-}
+function BellButton() { return <NotificationBell />; }
 
 // ── Chat button ───────────────────────────────────────────────────────────────
 // Sits beside the bell. Turns green + shows a terracotta dot whenever any chat
@@ -311,15 +289,7 @@ function ThemeToggle() {
       title={isDark ? "Switch to light theme" : "Switch to dark theme"}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
     >
-      {isDark ? (
-        <svg className="w-[21px] h-[21px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-        </svg>
-      ) : (
-        <svg className="w-[21px] h-[21px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
-        </svg>
-      )}
+      <NavGlyph concept={isDark ? "☀️" : "🌙"} />
     </button>
   );
 }
@@ -377,13 +347,18 @@ export function Navbar() {
   const isOrganizer = isDummyMode || !!organizerProfile;
 
   const unreadRooms = useChatUnreadStore((s) => s.unreadRooms);
-  const hasUnread = Object.keys(unreadRooms).length > 0;
+  const roomsQuery = useQuery({queryKey: ['event-rooms', userId], queryFn: () => collaboration.rooms().then(r=>r.data), enabled: isAuthenticated && !!userId && !isDummyMode, refetchInterval: 30000});
+  const persistedProfile = useQuery({queryKey: ['participant-profile', userId], queryFn: loadProfile, enabled: isAuthenticated && !!userId && !isDummyMode});
+  const privateAvatar = useQuery({queryKey: ['participant-avatar', persistedProfile.data?.avatar_url], queryFn: () => privateImage(persistedProfile.data!.avatar_url!), enabled: isAuthenticated && !!persistedProfile.data?.avatar_url?.startsWith('/api/')});
+  const hasUnread = isDummyMode ? Object.keys(unreadRooms).length > 0 : !!roomsQuery.data?.some(room=>room.unread_count>0);
 
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileToggleRef = useRef<HTMLButtonElement>(null);
+  const mobilePanelId = useId();
   const [searchActive, setSearchActive] = useState(false);
 
   function closeAll() { setActiveMenu(null); }
@@ -407,6 +382,25 @@ export function Navbar() {
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [activeMenu]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        mobileToggleRef.current?.focus();
+      }
+    };
+    const outside = (event: PointerEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) setMobileOpen(false);
+    };
+    document.addEventListener("keydown", escape);
+    document.addEventListener("pointerdown", outside);
+    return () => {
+      document.removeEventListener("keydown", escape);
+      document.removeEventListener("pointerdown", outside);
+    };
+  }, [mobileOpen]);
 
   // Only navigate after the user has actually typed — avoids redirecting on mount.
   // Searching takes the user to the Explore page with the query pre-filled.
@@ -437,6 +431,7 @@ export function Navbar() {
   // hide half the product's story. Items behind a login route to /auth rather
   // than to a page that bounces.
   const participantItems: NavItem[] = [
+    { emoji: "👥", label: "Communities", onTap: () => { closeAll(); router.push("/communities"); } },
     { emoji: "🔍", label: "Explore Events", onTap: () => { closeAll(); router.push("/explore?view=events"); } },
     { emoji: "🎟️", label: "My Tickets",     onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard?tab=tickets" : "/auth"); } },
     { emoji: "❤️", label: "My Wishlist",    onTap: () => { closeAll(); router.push(isAuthenticated ? "/dashboard?tab=wishlist" : "/auth"); } },
@@ -548,6 +543,8 @@ export function Navbar() {
                   onChange={(e) => { setHasSearched(true); setSearchQuery(e.target.value); }}
                   onFocus={() => setSearchActive(true)}
                   onBlur={() => setSearchActive(false)}
+                  aria-label="Find events"
+                  enterKeyHint="search"
                   placeholder={searchPlaceholder}
                   className="flex-1 text-base bg-transparent outline-none min-w-0"
                   style={{ color: TEXT }}
@@ -619,7 +616,7 @@ export function Navbar() {
             ) : (
               <AvatarMenu
                 name={displayName(userEmail)}
-                photo={avatarFor(avatars, userEmail)}
+                photo={isDummyMode ? avatarFor(avatars, userEmail) : privateAvatar.data ?? ""}
                 isOpen={activeMenu === "avatar"}
                 onOpen={() => setActiveMenu("avatar")}
                 onClose={closeAll}
@@ -632,6 +629,10 @@ export function Navbar() {
           {/* ══════════ Mobile hamburger (below lg) ══════════ */}
           {/* p-2.5 + the 24px glyph = a 44px tap target. */}
           <button
+            type="button"
+            ref={mobileToggleRef}
+            aria-expanded={mobileOpen}
+            aria-controls={mobileOpen ? mobilePanelId : undefined}
             className="lg:hidden ml-auto p-2.5 -mr-0.5 rounded-lg"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileOpen((v) => !v)}
@@ -650,6 +651,9 @@ export function Navbar() {
         {/* ══════════ Mobile dropdown panel ══════════ */}
         {mobileOpen && (
           <div
+            id={mobilePanelId}
+            role="region"
+            aria-label="Mobile navigation"
             className="lg:hidden px-4 sm:px-6 pb-5 pt-1 flex flex-col gap-4 max-h-[calc(100dvh-72px)] overflow-y-auto"
             style={{ backgroundColor: LINEN, borderTop: `1px solid ${BORDER}` }}
           >
@@ -677,6 +681,8 @@ export function Navbar() {
                 onChange={(e) => { setHasSearched(true); setSearchQuery(e.target.value); }}
                 onFocus={() => setSearchActive(true)}
                 onBlur={() => setSearchActive(false)}
+                aria-label="Find events"
+                enterKeyHint="search"
                 placeholder={searchPlaceholder}
                 className="flex-1 text-base bg-transparent outline-none min-w-0"
                 style={{ color: TEXT }}
@@ -713,7 +719,8 @@ export function Navbar() {
               </Link>
             ) : (
               <div className="flex flex-col">
-                <MobileNavButton emoji="💬" label="Messages" showDot={hasUnread} onTap={() => { setMobileOpen(false); router.push("/chat"); }} />
+                {<MobileNavButton emoji="💬" label="Messages" showDot={hasUnread} onTap={() => { setMobileOpen(false); router.push("/chat"); }} />}
+                <MobileNavButton emoji="🔔" label="Notifications" onTap={() => {setMobileOpen(false);router.push("/notifications");}} />
                 {/* Mirrors AvatarMenu — wishlist and the organiser dashboard
                     live in the two sections above, not here. */}
                 <MobileNavButton emoji="🎟️" label="My Dashboard" onTap={() => { setMobileOpen(false); router.push("/dashboard"); }} />
@@ -759,7 +766,7 @@ function MobileThemeRow() {
       style={{ color: TEXT }}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
     >
-      <span className="text-lg leading-none">{isDark ? "☀️" : "🌙"}</span>
+      <NavGlyph concept={isDark ? "☀️" : "🌙"} />
       {isDark ? "Light theme" : "Dark theme"}
     </button>
   );
@@ -772,7 +779,7 @@ function MobileNavButton({ emoji, label, onTap, showDot }: { emoji: string; labe
       className="flex items-center gap-3 px-2 py-3 text-base font-medium text-left rounded-lg"
       style={{ color: TEXT }}
     >
-      <span className="text-lg leading-none">{emoji}</span>
+      <NavGlyph concept={emoji} />
       {label}
       {showDot && (
         <span

@@ -141,7 +141,7 @@ function decodedBytes(dataUrl: string): number {
   return Math.floor((base64.length * 3) / 4);
 }
 
-const HTTP_SRC = /^https?:\/\/\S+$/i;
+
 const DATA_SRC = /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/i;
 
 /**
@@ -152,12 +152,12 @@ const DATA_SRC = /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/i;
  */
 export function isImageSrc(value: string): boolean {
   const v = value.trim();
-  return HTTP_SRC.test(v) || DATA_SRC.test(v);
+  return /^https:\/\/\S+$/i.test(v) || /^\/api\/user\/assets\/[a-f0-9-]+$/i.test(v) || DATA_SRC.test(v);
 }
 
 /** The wording both forms show when `isImageSrc` says no. One sentence, one place. */
 export const IMAGE_SRC_ERROR =
-  "Upload a file, or paste a full image URL starting with http:// or https://";
+  "Upload an image, or paste a full HTTPS image URL";
 
 /** True for a picture that came off this device rather than a pasted link. */
 export const isUploadedImage = (value: string): boolean => value.trim().startsWith("data:");

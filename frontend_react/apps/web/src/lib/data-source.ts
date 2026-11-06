@@ -26,13 +26,15 @@ import {
   type EventUpdateData,
 } from "@eventmind/api";
 import { isOnlineEvent, type Event, type Community } from "@eventmind/types";
-import { EXTRA_KEYS, type EventExtras } from "./event-extras";
+import { loadOverview, currentUserId, type Attendee } from "./operations";
+import { apiClient } from "@eventmind/api";
+import { type EventExtras } from "./event-extras";
 import { dummyEvents, dummyOnlineEvents, dummyMyEvents, DUMMY_ORGANISER_ID } from "./fixtures/events";
 import { dummyCommunities, dummyOnlineCommunities } from "./fixtures/communities";
 import {
   dummyAttendees, dummyEarnings, dummyPaymentTerms,
   dummyPortfolio, dummyNextEvent,
-  type DummyAttendee, type DummyEarningRow, type DummyPaymentTerm,
+  type DummyEarningRow, type DummyPaymentTerm,
 } from "./fixtures/organizer";
 
 export type DataMode = "dummy" | "real";
@@ -43,20 +45,8 @@ export const DATA_MODE: DataMode =
   process.env.NEXT_PUBLIC_DATA_MODE === "dummy" ? "dummy" : "real";
 export const isDummyMode = DATA_MODE === "dummy";
 
-/**
- * May an organiser author an agenda, announcements, an FAQ, an offer name or a
- * cover image on this build?
- *
- * ⚠️ Deliberately NOT "is this person an organiser" — that is `useIsEventOwner`.
- * This asks whether a save would SURVIVE, which is a property of the data mode:
- * none of those five has a backend column or an `EventUpdate` field, so in real
- * mode a PATCH carrying one is silently dropped and the organiser watches their
- * work vanish. Every authoring control reads this and disables itself with
- * `EXTRAS_HINT`. Full note: `lib/event-extras.ts`. It lives HERE, beside the
- * other data-mode rules, because that file is imported by this one — declaring
- * it there would close a module cycle. See TODO.md §19.12.
- */
-export const EXTRAS_ARE_LOCAL = isDummyMode;
+/** Authored content now persists through the live event API. Legacy flag retained for editor compatibility. */
+export const EXTRAS_ARE_LOCAL = true;
 
 type CommunitySearchParams = { q?: string; category?: string; city?: string };
 
@@ -217,12 +207,7 @@ export const eventsSource = {
    */
   create: (data: EventCreateData & EventExtras): Promise<{ data: Event }> => {
     if (!isDummyMode) {
-      // `delete` needs an index signature, which loses the required keys on the
-      // way back — hence the double assertion. The keys removed are exactly
-      // `EXTRA_KEYS`, none of which `EventCreateData` declares.
-      const forApi: Record<string, unknown> = { ...data };
-      for (const k of EXTRA_KEYS) delete forApi[k];
-      return eventsApi.create(forApi as unknown as EventCreateData);
+      return eventsApi.create(data);
     }
     const id = `my-evt-new-${Math.random().toString(36).slice(2, 8)}`;
     const created = {
@@ -261,9 +246,7 @@ export const eventsSource = {
    */
   update: (id: string, patch: EventUpdateData & EventExtras): Promise<{ data: Event }> => {
     if (!isDummyMode) {
-      const forApi: Record<string, unknown> = { ...patch };
-      for (const k of EXTRA_KEYS) delete forApi[k];
-      return eventsApi.update(id, forApi as EventUpdateData);
+      return eventsApi.update(id, patch);
     }
     const target = allEvents().find((e) => String(e.id) === String(id));
     if (!target) return Promise.reject(new Error(`No fixture event ${id}`));
@@ -402,27 +385,27 @@ export const organizerSource = {
    * production. The other fixtures belong to other organisers and are
    * discoverable, never manageable.
    *
-   * ⚠️ Real mode returns PUBLISHED events only, because `eventsApi.search`
-   * defaults `status: "published"` and there is no organiser-scoped endpoint
-   * that includes drafts. So the Drafts tab is always empty against a live
-   * backend — part of TODO.md §19, not a bug in the page.
+   * Real mode requests every lifecycle state with the owner's identity. The
+   * gateway rejects non-published searches for anyone other than that owner.
    */
-  events: (organiserId: string): Promise<{ data: Event[] }> =>
-    // Copies, for the reason written up on `snapshot` — this is the query the
-    // status select invalidates, and handing back the fixture objects themselves
-    // would make the refetch deep-equal to what the console is already showing.
-    isDummyMode ? ok(dummyMyEvents.map(snapshot)) : eventsApi.search({ organizer_id: organiserId }),
+  events: async (organiserId: string): Promise<{ data: Event[] }> => {
+    if (isDummyMode) return ok(dummyMyEvents.map(snapshot));
+    if (!organiserId) return ok([]);
+    const states = ["draft", "published", "registration_closed", "cancelled", "completed"] as const;
+    const groups=await Promise.all(states.map(async status=>{const rows:Event[]=[];for(let offset=0;;offset+=200){const {data}=await eventsApi.search({organizer_id:organiserId,status,limit:200,offset});rows.push(...data);if(data.length<200)break;}return rows;}));
+    return {data:groups.flat()};
+  },
 
   /** Ticket holders for one event. `eventId` is ignored in dummy mode. */
-  attendees: (): Promise<{ data: DummyAttendee[] }> => ok(isDummyMode ? dummyAttendees : []),
+  attendees: (): Promise<{ data: Attendee[] }> => isDummyMode ? ok(dummyAttendees) : (async()=>{const rows:Attendee[]=[];for(let offset=0;;offset+=200){const {data}=await apiClient.get<Attendee[]>(`/ticket/organizer/${currentUserId()}/attendees`,{params:{offset,limit:200}});rows.push(...data);if(data.length<200)break;}return {data:rows};})(),
 
   /** Per-event settlement rows. */
-  earnings: (): Promise<{ data: DummyEarningRow[] }> => ok(isDummyMode ? dummyEarnings : []),
+  earnings: async (): Promise<{ data: DummyEarningRow[] }> => isDummyMode ? ok(dummyEarnings) : {data: (await loadOverview()).data.earnings},
 
   /** The payment terms the Earnings page prints under its settlement table. */
   paymentTerms: (): Promise<{ data: DummyPaymentTerm[] }> => ok(isDummyMode ? dummyPaymentTerms : []),
 
   /** Portfolio roll-ups + the "next up" event the Events hero is built on. */
-  overview: (): Promise<{ data: { portfolio: typeof dummyPortfolio; next: typeof dummyNextEvent } | null }> =>
-    ok(isDummyMode ? { portfolio: dummyPortfolio, next: dummyNextEvent } : null),
+  overview: (): Promise<{ data: { portfolio: typeof dummyPortfolio; next: typeof dummyNextEvent | null } | null }> =>
+    isDummyMode ? ok({ portfolio: dummyPortfolio, next: dummyNextEvent }) : loadOverview(),
 };

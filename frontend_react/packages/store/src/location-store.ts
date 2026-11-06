@@ -6,6 +6,7 @@ export interface City {
   country: string;
   lat: number;
   lng: number;
+  timezone?: string;
 }
 
 export const CITIES: City[] = [
@@ -42,6 +43,7 @@ export const isOnlineCity = (city: City) => city.name === "Online";
 
 interface LocationState {
   selectedCity: City;
+  hasSelectedCity: boolean;
   _hasHydrated: boolean;
   setCity: (city: City) => void;
   setHasHydrated: (v: boolean) => void;
@@ -51,8 +53,9 @@ export const useLocationStore = create<LocationState>()(
   persist(
     (set) => ({
       selectedCity: DEFAULT_CITY,
+      hasSelectedCity: false,
       _hasHydrated: false,
-      setCity: (city) => set({ selectedCity: city }),
+      setCity: (city) => set({ selectedCity: city, hasSelectedCity: true }),
       setHasHydrated: (v) => set({ _hasHydrated: v }),
     }),
     {

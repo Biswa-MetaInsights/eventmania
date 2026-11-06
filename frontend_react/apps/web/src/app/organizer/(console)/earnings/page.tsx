@@ -57,7 +57,7 @@ import { CONVENIENCE_FEE_RATE, type DummyPaymentTerm } from "@/lib/fixtures/orga
 import { formatPrice } from "@/lib/currency";
 import {
   Card, StatTile, FilterButton, FilterSelect, ConsoleButton,
-  EmptyState, NotBuiltYet,
+  EmptyState,
   TableScroller, TableHead, TableRow,
 } from "@/components/organizer/ConsoleUI";
 import { DownloadIcon } from "@/components/organizer/ConsoleIcons";
@@ -117,9 +117,11 @@ function EarningsInner() {
     return opts;
   }, [allRows, events, picked]);
 
+  const currency = params.get('currency') || (picked === ALL ? allRows[0]?.currency : allRows.find(r=>String(r.id)===picked)?.currency);
+  const currencies = Array.from(new Set(allRows.map(r=>r.currency)));
   const rows = useMemo(
-    () => (picked === ALL ? allRows : allRows.filter((r) => String(r.id) === picked)),
-    [allRows, picked],
+    () => (picked === ALL ? allRows : allRows.filter((r) => String(r.id) === picked)).filter(r=>r.currency===currency),
+    [allRows, picked, currency],
   );
 
   /** The event named by the URL has no settlement row at all. Loading is not
@@ -129,6 +131,7 @@ function EarningsInner() {
 
   function selectEvent(value: string) {
     const next = new URLSearchParams(params.toString());
+    next.delete("currency");
     if (value === ALL) next.delete("event");
     else next.set("event", value);
     const qs = next.toString();
@@ -145,7 +148,6 @@ function EarningsInner() {
    * multi-currency organiser needs the totals split per currency before this
    * page can serve them — TODO.md §19.
    */
-  const currency = rows[0]?.currency;
   const money = (n: number) => (n === 0 ? "—" : formatPrice(n, currency, { freeLabel: null }));
 
   // Summed from the rows on screen, never stored separately — see the header.
@@ -172,12 +174,13 @@ function EarningsInner() {
   // records: "no endpoint" and "no rows matched" are different statements and
   // must not print the same page.
   if (!isLoading && allRows.length === 0) {
-    return <NotBuiltYet what="Earnings" todo="TODO.md §19" />;
+    return <EmptyState title="No event earnings yet" body="Your events and their recorded ticket sales will appear here." />;
   }
 
   if (pickedIsMissing) {
     return (
       <div className="flex flex-col gap-4">
+      {currencies.length>1&&<label className="block">Show totals in<select aria-label="Earnings currency" value={currency} onChange={e=>{const next=new URLSearchParams(params.toString());next.set('currency',e.target.value);router.replace('/organizer/earnings?'+next.toString());}} className="ml-3 p-2 border rounded-lg">{currencies.map(code=><option key={code}>{code}</option>)}</select><span className="block mt-2">Currencies are reported separately. No exchange-rate conversion is applied.</span></label>}
         <FilterSelect label="Event" value={picked} options={options} onChange={selectEvent} defaultValue={ALL} />
         <EmptyState
           title="This event has not settled anything yet"

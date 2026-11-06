@@ -104,9 +104,7 @@ prefix. **NewFind** is the user-facing name.
     ```
     **If it OOMs, delete `.next` and retry BEFORE falling back to `dev:webpack`** — a stale Turbopack cache is the usual culprit, and plain `dev` is ~12x faster. Details: `HANDOVER.md` → *How to Run*.
 12. **Never attribute commits to a tool.** No `Co-Authored-By:` trailers for AI assistants, no "Generated with…" lines, no tool attribution in commit messages or PR descriptions. **Biswajith and Gautham are the only contributors on this repo.**
-13. **⚠️ STRIP THE DEV BYPASS BEFORE DEPLOYING.** `lib/dev-flags.ts` holds the developer escape hatches — today `SKIP_ORGANIZER_VERIFICATION`, which opens `/organizer/create` with no verified organiser profile and adds a dev strip to `/organizer/onboarding`. **The removal checklist is in `HANDOVER.md` → *Shipping checklist*; run it as part of shipping.**
-
-    **What this is NOT:** it is not a live hole in production. Every flag is `NODE_ENV === "development" && <env var>`, both halves statically replaced at build time, so a production build already evaluates each to `false` and the bundler drops the code behind it — **setting the env var in a deploy environment does nothing.** **The corollary matters more than the checklist: if you ever find a flag in that file missing its `NODE_ENV` half, that one IS a live bypass — fix it before anything else ships.**
+13. **Production access:** organiser onboarding is required; no development verification bypass is included.
 
 ---
 

@@ -16,7 +16,6 @@ import {
   DetailStickyShell,
   STICKY_BAR_HEIGHT,
 } from "@/components/DetailCard";
-import { SKIP_ORGANIZER_VERIFICATION } from "@/lib/dev-flags";
 import { GUTTERS } from "@/lib/layout";
 
 const GREEN = "var(--brand-green)";
@@ -73,6 +72,7 @@ function subFromToken(token: string | null): string {
 export default function OrganizerOnboardingPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const tokens = useAuthStore((s) => s.tokens);
 
   const [fullName, setFullName] = useState("");
@@ -93,20 +93,16 @@ export default function OrganizerOnboardingPage() {
   const selectedCountry = COUNTRIES.find((c) => c.code === country) ?? COUNTRIES[0];
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) { router.replace("/auth"); return; }
-    /* An organiser who is already verified normally gets bounced straight to the
-       create form. Under the dev bypass that redirect is exactly what stops you
-       from LOOKING at this page — and it would fire the moment the create page's
-       back button landed you here, so the pair would ping-pong. */
-    if (SKIP_ORGANIZER_VERIFICATION) return;
     const userId = subFromToken(tokens?.access_token ?? null);
     if (!userId) return;
     organizerApi.get(userId)
       .then(() => router.replace("/organizer/create"))
-      .catch(() => { /* not verified yet — stay */ });
-  }, [isAuthenticated, router, tokens]);
+      .catch(() => { /* no organizer profile yet — stay */ });
+  }, [hasHydrated, isAuthenticated, router, tokens]);
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   function validate(): boolean {
     const errors: Record<string, string> = {};
@@ -169,35 +165,6 @@ export default function OrganizerOnboardingPage() {
         className={`pt-8 max-w-[1536px] mx-auto ${GUTTERS}`}
         style={{ paddingBottom: STICKY_BAR_HEIGHT + 32 }}
       >
-        {/* DEV ONLY — the forward half of the create ⇄ onboarding round trip.
-            Deliberately a strip ABOVE the page rather than a control inside it:
-            this page's own layout is what you came here to look at, and a button
-            threaded into the header would change the thing under review. The
-            TERRACOTTA edge is the tell that it is not product UI — nothing else
-            on this page is outlined in the annotation colour, and this product
-            has no dashed borders anywhere (Gautham, 2026-09-09). Dropped from
-            the bundle entirely when the flag is off — see lib/dev-flags.ts. */}
-        {SKIP_ORGANIZER_VERIFICATION && (
-          <div
-            className="mb-6 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3"
-            style={{
-              border: "2px solid var(--brand-terracotta)",
-              backgroundColor: "var(--brand-surface)",
-            }}
-          >
-            <p style={{ color: "var(--brand-hint)" }}>
-              Dev bypass on — verification is not being enforced.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/organizer/create")}
-              className="px-4 py-2 rounded-lg font-bold transition-colors bg-[var(--brand-green)] hover:bg-[var(--brand-green-hover)]"
-              style={{ color: "var(--brand-on-green)" }}
-            >
-              Skip to Create Event →
-            </button>
-          </div>
-        )}
 
         {/* Header — the create page's back arrow and title block. Plain history
             here in both modes: under the bypass the dev strip above is already
@@ -215,10 +182,10 @@ export default function OrganizerOnboardingPage() {
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="text-[28px] font-bold" style={{ color: "var(--brand-text)" }}>Verify your organisation</h1>
+            <h1 className="text-[28px] font-bold" style={{ color: "var(--brand-text)" }}>Set up your organisation</h1>
             <p className="text-[18px]" style={{ color: "var(--brand-hint)" }}>
-              To publish events on NewFind, we need your company details for trust and compliance.
-              This is a one-time step. Your information is kept private.
+              Add your organisation details to publish events. Your organisation name appears publicly.
+              Contact details, company address and bank details stay private.
             </p>
           </div>
         </div>
@@ -393,7 +360,7 @@ export default function OrganizerOnboardingPage() {
               <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
               </svg>
-              Organisation verified! Taking you to create your event…
+              Organisation details saved! Taking you to create your event…
             </div>
           )}
 
@@ -413,9 +380,9 @@ export default function OrganizerOnboardingPage() {
                   isSubmitting ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                      Verifying…
+                      Saving…
                     </span>
-                  ) : "Verify & Continue"
+                  ) : "Save & Continue"
                 }
               />
             </div>

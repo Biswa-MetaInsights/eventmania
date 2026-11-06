@@ -26,9 +26,11 @@ export function ShareModal({ fallback, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Portal requires the mounted browser document.
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset the ephemeral copy confirmation when a new share opens.
     setCopied(false);
     if (!fallback) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

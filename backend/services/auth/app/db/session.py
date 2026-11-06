@@ -9,7 +9,7 @@ engine_options = {"pool_pre_ping": True}
 if is_sqlite:
     engine_options["connect_args"] = {"check_same_thread": False}
 else:
-    engine_options.update({"pool_size": 10, "max_overflow": 20})
+    engine_options.update({"pool_size": 2, "max_overflow": 3})
 
 engine = create_engine(settings.DATABASE_URL, **engine_options)
 

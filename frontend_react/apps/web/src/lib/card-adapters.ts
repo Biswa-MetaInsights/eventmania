@@ -1,6 +1,8 @@
 import type { Event, Community } from "@eventmind/types";
+import { isExternalEvent } from "@/lib/external-events";
 import { formatPrice } from "@/lib/currency";
 import { eventImageUrl } from "@/lib/event-media";
+import type { BadgeType } from "@/components/EventBadges";
 import type { CarouselEvent } from "@/components/EventsCarousel";
 import type { CommunityItem } from "@/components/CommunityCarousel";
 
@@ -35,33 +37,37 @@ function isThisWeek(startDate: Date): boolean {
  * card fields) on the same card, and its date row must read like every other
  * card's. Never format a card date by hand elsewhere.
  */
-export function cardDateTime(iso: string): { date: string; time: string } {
+export function cardDateTime(iso: string, timeZone?: string): { date: string; time: string } {
   const start = new Date(iso);
   return {
-    date: start.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
-    time: start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+    date: start.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone }),
+    time: start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone }),
   };
 }
 
 // Adapts an API Event into the home-page CarouselEvent card shape.
 export function toCarouselEvent(event: Event): CarouselEvent {
   const start = new Date(event.start_date);
-  const { date, time } = cardDateTime(event.start_date);
+  const { date, time } = cardDateTime(event.start_date,event.timezone || "UTC");
   const venue = (event.location as Record<string, string>)?.name ?? "Venue TBC";
   const price = Number(event.price);
-  const isFree = price === 0;
-  const isSoldOut = event.capacity > 0 && event.tickets_sold >= event.capacity;
+  const external = isExternalEvent(event);
+  const isFree = !external && price === 0;
+  const isSoldOut = !external && event.capacity > 0 && event.tickets_sold >= event.capacity;
   const sellingFast = !isSoldOut && event.capacity > 0 && event.tickets_sold / event.capacity > 0.7;
   const thisWeek = !isSoldOut && isThisWeek(start);
 
   // sold-out is exclusive; all other applicable badges accumulate
-  const badgeTypes = isSoldOut
+  const fallbackBadges = isSoldOut
     ? (["sold-out" as const])
     : [
         ...(sellingFast ? ["selling-fast" as const] : []),
         ...(thisWeek    ? ["this-week"    as const] : []),
         ...(isFree      ? ["free"         as const] : []),
       ];
+
+  const knownBadges = new Set<BadgeType>(['free', 'selling-fast', 'today', 'sold-out', 'this-week', 'recommended']);
+  const badgeTypes = event.badge_types ? event.badge_types.filter((b): b is BadgeType => knownBadges.has(b as BadgeType)) : fallbackBadges;
 
   const LABELS: Record<string, string> = { "sold-out": "Sold Out", "selling-fast": "Selling Fast", "this-week": "This Week", "free": "Free" };
 
@@ -71,7 +77,7 @@ export function toCarouselEvent(event: Event): CarouselEvent {
     date,
     time,
     venue,
-    price: isFree ? "Free" : `${formatPrice(price, event.currency)} onwards`,
+    price: external ? "Check Ticketmaster" : isFree ? "Free" : `${formatPrice(price, event.currency)} onwards`,
     imageUrl: eventImageUrl(event, 800, 450),
     badge: badgeTypes[0] ? LABELS[badgeTypes[0]] : undefined,
     badgeTypes: badgeTypes.length ? badgeTypes : undefined,
@@ -106,6 +112,7 @@ export function toCommunityItem(community: Community): CommunityItem {
 
   return {
     id: String(community.id),
+    slug: community.slug,
     title: community.name,
     date,
     time,

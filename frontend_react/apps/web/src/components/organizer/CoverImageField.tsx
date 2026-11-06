@@ -33,6 +33,8 @@
 //  the same thing twice.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { uploadImage } from "@/lib/operations";
+import { isDummyMode } from "@/lib/data-source";
 import { useRef, useState } from "react";
 import { inputCls } from "@/components/FormControls";
 import { fileToAvatarDataUrl, fileToCoverDataUrl, isUploadedImage } from "@/lib/image-upload";
@@ -87,10 +89,12 @@ export function CoverImageField({
     if (!file) return;
     setUploadError(null);
     setBusy(true);
-    const result = await (isAvatar ? fileToAvatarDataUrl(file) : fileToCoverDataUrl(file));
-    setBusy(false);
-    if (result.ok) onChange(result.dataUrl);
-    else setUploadError(result.message);
+    try {
+      const result = await (isAvatar ? fileToAvatarDataUrl(file) : fileToCoverDataUrl(file));
+      if (result.ok) onChange(!isDummyMode && !isAvatar ? await uploadImage(result.dataUrl, 'event') : result.dataUrl);
+      else setUploadError(result.message);
+    } catch { setUploadError('The image could not be uploaded. Please try again.'); }
+    finally { setBusy(false); }
   }
 
   function remove() {

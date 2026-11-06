@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.user_endpoints import router as user_router
+from app.api.assets import router as asset_router
 from app.api.organizer_endpoints import router as organizer_router
 from app.api.community_endpoints import router as community_router
 from app.db.session import engine
@@ -13,7 +14,11 @@ from app.core.config import settings
 # Initialize database tables
 UserBase.metadata.create_all(bind=engine)
 OrganizerBase.metadata.create_all(bind=engine)
+from app.db.migrations import migrate_organizer_contact_email
+migrate_organizer_contact_email(engine)
 CommunityBase.metadata.create_all(bind=engine)
+from backend.shared.migrations import add_columns
+add_columns(engine, 'communities', {'location': "JSON NOT NULL DEFAULT '{}'"})
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
@@ -32,6 +37,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(asset_router)
 app.include_router(user_router)
 app.include_router(organizer_router)
 app.include_router(community_router)

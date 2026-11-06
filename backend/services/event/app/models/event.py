@@ -1,4 +1,4 @@
-﻿from sqlalchemy.types import Uuid
+from sqlalchemy.types import Uuid
 from sqlalchemy import Column, String, Text, DateTime, JSON, DECIMAL, Enum, Integer, UniqueConstraint
 import uuid
 import datetime
@@ -13,6 +13,7 @@ class EventStatus(str, enum.Enum):
     PUBLISHED = "published"
     CANCELLED = "cancelled"
     COMPLETED = "completed"
+    REGISTRATION_CLOSED = "registration_closed"
 
 class Event(Base):
     __tablename__ = "events"
@@ -55,6 +56,10 @@ class Event(Base):
     status = Column(Enum(EventStatus), default=EventStatus.DRAFT)
 
     content_generated = Column(JSON, default={})
+    organizer_content = Column(JSON, default=dict, nullable=False)
+    visibility = Column(String(20), default="public", nullable=False)
+    timezone = Column(String(100), default="UTC", nullable=False)
+    previous_start_date = Column(DateTime, nullable=True)
     moderation_score = Column(DECIMAL(4, 2), default=0.00)
 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -70,5 +75,18 @@ class Event(Base):
 
     def __repr__(self):
         return f"<Event(title='{self.title}', status='{self.status}')>"
+
+
+def content_property(key, default):
+    def read(event):
+        return (event.organizer_content or {}).get(key, default)
+    def write(event, value):
+        event.organizer_content = {**(event.organizer_content or {}), key: value}
+    return property(read, write)
+
+
+for _key, _default in [('agenda', []), ('faq', []), ('announcements', []),
+                       ('offer_name', ''), ('organization_name', '')]:
+    setattr(Event, _key, content_property(_key, _default))
 
 

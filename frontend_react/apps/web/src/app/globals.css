@@ -507,3 +507,16 @@ a, button, [role="button"], input, select, textarea, label, summary {
     background: linear-gradient(90deg, rgba(var(--hero-wash), 0.72) 0%, rgba(var(--hero-wash), 0.72) 70%, rgba(var(--hero-wash), 0.1) 100%);
   }
 }
+
+/* Finish the image on the hero's bottom edge, using the current page theme.
+   This sits behind text and controls and never covers the Events section. */
+.nf-home-hero::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: clamp(80px, 8vw, 120px);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--brand-bg) 0%, transparent), var(--brand-bg));
+  z-index: -1;
+  pointer-events: none;
+}

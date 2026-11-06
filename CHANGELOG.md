@@ -10,7 +10,7 @@
 ---
 
 ## 2026-11-06
-- **Biswajith Gopinathan** — retain original hero photos/copy in a full-width rotating background above discovery, with image-dependent text contrast, pause controls and reduced-motion support.
+- **Biswajith Gopinathan** — retain original hero photos/copy in a full-width rotating background above discovery, with image-dependent text contrast, a subtle bottom fade into the page surface, pause controls and reduced-motion support.
 - **Biswajith Gopinathan** — adopt Inter and shared responsive typography roles across discovery, authentication, event content and organizer controls; retain NewFind logo and palette.
 
 ## 2026-11-04

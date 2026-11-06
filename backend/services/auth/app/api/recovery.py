@@ -7,7 +7,7 @@ import ssl
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from uuid import UUID, uuid4
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import Column, String, DateTime, Text, func
 from sqlalchemy.types import Uuid
@@ -68,9 +68,11 @@ def send_pending():
 
 
 @router.get('/capabilities')
-def capabilities():
+def capabilities(response: Response):
+    from app.api.oauth import enabled
+    response.headers['Cache-Control'] = 'no-store'
     return {'email_recovery': mail_ready(), 'email_verification': mail_ready(),
-            'google': False, 'facebook': False}
+            'google': enabled('google'), 'facebook': enabled('facebook')}
 
 
 @router.get('/internal/identity/{user_id}', dependencies=[Depends(internal)])

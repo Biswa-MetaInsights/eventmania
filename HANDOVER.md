@@ -35,6 +35,8 @@
 | EventRooms | Polling on existing event service; server enforces ticket-holder/organizer membership. |
 | NotificationBell | Private persisted notices; query cache must clear when the account changes. |
 | AccountRecovery | One-use token read from URL fragment, then removed from address bar; never log it. |
+| SocialSignIn | Shared provider controls for sign-in and explicit account linking. |
+| SocialCallback | Single-use provider callback exchange; no application tokens in URLs. |
 
 
 ## Repository Layout
@@ -303,6 +305,8 @@ Communities are active in the professional-QA candidate, with persisted membersh
 
 | File | What it is |
 |---|---|
+| `components/SocialSignIn.tsx` | Capability-driven sign-in and Profile connection buttons |
+| `components/SocialCallback.tsx` | Google/Facebook authorization callback completion |
 | `components/EventIcons.tsx` | **The** glyph set — every icon in the app |
 | `components/EventActions.tsx` | **The** round controls — share / wishlist / back / arrow, plus the organiser's edit / duplicate / cancel |
 | `components/ModalShell.tsx` | **The** dialog chassis — overlay, panel, title row, close, Escape, click-outside, portal |

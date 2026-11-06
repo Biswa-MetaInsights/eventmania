@@ -12,9 +12,9 @@
 
 | Priority | State | Remaining work |
 |---|---|---|
-| 1 | Core deployed; integration activation and broader QA remain | Configure the selected Gmail sender and approved alert destination; paid off-server backups deferred by owner until testing succeeds; authenticated/mobile/accessibility and production-load evidence; provider approval/credentials |
+| 1 | Core and Gmail sender deployed; broader QA remains | Finish deployed recovery/verification journeys, Google activation and approved alert destination; paid off-server backups deferred by owner; authenticated/mobile/accessibility and production-load evidence; provider approval/credentials |
 | 2 | Event operations deployed; live API QA passed | Console large-data search/pagination UX, scheduled reminders, refund/statement workflows and operator training |
-| 3 | Communities and interest suggestions deployed | Verified Google/Facebook OAuth; paid tiers and Stripe test flow; refunds/settlements; grounded assistant and its approved service credentials |
+| 3 | Communities and interest suggestions deployed | Google/Facebook code and isolated security tests prepared; finish provider credentials, deployment and real OAuth QA (Google first); paid tiers/Stripe test flow, refunds/settlements and grounded assistant remain |
 
 Implemented in the release candidate: persisted profiles/images and event content, 200 km map discovery, backend live badges, currency-safe comparisons/totals, email recovery/verification transport, attendees/check-ins/audit, event closure, reschedule/cancel notices, persistent chat/notifications, communities/membership/reviews and saved-interest suggestions. See STATUS.md for tested boundaries. Production activation is not implied by implementation.
 
@@ -553,7 +553,7 @@ at `/organizer/events` — Gautham's call, not a silent deletion.
 
 ---
 
-## 20. Release candidate — Owner-only lifecycle changes create durable in-app notices and email outbox entries; production SMTP remains unconfigured.
+## 20. Release candidate — Owner-only lifecycle changes create durable in-app notices and email outbox entries; Gmail SMTP is configured, and event-mail journey QA remains.
 
 ## 21. `[BE]` How to handle a refund — NEEDS A DECISION on the policy, then a build
 
@@ -739,7 +739,8 @@ The user service persists and returns contact_email on the private organizer pro
 - Daily protected local PostgreSQL backups are installed. Four core databases passed isolated restoration, checksums and public-table row-count checks. Paid off-server storage is deferred by the owner until testing goes well (2026-11-04); local snapshots cannot recover a lost server.
 - Complete mobile/device verification and the organizer publish/edit/participant-booking browser checks. Organizer onboarding and draft creation passed; draft console visibility was identified and fixed in code.
 - Add health/error monitoring, review security/rate limits and run basic load tests.
-- Configure password recovery/email verification and transactional email using the selected sender metainsights.bv@gmail.com; an app password must be entered privately on the host, then TLS/login and actual inbox delivery verified.
+- Gmail sender activation passed private credential entry, TLS/login, application transport and owner-confirmed inbox delivery (2026-11-06). Finish complete deployed recovery/verification and event-mail journeys.
+- Finish Google OAuth first: configure the Web application client/consent, register `https://newfind-khaki.vercel.app/auth/google/callback`, enter credentials privately using `backend/scripts/configure_google.py`, then verify new sign-up, explicit existing-account linking, subsequent login and cancellation. Facebook activation follows separately.
 - Connect a dedicated NewFind domain; new paid services require explicit approval.
 - GitHub repository renamed to `Biswa-MetaInsights/newfind` on 2026-11-04; repository ID, release branch and open PR #10 preserved. Local clone remotes updated. Verify/update the Hetzner remote and Vercel integration after rename; review PR #10 before merging the release branch into main.
 

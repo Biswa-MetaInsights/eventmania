@@ -53,6 +53,10 @@ async def authorize(request, service, path, client):
         return
     if service == "auth" and path in {"register", "login", "capabilities", "forgot-password", "reset-password", "verify-email", "social-login"}:
         return
+    if service == 'auth' and method == 'POST' and path in {
+        f'oauth/{provider}/{action}' for provider in ('google', 'facebook') for action in ('start', 'complete')
+    }:
+        return
     if service == 'event' and (path.startswith('notifications') or path in {'rooms','recommendations'} or '/messages' in path or path.endswith('/announcements')):
         await verified_principal(request, client)
         return
@@ -75,7 +79,7 @@ async def authorize(request, service, path, client):
             return
     claims = await verified_principal(request, client)
     subject = claims["sub"]
-    if service == "auth" and path in {"me", "request-verification"}:
+    if service == "auth" and path in {"me", "request-verification", "oauth/accounts"}:
         return
     if service == "user":
         if path.split("/")[0] != subject:

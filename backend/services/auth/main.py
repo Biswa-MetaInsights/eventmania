@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth_endpoints import router as auth_router
 from app.api.recovery import router as recovery_router
+from app.api.oauth import router as oauth_router
 from app.db.session import engine, Base
 from app.core.config import settings
 
@@ -30,6 +31,7 @@ app.add_middleware(
 # Include Authentication Router
 app.include_router(recovery_router)
 app.include_router(auth_router)
+app.include_router(oauth_router)
 
 @app.on_event("startup")
 async def startup_event():

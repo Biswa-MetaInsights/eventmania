@@ -9,7 +9,11 @@
 
 ---
 
+## 2026-11-07
+- **Biswajith Gopinathan** — prepare browser-bound Google/Facebook authorization-code sign-in, signed Google identity verification and explicit account linking with isolated security tests; Google provider activation and live OAuth QA remain pending.
+
 ## 2026-11-06
+- **Biswajith Gopinathan** — activate Gmail SMTP privately for NewFind auth/event services; verify TLS authentication, application test send and owner-confirmed inbox receipt with unchanged TalktoFile container start times.
 - **Biswajith Gopinathan** — retain original hero photos/copy in a full-width rotating background above discovery, with image-dependent text contrast, a subtle bottom fade into the page surface, pause controls and reduced-motion support.
 - **Biswajith Gopinathan** — adopt Inter and shared responsive typography roles across discovery, authentication, event content and organizer controls; retain NewFind logo and palette.
 

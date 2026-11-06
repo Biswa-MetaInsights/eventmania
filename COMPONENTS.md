@@ -23,6 +23,8 @@
 | EventRooms | Polling on existing event service; server enforces ticket-holder/organizer membership. |
 | NotificationBell | Private persisted notices; query cache must clear when the account changes. |
 | AccountRecovery | One-use token read from URL fragment, then removed from address bar; never log it. |
+| SocialSignIn | Reuse on auth and Profile; enable only from backend capabilities, and make account linking explicit. |
+| SocialCallback | Exchange each code once, remove callback parameters, and keep application tokens out of URLs. |
 
 > Communities are active in the professional-QA candidate: directory, detail, membership and reviews use the existing user service. The home carousel and older optional surfaces retain parked code; do not remove shared community components. Production rollout and browser verification remain pending.
 

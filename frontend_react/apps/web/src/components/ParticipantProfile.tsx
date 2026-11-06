@@ -7,6 +7,7 @@ import { currentUserId, loadProfile, privateImage, uploadImage } from '@/lib/ope
 import { fileToAvatarDataUrl } from '@/lib/image-upload';
 import { inputCls } from '@/components/FormControls';
 import { OUTLINE_BUTTON } from '@/lib/controls';
+import { SocialSignIn } from '@/components/SocialSignIn';
 
 export function ParticipantProfile() {
   const client = useQueryClient();
@@ -46,5 +47,10 @@ export function ParticipantProfile() {
     </form>
     <button className={`px-5 py-3 rounded-lg ${OUTLINE_BUTTON}`} onClick={async () => { try { await apiClient.post('/auth/request-verification'); setMessage('Verification email requested.'); } catch {setMessage('Email verification is not available yet.');} }}>Verify email address</button>
     {message && <p role="status">{message}</p>}
+    <section className="space-y-4 border-t border-[var(--brand-border)] pt-6">
+      <h3 className="nf-card-title">Connected sign-in accounts</h3>
+      <p className="nf-meta">Connect a provider here to sign in to this same NewFind account. Your events and tickets stay together.</p>
+      <SocialSignIn mode="link" />
+    </section>
   </section>;
 }

@@ -8,6 +8,7 @@ import { useAuthStore } from "@eventmind/store";
 import type { AuthTokens } from "@eventmind/types";
 import { isAxiosError } from "@eventmind/api";
 import { BrandLogo } from "@/components/brand";
+import { SocialSignIn } from "@/components/SocialSignIn";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -187,10 +188,7 @@ export default function AuthPage() {
             <div className="flex-1 h-px bg-[var(--brand-border)]" />
           </div>
 
-          <div className="space-y-4">
-            <SocialButton label="Continue with Google" color="#DB4437" initial="G" />
-            <SocialButton label="Continue with Facebook" color="#1877F2" initial="f" />
-          </div>
+          <SocialSignIn disabled={isLoading} />
         </div>
       </div>
     </div>
@@ -208,24 +206,5 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
       <label htmlFor={htmlFor} className="text-sm font-bold text-[var(--brand-text)]">{label}</label>
       {children}
     </div>
-  );
-}
-
-function SocialButton({ label, color, initial }: { label: string; color: string; initial: string }) {
-  return (
-    <button
-      type="button"
-      disabled
-      title="Coming soon"
-      className="w-full flex items-center justify-center gap-3 py-4 rounded-lg border-2 border-[var(--brand-control-border)]
-                 bg-[var(--brand-bg)] text-[var(--brand-text)] font-semibold hover:bg-[var(--brand-surface)] transition-colors
-                 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <span className="w-6 h-6 rounded-full flex items-center justify-center text-[var(--brand-on-green)] text-sm font-bold"
-        style={{ backgroundColor: color }}>
-        {initial}
-      </span>
-      {label}
-    </button>
   );
 }

@@ -14,7 +14,7 @@
 |---|---|---|
 | 1 | Core and Gmail sender deployed; broader QA remains | Finish deployed recovery/verification journeys, Google activation and approved alert destination; paid off-server backups deferred by owner; authenticated/mobile/accessibility and production-load evidence; provider approval/credentials |
 | 2 | Event operations deployed; live API QA passed | Console large-data search/pagination UX, scheduled reminders, refund/statement workflows and operator training |
-| 3 | Communities and interest suggestions deployed | Google/Facebook code and isolated security tests prepared; finish provider credentials, deployment and real OAuth QA (Google first); paid tiers/Stripe test flow, refunds/settlements and grounded assistant remain |
+| 3 | Communities, interest suggestions and social-auth backend deployed | Finish Google credentials/consent, frontend production promotion and real OAuth QA; Facebook follows separately. Paid tiers/Stripe test flow, refunds/settlements and grounded assistant remain |
 
 Implemented in the release candidate: persisted profiles/images and event content, 200 km map discovery, backend live badges, currency-safe comparisons/totals, email recovery/verification transport, attendees/check-ins/audit, event closure, reschedule/cancel notices, persistent chat/notifications, communities/membership/reviews and saved-interest suggestions. See STATUS.md for tested boundaries. Production activation is not implied by implementation.
 
